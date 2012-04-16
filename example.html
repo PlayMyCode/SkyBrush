@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SkyBrush - example page</title>
+        
+        <link rel="stylesheet" href="./css/skybrush.css" />
+        
+        <style>
+            html, body, .wrap {
+                width : 100%;
+                height: 100%;
+                
+                margin: 0;
+                border: 0;
+            }
+            .wrap {
+                position: relative;
+            }
+                    .example_bar {
+                        postion: absolute;
+                        
+                        left: 0;
+                        right: 0;
+                        top: 0;
+                        
+                        height: 61px;
+                    }
+                        .example_bar > img {
+                            float: left;
+                            
+                            margin-top: -9px;
+                        }
+                        .example_bar > p {
+                            display: table-cell;
+                            
+                            vertical-align: middle;
+                            height: 61px;
+                            
+                            margin-left: 30px;
+                            margin-top: 16px;
+                            color: black;
+                            
+                            font-family: Verdana, Helvetica;
+                            font-size: 100%;
+                        }
+                            .example_bar > p > a,
+                            .example_bar > p > a:active,
+                            .example_bar > p > a:visited,
+                            .example_bar > p > a:hover {
+                                text-decoration: none !important;
+                            }
+                        
+                    .skybrush {
+                        position: absolute;
+                        
+                        height: auto;
+                        
+                        top: 61px;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                    }
+                        .skybrush_topbar {
+                            background: transparent;
+                        }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <div class="example_bar">
+                <img src="./skybrush_logo.png" />
+                <p>HTML5 Powered Painting Application | <a href="http://github.com/PlayMyCode/SkyBrush">GitHub</a>, <a href="http://www.studiofortress.com">Online Example</a>, used on <a href="http://www.playmycode.com">Play My Code</a></p>
+            </div>
+        
+            <div class="skybrush"></div>
+        </div>
+    </body>
+    
+    <script src="./js/jquery-1.7.2.min.js"></script>
+    <script src="./js/util.js"></script>
+    <script src="./js/skybrush.js"></script>
+
+    <script>
+        var dom = $( '.skybrush' );
+
+        var skybrush = new SkyBrush( dom, {
+                image_location : './images',
+                cursor_location: './images/cursors'
+        } );
+    </script>
+</html>

@@ -1,0 +1,1316 @@
+/**
+ * @license
+ * 
+ * SkyBrush - skybrush.css
+
+ * Copyright (c) 2012 Joseph Lenton
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the <organization> nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * # CSS Style Guide #
+ * 
+ * All CSS rules need to be prefixed with either 'skybrush_' or 'sb_'.
+ * This is to ensure SkyBrush doesn't conflict with existing CSS,
+ * especially for stuff like 'hide', 'show' and 'wrap', which are
+ * pretty common.
+ * 
+ * Originally SkyBrush also used some very long CSS rules, and this
+ * allows us to remove them all, and set CSS properties with a less
+ * comples single rule.
+ * 
+ * # Components: skybrush_
+ * 
+ * All components begin with 'skybrush_'. For example the 'top_bar'
+ * becomes 'skybrush_top_bar'.
+ * 
+ * Rules are also concatonated togethor, to avoid cost, and to make
+ * rules shorter. For example:
+ * 
+ *      .skybrush .top_bar .wrap
+ * 
+ * becomes:
+ *      
+ *      .skybrush_top_bar_wrap
+ * 
+ * # Use Child Selector Rule: .foo > .bar > .foobar
+ * 
+ * If you do need a multi-part rule, always use the explicit child
+ * selector, over the less explicit one (where possible).
+ * 
+ * For example this is bad:
+ * 
+ *      .info_bar .wrap .inner
+ * 
+ * ... this is *much* better:
+ * 
+ *      .info_bar > .wrap .inner
+ * 
+ * ... and of course this is best:
+ * 
+ *      .skybrush_info_bar_inner
+ * 
+ * Does it really matter? Yes! Totally, especially when your dealing
+ * with something quite large, it can make a *big* performance
+ * difference in certain browser (*cough* Chrome *cough*).
+ * 
+ * # Types: sb_
+ * 
+ * Some components have a state, such as 'show' or 'hidden', and
+ * controls have certain types such as 'slider'. These are prefixed
+ * with 'sb_'.
+ * 
+ * For example:
+ * 
+ *      .skybrush_gui.hide
+ * 
+ * becomes:
+ * 
+ *      .skybrush_gui.sb_hide
+ * 
+ * # GUI Window Prefix: sb_gui_ 
+ * 
+ * 'sb_' is also used for some other special prefixes, for when these
+ * names are worked out in code.
+ * 
+ * For example we have a 'skybrush_gui' for colours, which has the
+ * 'colors' css class. So the GUI is: .skybrush_gui.colors
+ * 
+ * However 'sb_gui_' is added to the type name, 'colors', and so this
+ * becomes: .skybrush_gui.sb_gui_colors
+ * 
+ * Again this is to avoid clashes, in case 'colors' is used in
+ * multiple places (both in SkyBrush and elsewhere). This way the rule
+ * 'sb_gui_colors' always grabs the 'colors' GUI.
+ * 
+ * # Command Tool Button: sb_command_
+ * 
+ * The same is also true for 'sb_command_', which is used for the
+ * command buttons. These are the pencil, line,  rectangle, brush,
+ * colour picker and other command buttons. So for example 'rectangle'
+ * becomes 'sb_command_'.
+ */
+
+/*
+ * Common properties for all elements in SkyBrush.
+ * 
+ * Such as all links having no underline, and all non-text inputs
+ * having no user select, and common reset properties.
+ */
+.skybrush :not(input[type=text]) {
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+         -o-user-select: none;
+            user-select: none;
+    
+    -webkit-appearance: none;
+}
+.skybrush a,
+.skybrush a:hover,
+.skybrush a:visited,
+.skybrush a:focus {
+    text-decoration: none;
+}
+
+.skybrush_input,
+.skybrush_rgb_input,
+.skybrush_controls_header_text,
+.skybrush_button,
+.skybrush_input_button,
+.skybrush_command_control_label,
+.skybrush_rgb_label {
+    font-family: sans-serif;
+    color: #444;
+    outline: medium none;
+}
+.skybrush_command_control_label {
+    float: left;
+    font-size: 11px;
+    font-weight: bold;
+}
+.skybrush_rgb_label {
+    vertical-align: baseline;
+    padding: 0;
+    margin: 0;
+}
+
+/**
+ * Common SkyBrush Controls.
+ *
+ * Common classes used throughout SkyBrush,
+ * and more importantly, SkyBrush GUI elements.
+ */
+
+    .skybrush_slider_bar {
+    	width: 100%;
+
+		height: 10px;
+
+        display: block;
+        
+        position: relative;
+        top: 13px;
+
+		float: left;
+        
+        cursor: pointer;
+    }
+		.skybrush_slider_bar_inner {
+			position: absolute;
+
+			width: 100%;
+			height: 2px;
+			background: #7F7F7F;
+
+			border-radius: 2px;
+			box-shadow: 0 0 5px rgba( 0, 51, 102, 0.35 );
+        
+			top: 50%;
+			margin-top: -1px;
+		}
+		.skybrush_slider_bar_slider {
+			background: url(./../images/slider_arrow.png) no-repeat 0 0;
+            height: 13px;
+			width: 8px;
+
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            margin-left: -4px;
+            
+            display: block;
+            
+            cursor: pointer;
+		}
+
+.skybrush_rgb_input,
+.skybrush_input {
+	display: inline-block;
+	width: 24px;
+	padding: 0 2px;
+	margin: 0 0 0 3px;
+	text-align: left;
+
+    font-size: 10px;
+	font-weight: bold;
+
+    vertical-align: middle;
+
+	-webkit-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+	   -moz-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+			box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+}
+.skybrush_input_button {
+	font-size: 11px;
+	min-width: 50px;
+	margin-left: 4px;
+}
+
+/* 
+ * SkyBrush Core / Root
+ * 
+ * The main dom, it's viewports, and other starting places.
+ */
+.skybrush {
+    width : 100%;
+    height: 100%;
+    min-height: 700px;
+    
+    position: relative;
+    
+    outline: 0;
+    
+    cursor: default;
+    
+    font-family: sans-serif;
+}
+    /* 
+     * The top bar at the top of SkyBrush.
+     * This includes zoom, undo/redo and other controls.
+     */
+    .skybrush_topbar {
+        display: block;
+        height: 30px;
+        width: 100%;
+        
+        background: white;
+        z-index: 6;
+        position: relative;
+
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        
+        padding-left : 12px;
+        padding-right: 12px;
+    }
+        .skybrush_button,
+        .skybrush_button:active,
+        .skybrush_button:visited,
+        .skybrush_button:hover {
+            text-decoration: none;
+        }
+        .skybrush_button.sb_disabled,
+        .skybrush_button.sb_disabled:active,
+        .skybrush_button.sb_disabled:visited,
+        .skybrush_button.sb_disabled:hover {
+            color: #aaa;
+            border-color: #aaa;
+        }
+        .skybrush_button {
+            margin: 0 6px;
+            
+            background: white;
+            border: 2px solid #668;
+            
+            -webkit-border-radius:4px;
+            -moz-border-radius:4px;
+            border-radius:4px;
+            
+            font-weight:bold;
+            font-family:helvetica neue,arial,sans-serif;
+            font-size:12px;
+            
+            padding:1px 7px;
+            line-height:normal;
+            display:inline-block;
+            text-align:center;
+            min-width:40px;
+            text-transform: uppercase;
+            cursor:pointer;
+            text-shadow:0 1px 0 #fff;
+            position: relative;
+            
+            -webkit-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
+            -moz-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
+            box-shadow:1px 2px 5px rgba(0,51,102,0.35);
+        }
+        .skybrush_button.undo {
+            margin-left: 0;
+        }
+        
+        .skybrush_topbar_seperator {
+			float: left;
+			margin: 2px 1px 0 1px;
+			color: #aaa;
+		}
+        .skybrush_topbar_button_group {
+            float: left;
+        }
+        .skybrush_topbar_zoom_wrap {
+            float: right;
+            clear: right;
+            
+            position: relative;
+        }
+            .skybrush_zoom_control {
+                margin-right: 0;
+            }
+            .skybrush_zoom_label {
+				float: left;
+                font-size: 16px;
+                font-weight: bold;
+                margin-top: 2px;
+            }
+            .skybrush_top_bar_zoom_out,
+            .skybrush_top_bar_zoom_in,
+            .skybrush_zoom_control > ..skybrush_slider_bar {
+                cursor: pointer;
+            }
+            .skybrush_top_bar_zoom_out,
+            .skybrush_top_bar_zoom_in {
+				font-weight: bold;
+				font-size: 15px;
+				color: #7F7F7F !important;
+				height: 15px;
+			}
+            .skybrush_top_bar_zoom_out {
+				/* Secretly make it bigger then it is, so it's easier to click */
+				padding-left: 5px;
+				margin-left: -4px;
+
+				margin-top: -2px;
+				float: left;
+			}
+            .skybrush_top_bar_zoom_in {
+				margin-top: 0;
+                float: right;
+            }
+            .skybrush_zoom_control > .skybrush_slider_bar {
+                width: 100px;
+				top: 3px;
+
+				margin: 0 8px;
+            }
+    .skybrush_info_bar {
+        display: none;
+        
+        z-index: 12;
+        position: absolute;
+        top:  18px;
+        
+        -webkit-transition: opacity 100ms linear 0s;
+           -moz-transition: opacity 100ms linear 0s;
+            -ms-transition: opacity 100ms linear 0s;
+             -o-transition: opacity 100ms linear 0s;
+                transition: opacity 100ms linear 0s;
+
+		opacity: 0;
+
+		height: 0;
+    }
+    .skybrush_info_bar.sb_show {
+		opacity: 1;
+
+		height: auto;
+    }
+		.skybrush_info_bar_wrap {
+			position: relative;
+
+			/* same height as the top_arrow */
+			margin-top: 14px;
+
+			float: left;
+			clear: both;
+
+			border-radius: 4px;
+			box-shadow: 0px 3px 9px rgba( 0, 0, 0, 0.48 ), 0px 1px 1px rgba( 0, 0, 0, 0.6 );
+
+			background: #20CE87;
+			/* IE9 SVG, needs conditional override of 'filter' to 'none' */
+			background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzIwY2U4NyIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwZjhlNWIiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+			background: -moz-linear-gradient(top,  #20ce87 0%, #0f8e5b 100%); /* FF3.6+ */
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#20ce87), color-stop(100%,#0f8e5b)); /* Chrome,Safari4+ */
+			background: -webkit-linear-gradient(top,  #20ce87 0%,#0f8e5b 100%); /* Chrome10+,Safari5.1+ */
+			background: -o-linear-gradient(top,  #20ce87 0%,#0f8e5b 100%); /* Opera 11.10+ */
+			background: -ms-linear-gradient(top,  #20ce87 0%,#0f8e5b 100%); /* IE10+ */
+			background: linear-gradient(top,  #20ce87 0%,#0f8e5b 100%); /* W3C */
+		}
+			.skybrush_info_bar_wrap_top_arrow {
+				border: 0 solid transparent;
+				border-left-width: 15px;
+				border-right-width: 15px;
+				border-bottom: 14px solid #20CE87;
+
+				width: 0;
+				height: 0;
+
+				/* center it horizontally */
+				position: absolute;
+				left: 50%;
+				margin-left: -15px;
+
+				top: -14px;
+			}
+            .skybrush_info_content,
+            .skybrush_info_content > input[type=button],
+            .skybrush_info_content > form > input[type=button],
+            .skybrush_info_content > form > input[type=submit] {
+				font-size: 16px;
+				font-weight: bold;
+				color: white;
+				text-shadow: 0 1px 1px rgba( 0, 0, 0, 0.7 );
+            }
+            .skybrush_info_content {
+				margin: 13px 16px 14px 16px;
+                float: left;
+            }
+				.skybrush_info_content > *,
+				.skybrush_info_content > form > * {
+					float: left;
+				}
+                .skybrush_info_content > div,
+				.skybrush_info_content > form > div {
+				}
+				.skybrush_info_label {
+					margin: 4px 4px 0 14px;
+					text-transform: lowercase;
+				}
+				.skybrush_info_label:first-of-type {
+					margin-left: 0;
+				}
+				.skybrush_info_content > input[type=text],
+				.skybrush_info_content > form > input[type=text] {
+					margin: 0;
+					width: 42px;
+				}
+				.skybrush_info_content > input[type=checkbox],
+				.skybrush_info_content > form > input[type=checkbox] {
+					margin-top: 8px;
+				}
+				.skybrush_info_content > input[type=button],
+				.skybrush_info_content > form > input[type=button],
+				.skybrush_info_content > form > input[type=submit] {
+					background: none;
+
+					border: #fff 3px solid;
+					box-shadow: 2px 2px 3px rgba( 0, 0, 0, 0.3 );
+					border-radius: 4px;
+					padding: 1px 4px 3px 4px;
+
+					margin-left: 13px;
+
+					cursor: pointer;
+				}
+				.skybrush_info_content > form > input[type=submit] {
+                    margin-bottom: 0;
+                    margin-top: -1px;
+                    padding-bottom: 1px;
+                }
+				.skybrush_info_content > input[type=button]:hover,
+				.skybrush_info_content > form > input[type=button]:hover,
+				.skybrush_info_content > form > input[type=submit]:hover {
+					border-color: #e9e9e9;
+					color: #e9e9e9;
+				}
+    .skybrush_viewport {
+        position: absolute;
+        
+        /* this is the height of .skybrush .topbar */
+        top: 30px;
+        
+        bottom: 0;
+        left: 0;
+        right: 0;
+        
+        overflow: auto;
+        background: #eaeaea;
+    }
+        .skybrush_viewport > canvas {
+            position: absolute;
+            
+            image-rendering: optimize-contrast;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+
+        }
+        .skybrush_canvas_draw,
+        .skybrush_canvas_upscale {
+            border: 1px solid #aaa;
+            background: url(./../images/canvas_back.png) repeat;
+        }
+        .skybrush_canvas_draw {
+			border-radius: 3px;
+            z-index: 0;
+        }
+        .skybrush_canvas_overlay {
+            border: 1px solid transparent;
+            z-index: 2;
+        }
+        
+        /* The overlay, only shown in non-Firefox for scaling */
+        .skybrush_canvas_upscale {
+            z-index: 1;
+            display: none;
+            opacity: 0;
+            
+            -webkit-transition: opacity 200ms linear 0s;
+               -moz-transition: opacity 200ms linear 0s;
+                -ms-transition: opacity 200ms linear 0s;
+                 -o-transition: opacity 200ms linear 0s;
+                    transition: opacity 200ms linear 0s;
+        }
+        .skybrush_canvas_upscale.sb_offscreenY {
+			border-radius: 0;
+			border-top: 1px solid #ccc;
+			border-bottom: 1px solid #ccc;
+		}
+        .skybrush_canvas_upscale.sb_offscreenX {
+			border-radius: 0;
+			border-left: 1px solid #ccc;
+			border-right: 1px solid #ccc;
+		}
+
+/*
+ * Canvas overlay graphics, like grids, marquees, and the copy selection.
+ */
+
+.skybrush_grid {
+	position: absolute;
+	/* Above the overlay */
+	z-index: 3;
+    
+    -webkit-transition: visibility 0s linear 200ms, opacity 200ms linear;
+       -moz-transition: visibility 0s linear 200ms, opacity 200ms linear;
+        -ms-transition: visibility 0s linear 200ms, opacity 200ms linear;
+         -o-transition: visibility 0s linear 200ms, opacity 200ms linear;
+            transition: visibility 0s linear 200ms, opacity 200ms linear;
+            
+    visibility:hidden;
+    opacity:0;
+}
+.skybrush_grid.sb_show {
+    visibility: visible;
+    opacity: 1;
+    
+    -webkit-transition-delay: 0s;
+       -moz-transition-delay: 0s;
+        -ms-transition-delay: 0s;
+         -o-transition-delay: 0s;
+            transition-delay: 0s;
+}
+	.skybrush_grid_line {
+		position: absolute;
+		display: block;
+		background: rgba( 60, 130, 160, 0.8 );
+	}
+    	.skybrush_grid_line_vertical {
+    		height: 100%;
+    		width: 1px;
+    	}
+    	.skybrush_grid_line_horizontal {
+    		height: 1px;
+    		width: 100%;
+    	}
+
+.skybrush_copy,
+.skybrush_marquee {
+	display: none;
+	position: absolute;
+    
+    -webkit-animation-duration: 1s;
+    -webkit-animation-iteration-count: infinite;
+       -moz-animation-duration: 1s;
+       -moz-animation-iteration-count: infinite;
+        -ms-animation-duration: 1s;
+        -ms-animation-iteration-count: infinite;
+         -o-animation-duration: 1s;
+          o-animation-iteration-count: infinite;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+}
+.skybrush_copy.sb_show,
+.skybrush_marquee.sb_show {
+    display: block;
+}
+.skybrush_copy {
+	z-index: 4;
+	border: 2px dashed #999;
+    
+    -webkit-animation-name: skybrush_copy_border_anim;
+       -moz-animation-name: skybrush_copy_border_anim;
+        -ms-animation-name: skybrush_copy_border_anim;
+         -o-animation-name: skybrush_copy_border_anim;
+            animation-name: skybrush_copy_border_anim;
+    
+    image-rendering: optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+}
+.skybrush_copy.sb_show {
+	opacity: 0.9;
+}
+.skybrush_marquee {
+	z-index: 5;
+
+	width: 0;
+	height: 0;
+
+    -webkit-transition: opacity 200ms linear 0s;
+       -moz-transition: opacity 200ms linear 0s;
+        -ms-transition: opacity 200ms linear 0s;
+         -o-transition: opacity 200ms linear 0s;
+            transition: opacity 200ms linear 0s;
+    
+    -webkit-transition-property: background-color, border-color;
+	   -moz-transition-property: background-color, border-color;
+        -ms-transition-property: background-color, border-color;
+         -o-transition-property: background-color, border-color;
+            transition-property: background-color, border-color;
+	
+	background-color: transparent;
+	border: 2px dashed #18C;
+    
+    -webkit-animation-name: skybrush_marquee_border_anim;
+       -moz-animation-name: skybrush_marquee_border_anim;
+        -ms-animation-name: skybrush_marquee_border_anim;
+         -o-animation-name: skybrush_marquee_border_anim;
+            animation-name: skybrush_marquee_border_anim;
+}
+	.skybrush_marquee.sb_show {
+		opacity: 0.6;
+	}
+	.skybrush_marquee.sb_highlight {
+		background-color: #33aaFF;
+	}
+	.skybrush_marquee.sb_highlight.sb_outside {
+		box-shadow: 0 0 40px rgba( 200, 40, 40, 0.7 );
+		background-color: #aa3333;
+		border-color: #881111;
+    
+        -webkit-animation-name: skybrush_marquee_border_anim_outside;
+           -moz-animation-name: skybrush_marquee_border_anim_outside;
+            -ms-animation-name: skybrush_marquee_border_anim_outside;
+             -o-animation-name: skybrush_marquee_border_anim_outside;
+                animation-name: skybrush_marquee_border_anim_outside;
+	}
+	.skybrush_marquee.sb_reposition {
+		-webkit-transition-property: background-color, border-color, left, top, width, height;
+		   -moz-transition-property: background-color, border-color, left, top, width, height;
+			-ms-transition-property: background-color, border-color, left, top, width, height;
+			 -o-transition-property: background-color, border-color, left, top, width, height;
+		    	transition-property: background-color, border-color, left, top, width, height;
+	}
+
+@-webkit-keyframes skybrush_marquee_border_anim {
+    0%, 100% { border-color: #3cf; }
+         50% { border-color: #14a; }
+}
+@-moz-keyframes skybrush_marquee_border_anim {
+    0%, 100% { border-color: #3cf; }
+         50% { border-color: #14a; }
+}
+@-ms-keyframes skybrush_marquee_border_anim {
+    0%, 100% { border-color: #3cf; }
+         50% { border-color: #14a; }
+}
+@-o-keyframes skybrush_marquee_border_anim {
+    0%, 100% { border-color: #3cf; }
+         50% { border-color: #14a; }
+}
+@keyframes skybrush_marquee_border_anim {
+    0%, 100% { border-color: #3cf; }
+         50% { border-color: #14a; }
+}
+
+@-webkit-keyframes skybrush_marquee_border_anim_outside {
+    0%, 100% { border-color: #b33; }
+         50% { border-color: #611; }
+}
+@-moz-keyframes skybrush_marquee_border_anim_outside {
+    0%, 100% { border-color: #b33; }
+         50% { border-color: #611; }
+}
+@-ms-keyframes skybrush_marquee_border_anim_outside {
+    0%, 100% { border-color: #b33; }
+         50% { border-color: #611; }
+}
+@-o-keyframes skybrush_marquee_border_anim_outside {
+    0%, 100% { border-color: #b33; }
+         50% { border-color: #611; }
+}
+@keyframes skybrush_marquee_border_anim_outside {
+    0%, 100% { border-color: #b33; }
+         50% { border-color: #611; }
+}
+
+@-webkit-keyframes skybrush_copy_border_anim {
+    0%, 100% { border-color: #ccc; }
+         50% { border-color: #666; }
+}
+@-moz-keyframes skybrush_copy_border_anim {
+    0%, 100% { border-color: #ccc; }
+         50% { border-color: #666; }
+}
+@-ms-keyframes skybrush_copy_border_anim {
+    0%, 100% { border-color: #ccc; }
+         50% { border-color: #666; }
+}
+@-o-keyframes skybrush_copy_border_anim {
+    0%, 100% { border-color: #ccc; }
+         50% { border-color: #666; }
+}
+@keyframes skybrush_copy_border_anim {
+    0%, 100% { border-color: #ccc; }
+         50% { border-color: #666; }
+}
+
+/**
+ * These are the floating windows on top of SkyBrush.
+ */
+.skybrush_gui {
+    border-radius:5px 5px 2px 2px;
+}
+    .skybrush_gui_header {
+        border-radius:5px 5px 0 0;
+    }
+
+.skybrush_gui {
+    background: #eaeaea;
+    
+    overflow: hidden;
+
+    position: absolute;
+    
+    padding: 0;
+    margin : 0;
+    
+    box-shadow: 0 0 20px rgba( 0, 0, 0, 0.4 );
+    
+    z-index: 10;
+    
+    -webkit-transition: opacity 200ms linear 0s;
+       -moz-transition: opacity 200ms linear 0s;
+        -ms-transition: opacity 200ms linear 0s;
+         -o-transition: opacity 200ms linear 0s;
+            transition: opacity 200ms linear 0s;
+    
+    opacity: 1;
+}
+
+/* Set correct cursor for components.
+ * 
+ * Include the buttons as a workaround for an unknown Chrome
+ * specific bug
+ */
+.skybrush_gui_header,
+.skybrush_colors_palette_color,
+.skybrush_color_alpha_bar,
+.skybrush_color_mixer {
+    cursor: pointer;
+}
+
+/* 
+ * Given to a GUI when it is clicked on.
+ * This allows it to come to the front,
+ * and effectively have focus.
+ */
+.skybrush_gui.sb_focus {
+    z-index: 11
+}
+.skybrush_gui.sb_hide {
+    opacity: 0;
+}
+    .skybrush_gui_header {
+        float: left;
+        clear: both;
+        display: block;
+        
+        width: 100%;
+        
+        font-weight: bold;
+		font-size: 11px;
+        color: white;
+        
+        -webkit-box-sizing: border-box;
+           -moz-box-sizing: border-box;
+                box-sizing: border-box;
+        
+        padding: 6px 6px 4px 6px;
+        
+        box-shadow: 0 2px 2px rgba( 50, 50, 50, 0.2 );
+        
+        z-index: 1;
+        position: relative;
+
+		text-transform: uppercase;
+		text-shadow: 0 2px 1px rgba( 0, 0, 0, 0.7 );
+        
+        background: #3C667F;
+        padding-top: 6px;
+        font-size: 13px;
+    }
+    .skybrush_gui_content {
+        float: left;
+        clear: both;
+        
+        display: block;
+        min-height: 8px;
+        
+        z-index: 0;
+        position: relative;
+        
+        width: 100%;
+        height: 100%;
+    }
+	/* For the 'SWATCHES' and TOOL SETTINGS' headers */
+	.skybrush_controls_header {
+		float: left;
+		clear: both;
+		width: 100%;
+		-moz-box-sizing: border-box;
+			 box-sizing: border-box;
+		padding: 5px 5px 0 5px;
+	}
+		.skybrush_controls_header_line {
+			float: right;
+			height: 1px;
+			background: #999;
+			margin: 6px 0;
+		}
+		.skybrush_controls_header_text {
+			float: left;
+			font-size: 10px;
+			font-weight: bold;
+			text-align: center;
+			-ms-text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
+			text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
+		}
+
+/**
+ * The color picker.
+ */
+.skybrush_gui.sb_gui_colors {
+	width: 150px;
+
+	/* IE9 SVG */
+	background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI0NSUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+	background: -moz-linear-gradient(top,  #dddddd 45%, #ffffff 50%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(45%,#dddddd), color-stop(50%,#ffffff)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* IE10+ */
+	background: linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* W3C */
+}
+    .skybrush_gui.sb_gui_colors > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
+		width: 78px;
+	}
+    .skybrush_colors_palette,
+    .skybrush_color_alpha_bar,
+    .skybrush_color_picker_current_color_back,
+    .skybrush_color_picker_current_color {
+        border-radius: 2px;
+        
+        box-shadow: 1px 1px 7px rgba( 0, 0, 0, 0.25 );
+    }
+    .skybrush_colors_palette {
+        width: 140px;
+        float: left;
+        
+        margin: 5px;
+        
+        position: relative;
+        
+        text-align: center;
+        
+        float: left;
+        clear: both;
+        
+        /* needed for border radius to work */
+        overflow: hidden;
+    }
+        .skybrush_colors_palette_color {
+            width:  28px;
+            height: 24px;
+            
+            float: left;
+    
+            display: inline-block;
+        }
+			.skybrush_colors_palette_color_border {
+				display: none;
+			}
+			.skybrush_colors_palette_color:hover > .skybrush_colors_palette_color_border {
+				display: block;
+				width:  24px;
+				height: 20px;
+
+				margin-left: 1px;
+				margin-top:  1px;
+				border: 1px solid rgba( 255, 255, 255, 0.7 );
+				border-radius: 1px;
+
+				box-shadow: 0 0 2px rgba( 0, 0, 0, 0.5 );
+			}
+    .skybrush_color_mixer {
+        margin-left: 5px;
+        float: left;
+        clear: both;
+        width:  140px;
+        height: 140px;
+        position: relative;
+        
+        margin-bottom: 5px;
+    }
+        .skybrush_color_mixer_back,
+        .skybrush_color_mixer_color_layer {
+            display: block;
+            position: absolute;
+            
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+        }
+        .skybrush_color_mixer_back {
+            width: 0;
+            height: 0;
+            border: 70px solid transparent;
+            border-top-color: red;
+            border-left-color: red;
+        }
+        .skybrush_mixer_horizontal_line,
+        .skybrush_mixer_vertical_line,
+        .skybrush_color_wheel_line {
+            position: absolute;
+            width: 0;
+            height: 0;
+            background: white;
+			opacity: 0.25;
+            display: block;
+        }
+        .skybrush_mixer_horizontal_line {
+            width: 100%;
+            height: 4px;
+			margin-top: -2px;
+            left: 0;
+        }
+        .skybrush_mixer_vertical_line {
+            width: 4px;
+            height: 100%;
+            top: 0;
+			margin-left: -2px;
+        }
+        .skybrush_color_wheel_wrap {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            
+            width : 77px;
+            height: 77px;
+        }
+            .skybrush_color_wheel_colour_wheel {
+                border-radius: 100px;
+                box-shadow: 1.5px 1px 2px rgba( 0, 0, 0, 0.3 );
+                display: block;
+            }
+            .skybrush_color_wheel_line_outer {
+                top :  38px;
+				left: 0;
+                position: absolute;
+
+				width: 100%;
+				height: 1px;
+            }
+                .skybrush_color_wheel_line {
+					width: 43px;
+					height: 17px;
+					margin-top: -8px;
+					margin-left: 4px;
+
+					background: url(./../images/colour_wheel_line.png) no-repeat 0 0;
+                    font-family: "kdkdkdkdlfsjfdj";
+
+					position: absolute;
+                    left: 0;
+                    top : 0;
+
+					opacity: 1;
+                }
+    .skybrush_color_alpha_wrap {
+        float: right;
+        
+		margin: 0 7px 0 0;
+		width: 24px;
+		height: 100%;
+
+		-moz-box-sizing: border-box;
+			 box-sizing: border-box;
+    }
+        .skybrush_color_alpha_bar {
+			border: 1px solid #aaa;
+
+			width: 100%;
+            height: 100%;
+            background: black;
+            
+            position: relative;
+        }
+            .skybrush_color_alpha_gradient {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+            .skybrush_color_alpha_line {
+				width: 30px;
+				height: 10px;
+				margin-top: -5px;
+				margin-left: -4px;
+
+				background: url(./../images/alpha_slider.png) no-repeat 0 0;
+
+				position: absolute;
+				left: 0;
+				top : 0;
+            }
+    .skybrush_color_picker {
+        clear: both;
+        
+        width: 140px;
+		height: 90px;
+        
+        position: relative;
+        
+        padding: 6px 5px 5px 5px;
+        
+        float: left;
+        clear: both;
+    }
+        .skybrush_color_picker_current_color_back,
+        .skybrush_color_picker_current_color {
+            float: left;
+            clear: both;
+            
+            width : 54px;
+            
+            display: block;
+            
+            position: absolute;
+            
+            /* matches padding of the parent colour_picker */
+            top: 6px;
+            bottom: 43px;
+        }
+        .skybrush_color_picker_current_color_back {
+            background: url(./../images/canvas_back.png) repeat;
+        }
+        .skybrush_color_picker_current_color {
+            background: white;
+        }
+        .skybrush_rgb_form {
+            float: right;
+            clear: right;
+			margin: 1px 0 0 5px;
+        }
+            .skybrush_rgb_wrap {
+                float: left;
+                clear: both;
+                width: 100%;
+				margin: 3px 0;
+            }
+                .skybrush_rgb_label {
+					text-transform: uppercase;
+                    margin-top: 2px;
+                    float: left;
+					font-size: 10px;
+					font-weight: bold;
+                }
+                .skybrush_rgb_input {
+                    float: right;
+				}
+	.skybrush_destination_alpha {
+		margin: 0 5px 5px 5px;
+		float: left;
+		clear: both;
+		text-align: center;
+		position: relative;
+		left: 50%;
+	}
+		.skybrush_destination_alpha > .skybrush_command_control_label {
+			margin-top: 5px;
+			position: relative;
+			left: -50%;
+			height: 100%;
+		}
+		.skybrush_destination_alpha > input {
+			float: right;
+			position: relative;
+			left: -50%;
+		}
+
+.skybrush_gui.sb_gui_commands {
+    width: 150px;
+	min-height: 300px;
+
+	/* IE9 SVG, needs conditional override of 'filter' to 'none' */
+	background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI2NiUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI3OCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+	background: -moz-linear-gradient(top,  #dddddd 66%, #ffffff 78%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(66%,#dddddd), color-stop(78%,#ffffff)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* IE10+ */
+	background: linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* W3C */
+}
+		.skybrush_gui.sb_gui_commands > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
+			width: 55px;
+		}
+    .skybrush_commands_pane {
+		float: left;
+		clear: both;
+		margin: 5px;
+    }
+        /*
+         * Actual Command button setup.
+         * 
+         * All of the commands share the same sprite sheet,
+         * except the colour picker, which does it's own thing.
+         */
+        .skybrush_gui_command {
+            width:  44px;
+            height: 44px;
+            display: block;
+            
+            float: left;
+            
+            margin: 0 4px 4px 0;
+
+			position: relative;
+        }
+        .skybrush_gui_command:nth-of-type(3n) {
+			margin-right: 0;
+		}
+			.skybrush_command_back {
+				position: absolute;
+				left: -1px;
+				top: -1px;
+
+				background: url(./../images/tool_back.png) no-repeat 0 0;
+
+				opacity: 0;
+
+				display: block;
+				width: 46px;
+				height: 46px;
+
+				-webkit-transition: opacity 150ms linear 0s;
+				   -moz-transition: opacity 150ms linear 0s;
+					-ms-transition: opacity 150ms linear 0s;
+					 -o-transition: opacity 150ms linear 0s;
+						transition: opacity 150ms linear 0s;
+			}
+			.skybrush_gui_command:hover > .skybrush_command_back {
+				opacity: 0.5;
+			}
+			.skybrush_gui_command.sb_selected > .skybrush_command_back,
+			.skybrush_gui_command.sb_selected:hover > .skybrush_command_back {
+				opacity: 1;
+			}
+			.skybrush_gui_command > a {
+				position: absolute;
+				width: 44px;
+				height: 44px;
+
+				top: 0;
+				left: 0;
+				background: url(./../images/tool_command_buttons.png) 0 0;
+			}
+			.sb_command_pencil > a {
+				background-position: 0 0;
+			}
+			.sb_command_eraser > a {
+				background-position: -44px 0;
+			}
+			.sb_command_rectangle > a {
+				background-position: -44px -44px;
+			}
+			.sb_command_circle > a {
+				background-position: 0 -44px;
+			}
+			.sb_command_line > a {
+				background-position: -88px -44px;
+			}
+			.sb_command_fill > a {
+				background-position: -88px 0;
+			}
+			.sb_command_zoom > a {
+				background-position: 0 -88px;
+			}
+			.sb_command_select > a {
+				background-position: -44px -88px;
+			}
+			.sb_command_brush > a {
+				background-position: -88px -88px;
+			}
+			.sb_command_move > a {
+				background-position: 0px -132px;
+			}
+        .sb_command_picker {
+            position: absolute;
+            bottom: -2px;
+            left: 5px;
+
+            width:  56px;
+            height: 35px;
+        }
+            .sb_command_picker > .skybrush_command_back {
+                background: url(./../images/eyedropper_back.png) no-repeat 0 0;
+
+                width: 56px;
+                height: 35px;
+            }
+            .sb_command_picker > a {
+                background-position: 0px 35px;
+
+                width: 56px;
+                height: 35px;
+            }
+
+	.skybrush_command_controls {
+		float: left;
+		clear: both;
+		width: 140px;
+		margin: 8px 5px 13px 5px;
+	}
+		.skybrush_command_controls_inner {
+			float: left;
+			clear: both;
+			width:  100%;
+			height: 100%;
+		}
+			.skybrush_command_controls_inner > .skybrush_control {
+				float: left;
+				clear: both;
+				width: 100%;
+			}
+			.skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox {
+			}
+				.skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox > input {
+					margin: 0 3px 3px 4px;
+                    vertical-align: bottom;
+				}
+			.skybrush_command_controls_inner > .skybrush_control.skybrush_control_slider {
+				margin-bottom: 2px;
+			}
+				.skybrush_control.sb_control_slider > .skybrush_slider_bar {
+					float: right;
+
+					top: 4px;
+					width: 65px;
+				}
+				.skybrush_control.sb_control_slider.sb_outline_size_cmd > .skybrush_slider_bar {
+					width: 55px;
+				}
+				.skybrush_control.sb_control_slider.sb_tolerance > .skybrush_slider_bar {
+					width: 42px;
+				}
+					.skybrush_control.sb_control_slider > .skybrush_slider_bar_inner {
+						height: 1px;
+					}
+				.skybrush_control.sb_control_slider > .skybrush_input {
+					float: right;
+					clear: right;
+
+					margin-left: 8px;
+					width: 22px;
+				}
+				.skybrush_control.sb_control_toggle > .skybrush_command_control_label {
+					padding-top: 5px;
+				}
+
+/*
+ * The custom drawn mouse cursor,
+ * which looks like the current brush.
+ */
+.skybrush_brush {
+    position: fixed;
+    
+    /* above the canvas and overlay */
+    z-index: 3;
+    
+    background: transparent;
+    background-repeat: no-repeat;
+    cursor: none !important;
+}
