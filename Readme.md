@@ -170,7 +170,7 @@ but a few other things can be done too. These all operate on the 'SkyBrush' inst
 Some of these will record an 'undo step'. That is the ability for the user to click 'undo' and undo it, in the GUI, using the 'undo' button.
 The methods will state if they do or don't record an undo step, or if they clear the current steps.
 
-### newImage( width, height )
+### .newImage( width, height )
 
 Cleares the canvas, resizes it the size given, cleares the undo steps, and cleares the zoom level to 100%. It essentially gets SkyBrush back into it's starting state.
 
@@ -184,7 +184,7 @@ Width and height are optional, and default to 640x480 pixels.
 	skybrush.newImage();
 ```
 
-### reset()
+### .reset( )
 
 Resets, but doesn't clear, SkyBrush. So the undo steps and the zoom are reset, but the contents of the canvas is not altered.
 
@@ -192,13 +192,13 @@ Resets, but doesn't clear, SkyBrush. So the undo steps and the zoom are reset, b
 	skybrush.reset();
 ```
 
-### setImage( image )
+### .setImage( image )
 
 Given a HTML Image object, this will set it as the current image
 
 Note that this is done directly, and no undo step is recorded.
 
-### setImage( image, width, height )
+### .setImage( image, width, height )
 
 Sets the given image, and scales the canvas to the width and height given.
 
@@ -207,7 +207,7 @@ Sets the given image, and scales the canvas to the width and height given.
 	skybrush.setImage( image, image.width*2, image.height*2 );
 ```
 
-### getImage()
+### .getImage( )
 
 Returns a HTML Image object for what is currently drawn in SkyBrush.
 
@@ -215,7 +215,7 @@ Returns a HTML Image object for what is currently drawn in SkyBrush.
 	var image = skybrush.getImage()
 ```
 
-### getImageData( type )
+### .getImageData( type )
 
 Returns the current image as a data url. This is useful if you want to POST the data to somewhere online.
 
@@ -228,7 +228,7 @@ If no type is provided, then this defualts to the 'image/png' mime type. Otherwi
 API Extras
 ----------
 
-### resize( width, height )
+### .resize( width, height )
 
 Resizes the canvas, it's drawing area, but the graphics are not scaled. Anything outside the drawing area is lost.
 
@@ -238,7 +238,7 @@ Resizes the canvas, it's drawing area, but the graphics are not scaled. Anything
 
 An undo step is recorded.
 
-### scale( width, height, isSmooth )
+### .scale( width, height, isSmooth )
 
 Scales the content in the canvas to the new size given, resizing what is currently drawn.
 
@@ -248,7 +248,7 @@ Scales the content in the canvas to the new size given, resizing what is current
 
 An undo step is recorded.
 
-### getWidth()
+### .getWidth()
 
 Returns the width of the canvas in pixesl.
 
@@ -256,7 +256,7 @@ Returns the width of the canvas in pixesl.
 	width = skybrush.getWidth()
 ```
 
-### getHeight()
+### .getHeight()
 
 Returns the height of the canvas in pixesl.
 
@@ -264,7 +264,7 @@ Returns the height of the canvas in pixesl.
 	height = skybrush.getHeight()
 ```
 
-### undo
+### .undo( )
 
 Undoes the last action. If there isn't one to be undone, then this silently does nothing.
 
@@ -272,7 +272,7 @@ Undoes the last action. If there isn't one to be undone, then this silently does
 	skybrush.undo();
 ```
 
-### redo
+### .redo( )
 
 Redoes the next redo action, if there is one. If there isn't one, then this silently does nothing.
 
