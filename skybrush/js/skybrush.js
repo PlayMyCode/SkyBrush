@@ -3519,7 +3519,7 @@
 
         this.setSize( w, h, true );
         this.drawSafe( function() {
-            this.canvas.ctx.drawImage( image, 0, 0 );
+            this.canvas.ctx.drawImage( image, 0, 0, w, h );
         } );
 
         return this;
@@ -6268,6 +6268,7 @@
      * Options include:
      * 
      *  image_location: the url for where the images are found.
+     *  grab_ctrl_r: pass in false to not grab ctrl+r
      *  
      *  width:  The starting width of the canvas, if not provided,
      *          a default width is used.
@@ -6432,7 +6433,7 @@
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
         initializeTopBar( _this, DEFAULT_ZOOM );
-		initializeShortcuts( _this );
+		initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
         _this.infoBar = new InfoBar( dom );
 
@@ -7757,7 +7758,7 @@
 	 * Sets up some common shortcuts,
 	 * not that not all are set here, such as undo/redo.
 	 */
-	var initializeShortcuts = function( painter ) {
+	var initializeShortcuts = function( painter, dontGrabCtrlR ) {
         var domObj = painter.dom.get(0);
 
         // make the dom focusable
@@ -7781,10 +7782,13 @@
                 /* alternate commands - Alt key */
                 onKeyToggle( ALT, function(isAltDown) {
                     painter.runOnAlt( isAltDown );
-                } ).
+                } );
 
-                /* Redo - ctrl + r and ctrl + y */
-				onCtrl( 'r', redoFun ).
+        /* Redo - ctrl + r and ctrl + y */
+        if ( ! dontGrabCtrlR ) {
+            painter.onCtrl( 'r', redoFun );
+        }
+        painter.
                 onCtrl( 'y', redoFun ).
 
 				/* Undo - ctrl + z */
