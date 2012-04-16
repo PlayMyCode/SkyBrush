@@ -246,6 +246,13 @@ Scales the content in the canvas to the new size given, resizing what is current
 	skybrush.scale( 400, 600 )
 ```
 
+'isSmooth' is optional, and defaults to true. When false, this will use a nearest neighbour algorithm when scaling.
+
+```js
+	// scale, and use nearest neighbour
+	skybrush.scale( 300, 300, false )
+```
+
 An undo step is recorded.
 
 ### .getWidth()
