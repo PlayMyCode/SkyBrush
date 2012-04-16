@@ -4,7 +4,7 @@
  * @license
  * 
  * SkyBrush - skybrush.css
-
+ * 
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
  * 
@@ -149,7 +149,17 @@
 		DEFAULT_GRID_HEIGHT = 5, // pixels
 		GRID_FADE_SPEED = 250, // milliseconds
 
-        DEFAULT_CURSOR_LOCATION = '/skybrush/cursors',
+        /**
+         * @const
+         * @type {string}
+         */
+        DEFAULT_CURSOR = 'sb_cursor_default',
+
+        /**
+         * @const
+         * @type {string}
+         */
+        NO_CURSOR_CSS = 'sb_cursor_none',
 
         /**
          * The prefix added to command css classes.
@@ -236,16 +246,6 @@
 		 */
 		GUI_DEFAULT_Y = 70,
         
-        /**
-         * Generates and returns the default cursor url.
-         * You provide the prefix, and the url gets returned.
-         * 
-         * @const
-         */
-        DEFAULT_CURSOR_FUN = function( prefix ) {
-            return 'url(' + prefix + 'crosshair.png) 7 7';
-        },
-
         /**
          * When scrolling, the canvas will wait this amount of time
          * before it tries to display the upscale.
@@ -4258,26 +4258,6 @@
     };
 
     /**
-     * The SkyBrush instance is available when the commands are
-     * created, but for certain reasons, it needs to be available
-     * straight after too.
-     * 
-     * For example setting the default cursor, when SkyBrush
-     * knows the location.
-     * 
-     * This event is built for entirely that purpose. It is run
-     * straight after the command has been created.
-     * 
-     * @param skybrush The SkyBrush instance for the command.
-     * @param cursorLocation The location prefix of where the cursor files are located.
-     */
-    Command.prototype.onCreation = function( skybrush, cursorLocation ) {
-        if ( !this.cursor ) {
-            this.cursor = DEFAULT_CURSOR_FUN(cursorLocation);
-        }
-    };
-
-    /**
      * Called when a Command object is set as the current
      * command.
      *
@@ -4623,6 +4603,8 @@
             this.lastX = x;
             this.lastY = y;
         };
+
+        setup.cursor = DEFAULT_CURSOR;
 
         Command.call( this, setup );
     };
@@ -5174,30 +5156,13 @@
      * @param cursorRoot The root location of where cursor images are held.
      * @return An array of all Command objects in use for this SkyBrush app.
      */
-    var newCommands = function( painter, cursorRoot ) {
-        /**
-         * Shorthand helper function for creating cursor urls.
-         */
-        var cursorUrl = function(url, x, y) {
-            var url = 'url(' + cursorRoot + '/' + url + ')';
-
-            if ( x !== undefined ) {
-                if ( y !== undefined ) {
-                    return url + ' ' + x + ' ' + y;
-                } else {
-                    return url + ' ' + x;
-                }
-            } else {
-                return url;
-            }
-        };
-
+    var newCommands = function( painter ) {
         var pickerCommand = new Command({
                 name  : 'Picker',
                 css   : 'picker',
 
                 caption: 'Colour Picker | shortcut: k or hold Alt',
-                cursor: cursorUrl('picker.png', 0, 9),
+                cursor: 'sb_cursor_picker',
 
                 onDownOnMove : function( canvas, x, y ) {
                     var rgb = canvas.colourPick( x, y );
@@ -5760,7 +5725,7 @@
                             }
                         },
 
-                        cursor: cursorUrl('fill.png', 5, 13),
+                        cursor: 'sb_cursor_fill',
 
                         controls: [
                             {
@@ -5820,11 +5785,11 @@
                                     ( this.zoomOut && zoom == (1/MAX_ZOOM) ) ||
                                     ( !this.zoomOut && zoom == MAX_ZOOM )
                             ) {
-                                return cursorUrl( 'zoom_blank.png', 5, 5 );
+                                return 'sb_cursor_zoom_blank';
                             } else if ( this.zoomOut ) {
-                                return cursorUrl( 'zoom_our.png', 5, 5 );
+                                return 'sb_cursor_zoom_out';
                             } else {
-                                return cursorUrl( 'zoom_in.png', 5, 5 );
+                                return 'sb_cursor_zoom_in';
                             }
                         }
                 }),
@@ -5832,6 +5797,7 @@
                         name: 'Select',
                         css : 'select',
                         caption: 'Selection Tool | shortcut: s',
+                        cursor: 'sb_cursor_select',
 
                         onDown: function( canvas, x, y, painter, ev ) {
                             canvas.getMarquee().
@@ -5865,7 +5831,7 @@
                         css : 'move',
                         caption: 'Move Tool | shortcut: m',
 
-                        cursor: cursorUrl( 'cursor.png' ),
+                        cursor: 'sb_cursor_cursor',
 
                         onDown: function( canvas, x, y, painter, ev ) {
                             this.startX = x;
@@ -6302,7 +6268,6 @@
      * Options include:
      * 
      *  image_location: the url for where the images are found.
-     *  cursor_location: an url to where the cursor images are found.
      *  
      *  width:  The starting width of the canvas, if not provided,
      *          a default width is used.
@@ -6330,8 +6295,7 @@
      *     <div class="skybrush"></div>
      * 
      *     var app = new SkyBrush( $('.skybrush'), {
-     *             image_location : '/images/skybrush',
-     *             cursor_lcoation: '/images/skybrush/cursors'
+     *             image_location : '/images/skybrush'
      *     } );
      *     app.newImage( 320, 240 );
      * 
@@ -6432,32 +6396,28 @@
         // caches the currently set cursor,
         // for when the brush cursor is shown
         _this.oldCursor = nil;
+        _this.currentCursor = DEFAULT_CURSOR;
+        _this.viewport.addClass( _this.currentCursor );
 
         if ( options.image_location ) {
             relocatteStylesheetImages( dom.get(0), ensureEndingSlash(options.image_location) );
         }
 
-        var cursorLocation = ensureEndingSlash( options.cursor_location || DEFAULT_CURSOR_LOCATION ),
-            commands = newCommands( this, cursorLocation );
+        var commands = newCommands( this );
 
         /*
          * Pull out the colour picker command,
          * as we treat is seperately.
-         * 
-         * We also ensure all css cursors get set.
          */
-        var pickerCommand = null,
-            i = 0;
-        while ( i < commands.length ) {
+        var pickerCommand = null;
+        for ( var i = 0; i < commands.length; i++ ) {
             var command = commands[i];
 
-            command.onCreation( this, cursorLocation );
-
-            if ( pickerCommand === null && command.getName().toLowerCase() === 'picker' ) {
+            if ( command.getName().toLowerCase() === 'picker' ) {
                 pickerCommand = command;
                 commands.splice( i, 1 );
-            } else {
-                i++;
+
+                break;
             }
         }
 
@@ -8045,13 +8005,22 @@
 
         // if we have just moved in, set it to default
         if ( overlapsScrollbar ) {
-            if ( this.oldCursor === nil ) {
-                this.oldCursor = this.viewport.css('cursor');
-                this.viewport.css('cursor', 'default');
+            if ( this.oldCursor === nil && this.currentCursor !== nil ) {
+                this.oldCursor = this.currentCursor;
+
+                if ( this.currentCursor !== nil ) {
+                    this.viewport.removeClass( this.currentCursor );
+                }
             }
         // if we just moved out, set it to the old cursor
         } else if ( this.oldCursor !== nil ) {
-            this.viewport.css('cursor', this.oldCursor );
+            if ( this.currentCursor !== nil ) {
+                this.viewport.removeClass( this.currentCursor );
+            }
+
+            this.currentCursor = this.oldCursor;
+            this.viewport.addClass( this.currentCursor );
+
             this.oldCursor = nil;
         }
     };
@@ -8843,22 +8812,22 @@
 
             if ( $.browser.msie ) {
                 if ( ! cursorCSS ) {
-                    cursorCSS = 'none';
+                    cursorCSS = NO_CURSOR_CSS;
                 } else {
-                    cursorCSS = 'crosshair';
+                    cursorCSS = DEFAULT_CURSOR;
                 }
             } else if ( ! cursorCSS ) {
-                cursorCSS = 'none';
-            // all cursors must end with 'auto' as a required fallback for FF (maybe Webkit too)
-            } else {
-                cursorCSS += ', auto';
+                cursorCSS = NO_CURSOR_CSS;
             }
 
             // currently in a scrollbar, we'll set it later, once we are out
             if ( this.oldCursor !== nil ) {
                 this.oldCursor = cursorCSS;
             } else {
-                this.viewport.css({cursor: cursorCSS});
+                this.viewport.removeClass( this.currentCursor );
+
+                this.viewport.addClass( cursorCSS );
+                this.currentCursor = cursorCSS;
             }
         }
     };

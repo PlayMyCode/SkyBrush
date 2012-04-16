@@ -3,7 +3,7 @@
     <head>
         <title>SkyBrush - example page</title>
         
-        <link rel="stylesheet" href="./css/skybrush.css" />
+        <link rel="stylesheet" href="./../skybrush/css/skybrush.css" />
         
         <style>
             html, body, .wrap {
@@ -76,16 +76,13 @@
         </div>
     </body>
     
-    <script src="./js/jquery-1.7.2.min.js"></script>
-    <script src="./js/util.js"></script>
-    <script src="./js/skybrush.js"></script>
+    <script src="./../skybrush/js/jquery-1.7.2.min.js"></script>
+    <script src="./../skybrush/js/util.js"></script>
+    <script src="./../skybrush/js/skybrush.js"></script>
 
     <script>
         var dom = $( '.skybrush' );
 
-        var skybrush = new SkyBrush( dom, {
-                image_location : './images',
-                cursor_location: './images/cursors'
-        } );
+        var skybrush = new SkyBrush( dom );
     </script>
 </html>

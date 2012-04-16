@@ -2,7 +2,7 @@
  * @license
  * 
  * SkyBrush - skybrush.css
-
+ * 
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
  * 
@@ -543,6 +543,42 @@
 			border-left: 1px solid #ccc;
 			border-right: 1px solid #ccc;
 		}
+
+/*
+ * Cursors
+ */
+.sb_cursor_none {
+    cursor: none;
+}
+.sb_cursor_default {
+    /* needs to be set twice for IE, as the second cursor doesn't work */
+    cursor: crosshair;
+    cursor: url('./../images/cursors/crosshair.png') 7 7, crosshair;
+}
+.sb_cursor_picker {
+    cursor: url('./../images/cursors/picker.png') 0 9, auto;
+}
+.sb_cursor_fill {
+    cursor: url('./../images/cursors/fill.png') 5 13, auto;
+}
+.sb_cursor_fill {
+    cursor: url('./../images/cursors/fill.png') 5 13, auto;
+}
+.sb_cursor_zoom_blank {
+    cursor: url('./../images/cursors/zoom_blank.png') 5 5, auto;
+}
+.sb_cursor_zoom_in {
+    cursor: url('./../images/cursors/zoom_in.png') 5 5, auto;
+}
+.sb_cursor_zoom_out {
+    cursor: url('./../images/cursors/zoom_out.png') 5 5, auto;
+}
+.sb_cursor_cursor {
+    cursor: url('./../images/cursors/cursor.png'), auto;
+}
+.sb_cursor_select {
+    cursor: url('./../images/cursors/marquee.png'), auto;
+}
 
 /*
  * Canvas overlay graphics, like grids, marquees, and the copy selection.
