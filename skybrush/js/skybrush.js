@@ -3549,6 +3549,7 @@
      * and 'undo' methods on the CanvasManager.
      *
      * @param name The name of the action to perform, 'undo' or 'redo'.
+     * @return True if the action is performed, otherwise false.
      */
     CanvasManager.prototype.undoRedo = function( name ) {
         var canvas = this.undos[name]();
@@ -3568,9 +3569,11 @@
 					this.refreshUpscale();
 				}
 			} );
-        }
 
-        return this;
+            return true;
+        } else {
+            return false;
+        }
     };
 
 	/**
@@ -3824,23 +3827,22 @@
     };
 
     /**
-     *
+     * @return True if an undo was performed, otherwise false.
      */
     CanvasManager.prototype.redo = function() {
-        this.undoRedo( 'redo' );
+        return this.undoRedo( 'redo' );
     }
 
     /**
-     *
+     * @return True if an undo was performed, otherwise false.
      */
     CanvasManager.prototype.undo = function() {
 		if ( this.copyObj.hasPaste() ) {
 			this.clearPaste();
+            return true;
 		} else {
-			this.undoRedo( 'undo' );
+			return this.undoRedo( 'undo' );
 		}
-
-		return this;
     };
 
     /**
@@ -5768,7 +5770,6 @@
                             field: 'zoomOut',
                             type : 'toggle',
 
-                            css_options : [ 'skybrush_top_bar_zoom_in', 'skybrush_top_bar_zoom_out' ],
                             name_options: [ 'In'     , 'Out'      ],
 
                             callback: function() {
@@ -8462,7 +8463,7 @@
 
         if ( zoom !== this.getZoom() || force ) {
             this.canvas.setZoom( zoom, x, y );
-            this.events.run( 'onZoom', zoom );
+            this.events.run( 'onZoom', zoom, x, y );
         }
 
         return this;
@@ -8959,15 +8960,17 @@
     };
 
     SkyBrush.prototype.undo = function() {
-        this.canvas.undo();
-        this.events.run( 'onundo');
+        if ( this.canvas.undo() ) {
+            this.events.run( 'onundo' );
+        }
 
         return this;
     };
 
     SkyBrush.prototype.redo = function() {
-        this.canvas.redo();
-        this.events.run( 'onredo');
+        if ( this.canvas.redo() ) {
+            this.events.run( 'onredo' );
+        }
 
         return this;
     };
