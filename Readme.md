@@ -161,6 +161,8 @@ passing in the 'image_location' option when setting up SkyBrush.
 	} );
 ```
 
+SkyBrush will then update the CSS rules on the fly to use the new location.
+
 API Image Setting / Getting
 ---------------------------
 
