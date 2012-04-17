@@ -380,7 +380,7 @@ At half zoom, 0.5 is passed in, whilst at 25% zoom, 0.25 is passed in.
 Called when SkyBrush sees and runs a shift event.
 
 ```js
-	skybrush.onAlt( function(isShiftDown) {
+	skybrush.onShift( function(isShiftDown) {
 		if ( isShiftDown ) {
 			// do something
 		} else {
