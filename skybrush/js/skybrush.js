@@ -5041,12 +5041,12 @@
     };
 
     /**
-     * Updates the stylesheets to use the location given.
-     * 
-     * This allows the style sheets to have dynamic image locations,
-     * which are then altered using JS.
+     * Translates the image location from the one given,
+     * to an explicit url, relative to this request.
      */
-    var relocatteStylesheetImages = function( domObj, imageLocation ) {
+    var translateImageLocation = function( imageLocation ) {
+        imageLocation = ensureEndingSlash( imageLocation );
+
         var imageLocationCheck = imageLocation.toLowerCase();
 
         /*
@@ -5064,18 +5064,36 @@
             var windowLocation = window.location.href;
 
             var lastSlash = windowLocation.lastIndexOf('/');
-            imageLocation = windowLocation.substring(0, lastSlash+1) + '/' + imageLocation;
+            imageLocation = windowLocation.substring(0, lastSlash+1) + imageLocation;
         }
 
-        var imageUrl = 'url(' + imageLocation,
-            sheets = document.styleSheets;
+        return imageLocation;
+    };
 
-        var isBackgroundToChange = function(background) {
-            return  background &&
-                    background != 'none' &&
-                    background.indexOf('url(' ) !== -1 &&
-                    background.indexOf('data:') === -1 ;
-        };
+    /**
+     * @const
+     * @nosideeffects
+     * 
+     * @param rule The rule to test.
+     * @return True if the rule is one that should be translated, and otherwise false.
+     */
+    var isUrlRule = function(rule) {
+        return  rule &&
+                rule != 'none' &&
+                rule.indexOf('url(' ) !== -1 &&
+                rule.indexOf('data:') === -1 ;
+    };
+
+    /**
+     * Updates the stylesheets to use the location given.
+     * 
+     * This allows the style sheets to have dynamic image locations,
+     * which are then altered using JS.
+     */
+    var relocateStylesheetImages = function( imageLocation ) {
+        var imageUrl = 'url(' + imageLocation,
+            cursorUrl = imageUrl + 'cursors/',
+            sheets = document.styleSheets;
 
         var probablySucceeded = false;
 
@@ -5093,16 +5111,28 @@
                         var style = rule.style;
 
                         if ( style ) {
-                            var background = style.backgroundImage;
+                            var background = style.backgroundImage,
+                                cursor = style.cursor;
 
                             // has a background url, and it's not a data: image
-                            if ( isBackgroundToChange(background) ) {
+                            if ( isUrlRule(background) ) {
                                 /*
                                  * Firefox adds double quotes around the url, so we get rid of them.
                                  * We also remove everything from 'url(' up till the last slash.
                                  */
-                                var newBackground = style.backgroundImage.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
+                                var newBackground = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
                                 style.backgroundImage = newBackground;
+                                probablySucceeded = true;
+                            }
+
+                            /*
+                             * Opera only pick up on two classes (why???),
+                             * but it's cursor support is so borked already,
+                             * I just don't care.
+                             */
+                            if ( isUrlRule(cursor) ) {
+                                var newCursor = cursor.replace(/"/g, '').replace(/\burl\((.*\/)?/, cursorUrl);
+                                style.cursor = newCursor;
                                 probablySucceeded = true;
                             }
                         }
@@ -5111,38 +5141,44 @@
             }
         }
 
-        if ( ! probablySucceeded ) {
-            var domObj = dom.get(0),
-                imageUrl = 'url(' + imageLocation;
+        return probablySucceeded;
+    };
 
-            domObj.addEventListener( 'DOMNodeInserted', function(ev) {
-                // select this + all children
-                var obj = $(ev.target);
-                obj = obj.find('*').add(obj);
-                
-                obj.each(function() {
-                    if ( this.skybrush_background_done === undefined ) {
-                        this.skybrush_background_done = true;
+    /**
+     * Sets up an event to relocate images as needed.
+     */
+    var relocateImagesLater = function( imageLocation, domObj ) {
+        var imageUrl = 'url(' + imageLocation;
 
-                        var style = this.style,
-                            background;
-                        if ( !style || !style.backgroundImage ) {
-                            // try is for Opera
-                            try {
-                                style = window.getComputedStyle( this );
-                            } catch ( err ) {
-                                return;
-                            }
-                        }
+        domObj.addEventListener( 'DOMNodeInserted', function(ev) {
+            // select this + all children
+            var obj = $(ev.target);
+            obj = obj.find('*').add(obj);
+            
+            obj.each(function() {
+                if ( this.skybrush_background_done === undefined ) {
+                    this.skybrush_background_done = true;
 
-                        if ( style && isBackgroundToChange(style.backgroundImage) ) {
-                            var newBackground = style.backgroundImage.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
-                            this.style.backgroundImage = newBackground;
+                    var style = this.style;
+
+                    if ( !style || !style.backgroundImage ) {
+                        try {
+                            style = window.getComputedStyle( this );
+                        } catch ( err ) {
+                            return;
                         }
                     }
-                })
-            }, false );
-        }
+
+                    if ( style ) {
+                        var background = style.backgroundImage;
+
+                        if ( isUrlRule(background) ) {
+                            this.style.backgroundImage = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
+                        }
+                    }
+                }
+            })
+        }, false );
     }
 
     /**
@@ -6230,6 +6266,57 @@
         return _this;
     };
 
+    var CursorLocationChanger = function( imageLocation ) {
+        var stylesheet = document.createElement('style');
+        document.getElementsByTagName('head')[0].appendChild( stylesheet );
+
+        /*
+         * Safari needs something, anything, appended to the style sheet for it to append.
+         * IE however doesn't like this.
+         * 
+         * FF and Chrome are too busy conoodling to care,
+         * whilst Opera is sulking on it's own in the corner as usual.
+         */
+        if ( ! $.browser.msie ) {
+            stylesheet.appendChild( document.createTextNode('') );
+        }
+
+        this.stylesheet = document.styleSheets[ document.styleSheets.length-1 ];
+        this.seenClasses = {};
+        this.cursorUrl = 'url(' + imageLocation + 'cursors/';
+    };
+
+    CursorLocationChanger.prototype.getStylesheet = function() {
+        return this.stylesheet;
+    };
+
+    CursorLocationChanger.prototype.relocateCursor = function( klass ) {
+        if ( this.seenClasses[ klass ] === undefined ) {
+            this.seenClasses[klass] = true;
+
+            var testDiv = $('<div>').
+                    addClass( klass ).
+                    css('display', 'none');
+
+            // cursor is only applied when the div is appended
+            $('body').append( testDiv );
+            var cursor = testDiv.css( 'cursor' );
+            testDiv.remove();
+
+            if ( isUrlRule(cursor) ) {
+                this.getStylesheet().insertRule( this.generateCursorRule(klass, cursor), 0 );            
+            }
+        }
+    };
+
+    CursorLocationChanger.prototype.generateCursorRule = function( klass, cursor ) {
+        var newCursor = cursor.
+                replace( /"/g, '' ).
+                replace( /\burl\((.*\/)?/, this.cursorUrl );
+
+        return '.' + klass + '{ cursor: ' + newCursor + ' !important; }';
+    };
+
     /**
      * The main entry point for creating a new SkyBrush
      * application. It works by taking a HTML DOM element, and
@@ -6395,15 +6482,37 @@
         _this.isShiftDownFlag = false;
         _this.isAltDownFlag = false;
 
+        /*
+         * ### Cursor Setup ###
+         */
+
+        /*
+         * Deal with the image translation options.
+         * 
+         * This involves trying to do it in one, right now,
+         * and otherwise having it setup to do it over time.
+         */
+        _this.cursorTranslator = nil;
+        if ( options.image_location ) {
+            var imageLocation = translateImageLocation( options.image_location );
+
+            /*
+             * Try to relocate image/cursor rules in teh stylesheets, and if that fails,
+             * do it manually as needed.
+             */
+            var success = relocateStylesheetImages( imageLocation );
+            if ( ! success ) {
+                relocateImagesLater( imageLocation, dom.get(0) );
+                _this.cursorTranslator = new CursorLocationChanger( imageLocation );
+            }
+        }
+
         // caches the currently set cursor,
         // for when the brush cursor is shown
         _this.oldCursor = nil;
-        _this.currentCursor = DEFAULT_CURSOR;
-        _this.viewport.addClass( _this.currentCursor );
+        _this.currentCursor = nil;
 
-        if ( options.image_location ) {
-            relocatteStylesheetImages( dom.get(0), ensureEndingSlash(options.image_location) );
-        }
+        _this.setCursorClass( DEFAULT_CURSOR );
 
         var commands = newCommands( this );
 
@@ -8019,15 +8128,23 @@
             }
         // if we just moved out, set it to the old cursor
         } else if ( this.oldCursor !== nil ) {
-            if ( this.currentCursor !== nil ) {
-                this.viewport.removeClass( this.currentCursor );
-            }
-
-            this.currentCursor = this.oldCursor;
-            this.viewport.addClass( this.currentCursor );
-
-            this.oldCursor = nil;
+            this.setCursorClass( this.oldCursor );
         }
+    };
+
+    SkyBrush.prototype.setCursorClass = function( cssClass ) {
+        if ( this.currentCursor !== nil ) {
+            this.viewport.removeClass( this.currentCursor );
+        }
+        
+        if ( this.cursorTranslator !== nil ) {
+            this.cursorTranslator.relocateCursor( cssClass );
+        }
+
+        this.viewport.addClass( cssClass );
+
+        this.oldCursor = nil;
+        this.currentCursor = cssClass;
     };
 
     SkyBrush.prototype.onMouseUp = function( ev ) {
@@ -8829,10 +8946,7 @@
             if ( this.oldCursor !== nil ) {
                 this.oldCursor = cursorCSS;
             } else {
-                this.viewport.removeClass( this.currentCursor );
-
-                this.viewport.addClass( cursorCSS );
-                this.currentCursor = cursorCSS;
+                this.setCursorClass( cursorCSS );
             }
         }
     };
