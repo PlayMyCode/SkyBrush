@@ -6608,6 +6608,12 @@
 //            _this.repositionGUIs();
         } );
 
+        // cancel alt/shift down when we alt-tab
+        $(window).blur( function() {
+            _this.runOnShift( false );
+            _this.runOnAlt( false );
+        })
+
 		if ( options.callback ) {
 			setTimeout( function() {
 				options.callback( _this );
