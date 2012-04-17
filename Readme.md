@@ -10,9 +10,11 @@ This uses and requires jQuery. As of writing, the latest version is bundled with
 Features
 --------
  * easy embeddable painting application
- * Cross browser; supports IE 9+, Firefox, Chrome, Safari and Opera
- * single interface for setting/getting/manipulating content
- * no cruft! It's just an art package, you can add your own stuff around it.
+ * cross browser; supports IE 9+, Firefox, Chrome, Safari and Opera
+ * in-built common key bindings
+ * simple interface for setting/getting/manipulating content
+ * all the basics; brush, pencil, zoom, shapes, colour picker, mixer, copy+paste, alpha blending modes, overlay grid, resizing/scaling, selections and more
+ * no cruft! Built to work well on it's own, or with hooks tied in, so you can easily add your own stuff around it.
 
 Try the demo!
 -------------
