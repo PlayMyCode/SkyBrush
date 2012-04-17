@@ -147,6 +147,14 @@ Ctrl+R is grabbed as this is often used for redo in painting apps, but this disa
 
 You can prevent this behaviour using the 'grab_ctrl_r' option:
 
+```js
+	var dom = $( '.skybrush' );
+
+    var skybrush = new SkyBrush( dom, {
+    		grab_ctrl_r: false
+	} );
+```
+
 ### Change Image Location
 
 If your images are not showing up, you probably need to read this! Otherwise skip it.
