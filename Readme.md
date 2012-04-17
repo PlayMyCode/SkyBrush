@@ -255,7 +255,7 @@ Scales the content in the canvas to the new size given, resizing what is current
 
 An undo step is recorded.
 
-### .getWidth()
+### .getWidth( )
 
 Returns the width of the canvas in pixesl.
 
@@ -263,7 +263,7 @@ Returns the width of the canvas in pixesl.
 	width = skybrush.getWidth()
 ```
 
-### .getHeight()
+### .getHeight( )
 
 Returns the height of the canvas in pixesl.
 
@@ -286,3 +286,119 @@ Redoes the next redo action, if there is one. If there isn't one, then this sile
 ```js
 	skybrush.redo();
 ```
+
+API Events
+----------
+
+These methods take a function, which is run when that action is carried out.
+They are mainly offered so you can tell when the user has interacted, such as drawn something,
+and so can maintain your own site's state accordingly.
+
+### .onDraw( callback )
+
+This is called whenever the user draws anything, with any tool. It's called at the end of the drawing, when it has finished.
+
+It also includes any other actions that alter content, such as scaling, resizing, or pasting content.
+
+```js
+	// example tracking if the image is saved or not
+	var isSaved = true;
+
+	skybrush.onDraw( function() {
+		isSaved = false;
+	});
+```
+
+### .onUndo( callback )
+
+The callback is called when contend is undone. This includes going back an undo step, or clearing content which hasn't been pasted yet. This could happen by either the user, or by calling the 'undo' method.
+
+```js
+	skybrush.onUndo( function() {
+		// code here
+	});
+```
+
+Note that this only fires if an undo is actually performed. If undo is called, but there is no undo to perform, then the callback is not called.
+
+### .onRedo( callback )
+
+The callback is called when contend is redone, either by the user clicking 'redo', or by calling the 'redo' method directly.
+
+```js
+	skybrush.onRedo( function() {
+		// code here
+	});
+```
+
+Note that this only fires if a redo is actually performed. If redo is called, but there is no redo to perform, then the callback is not called.
+
+### .onSetAlpha( callback )
+
+Called when the alpha value is set, in the colour mixer. I don't know why you'd want to listen to this, but if you do, you can.
+
+```js
+	skybrush.onSetAlpha( function(alpha) {
+		// code here
+	});
+```
+
+The 'alpha' value is a value from 0.0 to 1.0. 0.0 is fully transparent, whilst 1.0 is fully opaque.
+
+### .onSetColor( callback )
+
+Called when a new colour is set. The new colour is passed into the callback.
+
+```js
+	skybrush.onSetColor( function(colour) {
+		// new colour here
+	});
+```
+
+The colour provided is a hex string representing the colour, such as '#ff0000' for red, or '#999999' for grey.
+
+### .onZoom( callback )
+
+Called when the zoom level is changed. This is the new zoom level, and the centre of the zoom in pixels.
+
+```js
+	skybrush.onZoom( function(zoom, x, y) {
+
+	});
+```
+
+The zoom value is a multiplyer; you can imagine multiplying it against 100%. For example if the zoom is set to 100%, then 1.0 is passed in, and at double zoom, 2.0 is passed in.
+
+At half zoom, 0.5 is passed in, whilst at 25% zoom, 0.25 is passed in.
+
+### .onShift( callback )
+
+Called when SkyBrush sees and runs a shift event.
+
+```js
+	skybrush.onAlt( function(isShiftDown) {
+		if ( isShiftDown ) {
+			// do something
+		} else {
+			// do something else
+		}
+	});
+```
+
+Note that SkyBrush might ignore shift events if they happen at an inconvenient time, or if an up event has been generated without a down event. Use DOM events if you want to track all possible shift events.
+
+### .onAlt( callback )
+
+Called when SkyBrush sees and runs an alt key event. This is when the key is pressend down or released.
+
+```js
+	skybrush.onAlt( function(isAltDown) {
+		if ( isAltDown ) {
+			// do something
+		} else {
+			// do something else
+		}
+	});
+```
+
+Note that SkyBrush might ignore alt key events if they happen at an inconvenient time, or if an up event has been generated without a down event. Use DOM events if you want to track all possible alt events.
