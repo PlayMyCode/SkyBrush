@@ -1946,21 +1946,15 @@
 	 * Sets the size of the grid squares, in pixels.
 	 */
 	GridManager.prototype.setSize = function( w, h ) {
-		var update = false;
+        w = Math.max( w|0, 0 );
+        h = Math.max( h|0, 0 );
 
-		if ( ! isNaN(w) && w != '' ) {
-			this.width = Math.max( w|0, 1 );
-			update = true;
-		}
+        if ( w !== this.width || h !== this.height ) {
+            this.width  = w;
+            this.height = h;
 
-		if ( ! isNaN(h) && h != '' ) {
-			this.height = Math.max( h|0, 1 );
-			update = true;
-		}
-
-		if ( update ) {
-			this.update();
-		}
+            this.update();
+        }
 	};
 
 	GridManager.prototype.getWidth = function() {
@@ -1987,18 +1981,22 @@
 	GridManager.prototype.setOffset = function( x, y ) {
 		if ( isNaN(x) ) {
 			x = 0;
+        } else {
+            x = x|0;
 		}
 
 		if ( isNaN(y) ) {
 			y = 0;
-		}
+		} else {
+            y = y|0;
+        }
 
-		var update = ( this.offsetX != x || this.offsetY != y );
-
-		this.offsetX = x,
-		this.offsetY = y;
+		var update = ( this.offsetX !== x || this.offsetY !== y );
 
 		if ( update ) {
+            this.offsetX = x,
+            this.offsetY = y;
+
 			this.update();
 		}
 
@@ -7688,7 +7686,7 @@
 												Math.round(height * (w/width))
 										);
 									}
-                                }, 0 );
+                                }, 1 );
                             }
 						} );
 						heightInput.keydown( function() {
@@ -7703,7 +7701,7 @@
 												Math.round(width * (h/height))
 										);
 									}
-                                }, 0 );
+                                }, 1 );
                             }
 						} );
 
@@ -7819,12 +7817,13 @@
                                     width.val(),
                                     height.val()
                             );
-                        }, 0 );
+                        }, 1 );
                     };
 
 					$().add( width ).add( height ).
 							forceNumeric( false ).
 							attr( 'type', 'number' ).
+                            keypress( updateSize ).
                             click( updateSize ).
 							change( updateSize );
 
@@ -7846,6 +7845,7 @@
 					$().add( offsetX ).add( offsetY ).
 								forceNumeric( false ).
 								attr( 'type', 'number' ).
+                                keypress( updateOffset ).
                                 click( updateOffset ).
                                 change( updateOffset );
 
