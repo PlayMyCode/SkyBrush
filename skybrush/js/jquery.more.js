@@ -3,7 +3,7 @@
 /**
  * @license
  * 
- * SkyBrush - skybrush.css
+ * jQuery.more.js
 
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
@@ -32,39 +32,62 @@
  */
 
 /**
- * util.js
+ * jQuery.more.js
  * 
- * This is a bunch of jQuery, and non-jQuery, utility stuff. It was originally
- * built for Play My Code, but is also used in other projects, such as SkyBrush.
+ * This is a bunch of basic stuff, some jQuery extensions, some non-jQuery, for
+ * building GUI apps in JS. It is not a UI manager, but instead is there to help
+ * you build custom UIs. Especially custom UIs which require very custom items,
+ * like a painting application.
  * 
- * Ideally anything really SkyBrush specific should be pushed out into that,
- * but things like the scrollbar detection are kinda useful for other things too.
+ * It started life being built for Play My Code, then had some stuff added via
+ * SkyBrush, and now is more general purpose.
  * 
  * It also includes some shorthand, like 'leftdown' and 'leftup' as left-click
- * specific alternatives to 'mousedown' and 'mouseup'.
+ * specific alternatives to 'mousedown' and 'mouseup'. Methods involving
+ * scrollbars, browser feature sniffing, working with forms (like AJAXy POST),
+ * and more.
  * 
- * However this was also never meant to be a proper, mature library for building
- * JS apps; mostly a bit of hackery to do what's needed to be done.
- * 
- * This file contains:
- *  = extra functions
- *  = extra jQuery functions
- *  = adds missing JavaScript functions
+ * It also includes some generic classes which aim to fit into specific design
+ * patterns. For example having lots of events hanging off a event handler, you
+ * can achieve that using the EventHandler constructor.
  */
- 
 (function(window, document, $, jQuery, undefined){
     /**
-     * usage: log('inside coolFunc',this,arguments);
-     * paulirish.com/2009/log-a-lightweight-wrapper-for-consolelog/
+     * Feature sniffing for various browsers.
      */
-    window.log = function() {
-        log.history = log.history || [];   // store logs to an array for reference
-        log.history.push(arguments);
-        
-        if (window.console) {
-            window.console.log( Array.prototype.slice.call(arguments) );
+    (function() {
+        var supportedInputs = {};
+        var types = [
+                'date',
+                'color',
+                'range',
+                'search',
+                'number',
+                'tel',
+                'url',
+                'email',
+                'month',
+                'week',
+                'time',
+                'datetime',
+                'datetime-local'
+        ];
+
+        var input = document.createElement('input');
+        for ( var i = 0; i < types.length; i++ ) {
+            var type = types[i];
+
+            input.setAttribute('type', type);
+            supportedInputs[type] = ( input.type !== 'text' );
+            input.setAttribute('type', 'text');
         }
-    };
+
+        $.browser.supports = {
+                input: supportedInputs,
+
+                touch: (!! window.Touch)
+        };
+    })();
 
     /**
      * Our PlayMyCode jQuery extras.
@@ -699,197 +722,343 @@
         })();
     })();
 
-    /**
-     * EventRunner timing utility function.
-     * 
-     * A common design pattern is to run a function repeatedly, using setTimeout,
-     * but when you schedule a function to run, all previously waiting functions
-     * should be cancelled.
-     * 
-     * Something like:
-     * 
-     * var k = null;
-     * 
-     * function runBar() {
-     *     if ( k !== null ) {
-     *      clearTimeout( k );
-     *     }
-     * 
-     *     k = setTimeout( function() {
-     *          k = null;
-     *          doWork();
-     *     );
-     * }
-     * 
-     * The idea is that 'runBar' might be called repeatedly,
-     * and each time it cancels any existing work,
-     * and sets up a new batch of work to be run instead.
-     * 
-     * If there is no work to be cancelled, then the current work
-     * is run anyway.
-     * 
-     * The EventRunner implements this design pattern.
-     * 
-     * Usage:
-     *     var runner = new EventRunner( timeout );
-     *     runner.run( function() {
-     *          // do work
-     *     } );
-     * 
-     * If 'run' is called before the previous 'run' was ever called,
-     * then the previous 'run' is cancelled, and the new one replaces it.
-     * 
-     * To clarify, and to help be clear about what this does:
-     * 'run' will cancel a timeout for a previously set function,
-     * if you call 'run' before that timeout is fired.
-     * This is the whole point of this EventRunner.
-     * 
-     * 'run' can also be cancelled using the 'clear' method,
-     * and 'maybeRun' allows you to only set if there is not a function
-     * waiting. 'isPending' also allows you to check if a function is set
-     * for a timeout, or not.
-     * 
-     * The time to use for timeouts is set in the constructor.
-     */
-    window['EventRunner'] = (function() {
+    function argumentsToArray( args, startIndex, num ) {
+        if ( startIndex === undefined ) {
+            startIndex = 0;
+        }
+
+        if ( num === undefined ) {
+            num = args.length;
+        } else {
+            num = Math.min( args.length, startIndex+num );
+        }
+
+        var returnArgs = [];
+        for ( var i = startIndex; i < num; i++ ) {
+            returnArgs.push( args[i] );
+        }
+
+        return returnArgs;
+    }
+
+    window['events'] = {
         /**
-         * The timeout paramter is the amount of time the EventRunner should use
-         * when it schedules a function to be called.
+         * A simple, generic event handler.
+         *
+         * It's pretty common in UI's that you have a central object
+         * that manages the app. This makes the wiring simpler.
+         *
+         * When something happens in the app, it tells the central
+         * object that it's happening. The central object then tells
+         * the application components to all update.
+         *
+         * This is a class for helping to build that model. You can
+         * add callbacks to this event handler, and then tell it to
+         * run all those callbacks on demand. That way the updates
+         * can be easily added, and run, as needed.
          * 
-         * This is in milliseconds, and it defaults to 0 (run as soon as possible,
-         * on the next JS cycle).
+         * You can attach functions, using 'add', and then run them later,
+         * using 'context'.
          * 
          * @constructor
-         * @param timeout Optional, the length of time for functions to wait when passed into 'run'.
-         */
-        var EventRunner = function( timeout ) {
-            this.timeout = ( timeout !== undefined ) ?
-                    Math.max( timeout, 0 ) :
-                    0 ;
-            
-            this.event = null;
-        };
-        
-        /**
-         * This can run in one of two ways.
-         * 
-         * If there is no parameter, then the current timeout is returned.
-         * 
-         *      var timeout = event.timeout();
-         * 
-         * If a newTimeout parameter is provided, then the current timeout
-         * is replaced with it, and the old timeout is returned.
-         * 
-         *      // change the timeout
-         *      event.timeout( newTimeout );
-         *      
-         *      // change the timeout, and store the old one
-         *      var oldTimeout = event.timeout( newTimeout );
-         * 
-         * @param newTimeout Optional, a new timeout in milliseconds for functions to use when scheduled.
-         * @return The current timeout, if no paramter, the old timeout, if a parameter is given.
-         */
-        EventRunner.prototype.timeout = function( newTimeout ) {
-            if ( newTimeout !== undefined ) {
-                var time = this.timeout
-                this.timeout = Math.max( newTimeout, 0 );
-                return time;
-            } else {
-                return this.timeout;
-            }
-        };
-
-        /**
-         * Cleares the current function waiting on a timeout.
-         * 
-         * If no function is waiting, then this silently does nothing.
-         * 
-         * True or false is returned to tell you if it did or did not
-         * need to clear.
-         * 
-         * @return true if there was an event pending, false if not.
-         */
-        EventRunner.prototype.clear = function() {
-            if ( this.isPending() ) {
-                clearTimeout( this.event );
-                this.event = null;
-            }
-            
-            return this;
-        };
-        
-        /**
-         * States if the EventRunner currently has a function
-         * waiting on a timeout, or not.
-         * 
-         * @return True if a function is waiting, false if not.
-         */
-        EventRunner.prototype.isPending = function() {
-            return ( this.event !== null ) ;
-        };
-        
-        /**
-         * A helper function, that sets the function given,
-         * on the runner given.
-         * 
-         * Note that this does no clearing, and no safety checks.
-         * It's just a blob of code to be re-used by 'run' and 'maybeRun',
-         * end of.
-         * 
          * @private
-         * @param runner The EventRunner to setup a timeout with.
-         * @param f The function to setup in a timeout.
-         * @return The given 'runner' object.
          */
-        var setEvent = function( runner, f ) {
-            runner.event = setTimeout(
-                    function() {
-                        runner.event = null;
-                        f();
-                    },
-                    runner.timeout
-            );
+        Handler: (function() {
+            var EventHandler = function( context ) {
+                this.events = {};
+                this.context = context;
+            };
+
+            var runEvents = function( handler, type, context, args, startArgsI ) {
+                var es = handler.events[type];
+
+                if ( es !== undefined ) {
+                    var esArgs = argumentsToArray( args, startArgsI );
+
+                    for ( var i = 0; i < es.length; i++ ) {
+                        es[i].apply( context, esArgs );
+                    }
+                }
+
+                return handler;
+            }
+
+            /**
+             * Adds a new event to store under the 'type'.
+             *
+             * @param type The type of event being stored.
+             * @param event The event to store.
+             * @return this EventHandler object.
+             */
+            EventHandler.prototype = {
+                add: function( type, event ) {
+                    var es = this.events[ type ];
+
+                    if ( es === undefined ) {
+                        this.events[ type ] = [ event ];
+                    } else {
+                        es.push( event );
+                    }
+
+                    return this;
+                },
+
+                /**
+                 * Finds the event given for that type, and if found, it
+                 * is removed from the event handler.
+                 *
+                 * If the event is not found, then this does nothing.
+                 *
+                 * @param type The name of the event.
+                 * @param event The callback to remove from being called.
+                 * @return This EventHandler object.
+                 */
+                remove: function( type, event ) {
+                    var es = this.events[ type ];
+
+                    if ( es !== undefined ) {
+                        for ( var i = 0; i < es.length; i++ ) {
+                            if ( es[i] === event ) {
+                                es.splice( i, 1 );
+
+                                break;
+                            }
+                        }
+                    }
+
+                    return this;
+                },
+
+                /**
+                 * @return The context used when calling callbacks.
+                 */
+                getContext: function() {
+                    return this.context;
+                },
+
+                /**
+                 * 
+                 */
+                setContext: function( context ) {
+                    this.context = context;
+                },
+
+                /**
+                 * Runs all of the events stored under the type given.
+                 * Each event is called as if it were run on the 'context' object.
+                 * 
+                 * @param type The type of events to run.
+                 * @return this EventHandler object.
+                 */
+                run: function( type ) {
+                    return runEvents( this, type, this.context, arguments, 1 );
+                },
+
+                /**
+                 * Same as run, only this allows you to also state the context too.
+                 */
+                runContext: function( type, context ) {
+                    return runEvents( this, type, context, arguments, 2 );
+                }
+            };
+
+            return EventHandler;
+        })(),
+
+        /**
+         * EventRunner timing utility function.
+         * 
+         * A common design pattern is to run a function repeatedly, using setTimeout,
+         * but when you schedule a function to run, all previously waiting functions
+         * should be cancelled.
+         * 
+         * Something like:
+         * 
+         * var currentWork = null;
+         * 
+         * function run( callback ) {
+         *     if ( currentWork !== null ) {
+         *      clearTimeout( currentWork );
+         *     }
+         * 
+         *     currentWork = setTimeout( function() {
+         *          currentWork = null;
+         *          callback();
+         *     } );
+         * }
+         * 
+         * The idea is that 'runBar' might be called repeatedly,
+         * and each time it cancels any existing work,
+         * and sets up a new batch of work to be run instead.
+         * 
+         * If there is no work to be cancelled, then the current work
+         * is run anyway.
+         * 
+         * The EventRunner implements this design pattern.
+         * 
+         * Usage:
+         *     var runner = new EventRunner( timeout );
+         *     runner.run( function() {
+         *          // do work
+         *     } );
+         * 
+         * If 'run' is called before the previous 'run' was ever called,
+         * then the previous 'run' is cancelled, and the new one replaces it.
+         * 
+         * To clarify, and to help be clear about what this does:
+         * 'run' will cancel a timeout for a previously set function,
+         * if you call 'run' before that timeout is fired.
+         * This is the whole point of this EventRunner.
+         * 
+         * 'run' can also be cancelled using the 'clear' method,
+         * and 'maybeRun' allows you to only set if there is not a function
+         * waiting. 'isPending' also allows you to check if a function is set
+         * for a timeout, or not.
+         * 
+         * The time to use for timeouts is set in the constructor.
+         */
+        Runner: (function() {
+            /**
+             * The timeout paramter is the amount of time the EventRunner should use
+             * when it schedules a function to be called.
+             * 
+             * This is in milliseconds, and it defaults to 0 (run as soon as possible,
+             * on the next JS cycle).
+             * 
+             * @constructor
+             * @param timeout Optional, the length of time for functions to wait when passed into 'run'.
+             */
+            var EventRunner = function( timeout ) {
+                this.timeout = ( timeout !== undefined ) ?
+                        Math.max( timeout, 0 ) :
+                        0 ;
+                
+                this.event = null;
+            };
             
-            return runner;
-        };
-        
-        /**
-         * 'run' sets up a timeout to run the given function in the future.
-         * 
-         * If a function is currently waiting on a timeout to be called,
-         * then it will be cancelled before the given function is set to be run.
-         * 
-         * @param f The function to perform in the timeout.
-         * @return This object, for method chaining.
-         */
-        EventRunner.prototype.run = function( f ) {
-            return setEvent( this.clear(), f );
-        };
+            /**
+             * A helper function, that sets the function given,
+             * on the runner given.
+             * 
+             * Note that this does no clearing, and no safety checks.
+             * It's just a blob of code to be re-used by 'run' and 'maybeRun',
+             * end of.
+             * 
+             * @private
+             * @param runner The EventRunner to setup a timeout with.
+             * @param f The function to setup in a timeout.
+             * @return The given 'runner' object.
+             */
+            var setEvent = function( runner, f ) {
+                runner.event = setTimeout(
+                        function() {
+                            runner.event = null;
+                            f();
+                        },
+                        runner.timeout
+                );
+                
+                return runner;
+            };
 
-        /**
-         * maybeRun is the same as run,
-         * except it will only run the given function,
-         * if there is no function to run.
-         * 
-         * If there is a function already waiting to be run,
-         * then nothing will happen.
-         * 
-         * Tbh this is mostly here for completeness,
-         * only if you really don't want to cancel the old job.
-         * 
-         * @param f The function to perform in the timeout.
-         * @return This object, for method chaining.
-         */
-        EventRunner.prototype.maybeRun = function( f ) {
-            return ( !this.isPending() ) ?
-                    setEvent( this, f ) :
-                    this;
-        };
-        
-        return EventRunner;
-    })();
+            EventRunner.prototype = {
+                /**
+                 * This can run in one of two ways.
+                 * 
+                 * If there is no parameter, then the current timeout is returned.
+                 * 
+                 *      var timeout = event.timeout();
+                 * 
+                 * If a newTimeout parameter is provided, then the current timeout
+                 * is replaced with it, and the old timeout is returned.
+                 * 
+                 *      // change the timeout
+                 *      event.timeout( newTimeout );
+                 *      
+                 *      // change the timeout, and store the old one
+                 *      var oldTimeout = event.timeout( newTimeout );
+                 * 
+                 * @param newTimeout Optional, a new timeout in milliseconds for functions to use when scheduled.
+                 * @return The current timeout, if no paramter, the old timeout, if a parameter is given.
+                 */
+                timeout: function( newTimeout ) {
+                    if ( newTimeout !== undefined ) {
+                        var time = this.timeout
+                        this.timeout = Math.max( newTimeout, 0 );
+                        return time;
+                    } else {
+                        return this.timeout;
+                    }
+                },
 
-    /* ### Adding missing JS functions */
+                /**
+                 * Cleares the current function waiting on a timeout.
+                 * 
+                 * If no function is waiting, then this silently does nothing.
+                 * 
+                 * True or false is returned to tell you if it did or did not
+                 * need to clear.
+                 * 
+                 * @return true if there was an event pending, false if not.
+                 */
+                clear: function() {
+                    if ( this.isPending() ) {
+                        clearTimeout( this.event );
+                        this.event = null;
+                    }
+                    
+                    return this;
+                },
+                
+                /**
+                 * States if the EventRunner currently has a function
+                 * waiting on a timeout, or not.
+                 * 
+                 * @return True if a function is waiting, false if not.
+                 */
+                isPending: function() {
+                    return ( this.event !== null ) ;
+                },
+                
+                /**
+                 * 'run' sets up a timeout to run the given function in the future.
+                 * 
+                 * If a function is currently waiting on a timeout to be called,
+                 * then it will be cancelled before the given function is set to be run.
+                 * 
+                 * @param f The function to perform in the timeout.
+                 * @return This object, for method chaining.
+                 */
+                run: function( f ) {
+                    return setEvent( this.clear(), f );
+                },
+
+                /**
+                 * maybeRun is the same as run,
+                 * except it will only run the given function,
+                 * if there is no function to run.
+                 * 
+                 * If there is a function already waiting to be run,
+                 * then nothing will happen.
+                 * 
+                 * Tbh this is mostly here for completeness,
+                 * only if you really don't want to cancel the old job.
+                 * 
+                 * @param f The function to perform in the timeout.
+                 * @return This object, for method chaining.
+                 */
+                maybeRun: function( f ) {
+                    return ( !this.isPending() ) ?
+                            setEvent( this, f ) :
+                            this;
+                }
+            };
+            
+            return EventRunner;
+        })()
+    };
+    
+    /* ### Adding extra global JS functions */
 
     /**
      * This ensures 'string.trim()' is always present,
@@ -899,5 +1068,94 @@
         String.prototype.trim = function() {
             return $.trim( this );
         }
+    }
+
+    if ( Math.limit === undefined ) {
+        /**
+         * Applies both a min and max to n, against the values given.
+         * n is then returned, limited to the range from min to max.
+         *
+         * @param {number} n The value to limit.
+         * @param {number} min The minimum value n can be.
+         * @param {number} max The maximum value n can be.
+         * @return {number} n limited to between min and max.
+         */
+        Math.limit = function( n, min, max ) {
+            return Math.max(
+                    min,
+                    Math.min(
+                            max,
+                            n
+                    )
+            );
+        };
+    };
+
+
+    var oldRound = Math.round;
+
+    /**
+     * This new and improved version of round allows you to add
+     * the nearest value.
+     * 
+     * For example, the normal Math.round rounds to the nearest
+     * whole number; it rounds to the nearest '1'. This allows
+     * you to specify a different value to round to, such as '2',
+     * the nearest '16', or the nearest '0.9382'.
+     * 
+     *  var val = Math.round( 1.3984532, 0.28349 );
+     * 
+     * The second value is optional, and default to 1.
+     * 
+     * @param n The value to round.
+     * @param step Optional, the nearest value to round to.
+     */
+    Math.round = function( n, step ) {
+        step = step|0;
+        if ( step === 0 ) {
+            step = 1;
+        }
+
+        return oldRound( n/step )*step;
+    };
+
+    if ( Function.prototype.implements === undefined ) {
+        /**
+         * For extending a prototype, or for adding methods.
+         * Pass in either another function object to be extended,
+         * or an object containing the methods to use.
+         * 
+         * @return This function object.
+         */
+        Function.prototype.implements = function() {
+            var proto = this.prototype;
+
+            for ( var i = 0; i < arguments.length; i++ ) {
+                var obj = arguments[i];
+
+                // extend a prototype
+                if ( isFunction(obj) ) {
+                    var superProto = obj.prototype;
+
+                    for ( var k in superProto ) {
+                        if ( superProto.hasOwnProperty(k) ) {
+                            proto[k] = superProto[k];
+                        }
+                    }
+                // adding methods
+                } else if ( (typeof obj) == 'object' ) {
+                    for ( var k in obj ) {
+                        if ( obj.hasOwnProperty(k) ) {
+                            proto[k] = obj[k];
+                        }
+                    }
+                } else {
+                    throw new Error( "Invalid value given to impelment" );
+                }
+            }
+
+            // for chaining
+            return this;
+        };
     }
 })(window, document, $, jQuery);

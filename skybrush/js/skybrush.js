@@ -150,6 +150,15 @@
 		GRID_FADE_SPEED = 250, // milliseconds
 
         /**
+         * The name of the command to select as default,
+         * when the user first sees painter.
+         * 
+         * @const
+         * @type {string}
+         */
+        DEFAULT_COMMAND = 'brush',
+
+        /**
          * @const
          * @type {string}
          */
@@ -236,7 +245,7 @@
 		 * @const
 		 * @type {number}
 		 */
-		GUI_DEFAULT_X = 28,
+		GUI_DEFAULT_X = 24,
 
 		/**
 		 * Startying y location.
@@ -502,114 +511,278 @@
      *
      * ASCII art impression of control:
      *
-     *   - -------[]--- +
+     *   -------[]---
      *
-     *
+     * This will use the input 'range' type where available.
+     * 
      * @return A jQuery object (a div), which is pre-built and setup as a slider.
      */
+    /*
+     * Ok, so how does this work? Either a HTML5 input range or a custom
+     * slider gets generated.
+     * 
+     * This then has an API directly pasted onto the object which is the
+     * most *basic* API possible. Direct getters and setters, and visual
+     * cues, that's it.
+     * 
+     * They both have a more complex API built on top, which is the API
+     * that does the 'slideUp', 'slideDown', setting and running of slide
+     * events.
+     * 
+     * The idea is to push the clever code up the stack, so it's shared,
+     * and keep the lower code where it's different as basic as possible.
+     */
     var $slider = function() {
-        var slider = $a('', 'skybrush_slider_bar_slider').
-                stopPropagation( 'click', 'leftdown' ).
-                leftdown( function(ev) {
-                    var $this = $(this);
+        var sliderBar;
 
-                    $this.data('is_sliding', true);
-                } );
-        slider.data( 'is_sliding', false );
+        if ( $.browser.supports.input.range ) {
+            sliderBar = $('<input>').
+//                    stopPropagation( 'click', 'leftdown' ).
+                    addClass( 'skybrush_slider_bar' ).
+                    attr( 'type', 'range' ).
 
-        // stop sliding
-        $(document).leftup( function(ev) {
+                    // default min/max/step values
+                    attr( 'min', 0 ).
+                    attr( 'max', 1 ).
+                    attr( 'step', 1/NUM_SLIDE_INCREMENTS ).
+
+                    change( function() {
+                        sliderBar.runOnSlide();
+                    });
+
+            sliderBar.getStep = function() {
+                return Number( this.attr('step') );
+            };
+            sliderBar.setStep = function( step ) {
+                this.attr('step', step );
+            };
+
+            sliderBar.getMin = function() {
+                return Number( this.attr('min') );
+            };
+            sliderBar.getMax = function() {
+                return Number( this.attr('max') );
+            };
+            sliderBar.setMin = function( min ) {
+                this.attr( 'min', min );
+            };
+            sliderBar.setMax = function( max ) {
+                this.attr( 'max', max );
+            };
+
+            sliderBar.isFake = function() {
+                return false;
+            };
+
+            sliderBar.getVal = function() {
+                return Number( this.val() );
+            };
+        } else {
+            var slider = $a('', 'skybrush_slider_bar_slider').
+                    stopPropagation( 'click', 'leftdown' ).
+                    leftdown( function(ev) {
+                        var $this = $(this);
+
+                        $this.data('is_sliding', true);
+                    } );
+
             slider.data( 'is_sliding', false );
-        } );
 
-        /**
-         * Runs the 'onslide' event if there is one.
-         *
-         * @param $this This slider object already wrapped by jQuery.
-         */
-        var runOnSlide = function( $this ) {
-            var slideVal = $this.children( '.skybrush_slider_bar_slider' ).position().left / $this.width();
-            $this.trigger( 'on_slide', [slideVal] );
-        };
+            // stop sliding
+            $(document).leftup( function(ev) {
+                slider.data( 'is_sliding', false );
+            } );
 
-        /**
-         * A helper sliding function.
-         *
-         * It handles the maths, and the movement, of sliding the slider up
-         * or down $this, it's sliding bar.
-         *
-         * Things have to be passed in as it's a tad low level,
-         * and designed to avoid some repetition when used (like finding the slider).
-         */
-        var slideTo = function( $this, slider, slideUp) {
-            var sliderX = slider.position().left,
-                w = $this.width();
-            var slideInc = w / NUM_SLIDE_INCREMENTS;
-            var nowX = sliderX % slideInc;
-            var onTheStep = nowX == 0;
+            /**
+             * A helper sliding function.
+             *
+             * It handles the maths, and the movement, of sliding the slider up
+             * or down $this, it's sliding bar.
+             *
+             * Things have to be passed in as it's a tad low level,
+             * and designed to avoid some repetition when used (like finding the slider).
+             */
+            var slideTo = function( $this, slider, slideUp) {
+                var sliderX = slider.position().left,
+                    w = $this.width();
+                var slideInc = w / NUM_SLIDE_INCREMENTS;
+                var nowX = sliderX % slideInc;
+                var onTheStep = nowX == 0;
 
-            // work out the distance from the next mark, in the positive diretion (slide up)
-            var normalizedDist = nowX / slideInc;
+                // work out the distance from the next mark, in the positive diretion (slide up)
+                var normalizedDist = nowX / slideInc;
 
-            var newX = sliderX - nowX;
+                var newX = sliderX - nowX;
 
-            if ( slideUp ) {
-                newX += slideInc;
+                if ( slideUp ) {
+                    newX += slideInc;
 
-                if ( !onTheStep ) {
-                    // skip the next mark, if we are really close to it
-                    if ( (1-normalizedDist) < SLIDER_ERROR ) {
-                        newX += slideInc;
+                    if ( !onTheStep ) {
+                        // skip the next mark, if we are really close to it
+                        if ( (1-normalizedDist) < SLIDER_ERROR ) {
+                            newX += slideInc;
+                        }
                     }
+                // slide down + skip next down mark
+                } else if ( onTheStep || normalizedDist < SLIDER_ERROR ) {
+                    newX -= slideInc;
                 }
-            // slide down + skip next down mark
-            } else if ( onTheStep || normalizedDist < SLIDER_ERROR ) {
-                newX -= slideInc;
+
+                newX = Math.limit( newX, 0, w );
+                var p = newX / w;
+                
+                sliderBar.percent( newX / w );
+                sliderBar.runOnSlide();
+            };
+
+            sliderBar = $a('', 'skybrush_slider_bar').
+                    addClass( 'sb_fake' ).
+                    stopPropagation( 'click', 'leftdown' ).
+    				append( $('<div>').addClass('skybrush_slider_bar_inner') ).
+                    append( slider ).
+
+                    // zoom in/out when you click on the slider bar
+                    click( function(ev) {
+                        var $this = $(this);
+                        var slider = $this.children('.skybrush_slider_bar_slider');
+
+                        if ( ! slider.data('is_sliding') ) {
+                            var mx = ev.pageX - $this.offset().left;
+                            var sliderX = slider.position().left;
+                            slideTo( $this, slider, (mx > sliderX) );
+                        }
+                    } ).
+                    mousemove( function(ev) {
+                        var $this = $(this);
+                        var slider = $this.children('.skybrush_slider_bar_slider');
+
+                        if ( slider.data('is_sliding') ) {
+                            var pos = $this.offset(),
+                                thisWidth = $this.width();
+                            
+                            var x = Math.limit(
+                                    ev.pageX - pos.left,
+                                    0,
+                                    thisWidth
+                            );
+
+                            sliderBar.percent( x / thisWidth );
+                            sliderBar.runOnSlide();
+                        }
+                    } );
+
+            sliderBar.setPercent = function( p ) {
+                p = Math.limit( p, 0.0, 1.0 );
+                this.percentVal = p;
+
+                var x = this.width() * p ;
+                this.children('.skybrush_slider_bar_slider').css({left: x + 'px'});
+
+                return this;
+            };
+
+            sliderBar.setPercentVal = function( val ) {
+                val = Math.round( val-this.minVal, this.increment );
+
+                return this.setPercent(
+                        rangeToPercent(
+                                val,
+                                this.minVal,
+                                this.maxVal
+                        )
+                );
+            };
+
+            sliderBar.percent = function( p ) {
+                if ( arguments.length === 0 ) {
+                    return this.percentVal;
+                } else {
+                    sliderBar.setPercentVal(
+                          percentToRange( p, sliderBar.getMin(), sliderBar.getMax() )
+                    );
+                }
+            };
+
+            sliderBar.percentVal = 0;
+
+            /* The common interface */
+
+            sliderBar.getVal = function() {
+                return percentToRange( this.percentVal, this.minVal, this.maxVal );
+            };
+
+            sliderBar.val = function( val ) {
+                if ( arguments.length === 0 ) {
+                    return percentToRange( this.percentVal, this.minVal, this.maxVal );
+                } else {
+                    return this.setPercentVal( val );
+                }
+            };
+
+            sliderBar.getStep = function() {
+                return this.increment;
+            };
+            sliderBar.setStep = function( step ) {
+                this.increment = step;
+            };
+
+            sliderBar.getMin = function() {
+                return this.minVal;
+            };
+            sliderBar.getMax = function() {
+                return this.maxVal;
+            };
+            sliderBar.setMin = function( min ) {
+                this.minVal = min;
+            };
+            sliderBar.setMax = function( max ) {
+                this.maxVal = max;
+            };
+
+            sliderBar.isFake = function() {
+                return true;
+            };
+        }
+
+        /*
+         * The common sliding code.
+         * 
+         * This code is built on top of both the HTML5 and
+         * my own sliders.
+         */
+
+        sliderBar.limit = function( min, max ) {
+            this.setMin( min );
+            this.setMax( max );
+
+            return this;
+        };
+
+        sliderBar.min = function( min ) {
+            if ( arguments.length === 0 ) {
+                return this.getMin();
+            } else {
+                this.setMin( min );
+                return this;
             }
-
-            newX = limit( newX, 0, w );
-            slider.css({left: newX + 'px'});
-
-            runOnSlide( $this );
         };
 
-        var sliderBar = $a('', 'skybrush_slider_bar').
-                stopPropagation( 'click', 'leftdown' ).
-				append( $('<div>').addClass('skybrush_slider_bar_inner') ).
-                append( slider ).
-
-                // zoom in/out when you click on the slider bar
-                click( function(ev) {
-                    var $this = $(this);
-                    var slider = $this.children('.skybrush_slider_bar_slider');
-
-                    if ( ! slider.data('is_sliding') ) {
-                        var mx = ev.pageX - $this.offset().left;
-                        var sliderX = slider.position().left;
-                        slideTo( $this, slider, (mx > sliderX) );
-                    }
-                } ).mousemove( function(ev) {
-                    var $this = $(this);
-                    var slider = $this.children('.skybrush_slider_bar_slider');
-
-                    if ( slider.data('is_sliding') ) {
-                        var pos = $this.offset();
-
-                        var x = ev.pageX - pos.left;
-                        x = limit( x, 0, $this.width() );
-                        $this.children('.skybrush_slider_bar_slider').css({left: x + 'px'});
-
-                        runOnSlide( $this );
-                    }
-                } );
-
-        sliderBar.slideUp = function() {
-            slideTo( this, this.children('.skybrush_slider_bar_slider'), true );
-            return this;
+        sliderBar.max = function( max ) {
+            if ( arguments.length === 0 ) {
+                return this.getMax();
+            } else {
+                this.setMax( max );
+                return this;
+            }
         };
-        sliderBar.slideDown = function() {
-            slideTo( this, this.children('.skybrush_slider_bar_slider'), false );
-            return this;
+
+        sliderBar.step = function( step ) {
+            if ( arguments.length === 0 ) {
+                return this.getStep();
+            } else {
+                this.setStep( step );
+                return this;
+            }
         };
 
         /**
@@ -618,36 +791,40 @@
         sliderBar.slide = function(f) {
             return this.bind( 'on_slide', f );
         };
-
+        
         sliderBar.setSlide = function(p) {
-            p = limit( p, 0.0, 1.0 );
-
-            var x = this.width() * p ;
-            this.children('.skybrush_slider_bar_slider').css({left: x + 'px'});
-
-            return this;
-        };
-
-        return sliderBar;
-    };
-
-    /**
-     * Applies both a min and max to n, against the values given.
-     * n is then returned, limited to the range from min to max.
-     *
-     * @param {number} n The value to limit.
-     * @param {number} min The minimum value n can be.
-     * @param {number} max The maximum value n can be.
-     * @return {number} n limited to between min and max.
-     */
-    var limit = function( n, min, max ) {
-        return Math.max(
-                    min,
-                    Math.min(
-                            max,
-                            n
+            return this.val(
+                    percentToRange(
+                            Math.limit( p, 0.0, 1.0 ),
+                            this.getMin(),
+                            this.getMax()
                     )
             );
+        };
+
+        sliderBar.runOnSlide = function() {
+            var val = this.getVal(),
+                min = this.getMin(),
+                max = this.getMax();
+
+            var p = rangeToPercent( val, min, max );
+
+            this.trigger( 'on_slide', [val, p] );
+        };
+
+        sliderBar.slideUp = function() {
+            this.val( this.getVal() + this.getStep() );
+            this.runOnSlide();
+        };
+
+        sliderBar.slideDown = function() {
+            this.val( this.getVal() - this.getStep() );
+            this.runOnSlide();
+        };
+
+        sliderBar.limit( 0, 1 ).step( NUM_SLIDE_INCREMENTS );
+
+        return sliderBar;
     };
 
     /**
@@ -660,8 +837,24 @@
      * @param max The maximum value allowed.
      * @return The percent converted to a value from min to max.
      */
-    var pConvert = function( p, min, max ) {
+    var percentToRange = function( p, min, max ) {
         return (max-min)*p + min;
+    };
+
+    /**
+     * You give it a value, and this returns a 'percent',
+     * which is a number from 0.0 to 1.0.
+     * 
+     * It works out this percent through the value, min
+     * and max values given.
+     * 
+     * @param n The value to convert to a percent.
+     * @param min The minimum value in the range.
+     * @param max The minimum value in the range.
+     * @return The percent result.
+     */
+    var rangeToPercent = function( n, min, max ) {
+        return (n-min) / (max-min);
     };
 
     /**
@@ -1427,92 +1620,6 @@
                 left: left,
                 top : top
         })
-    };
-
-
-    /**
-     * A simple, generic event handler.
-     *
-     * You can attach functions, using 'add', and then run them later,
-     * using 'context'.
-     *
-     * @constructor
-     * @private
-     */
-    var EventHandler = function( context ) {
-        this.events = {};
-		this.context = context;
-    };
-
-    /**
-     * Adds a new event to store under the 'type'.
-     *
-     * @param type The type of event being stored.
-     * @param event The event to store.
-     * @return this EventHandler object.
-     */
-    EventHandler.prototype.add = function( type, event ) {
-        var es = this.events[ type ];
-
-        if ( es === undefined ) {
-            this.events[ type ] = [ event ];
-        } else {
-            es.push( event );
-        }
-
-        return this;
-    };
-
-    /**
-     * Finds the event given for that type, and if found, it
-     * is removed from the event handler.
-     *
-     * If the event is not found, then this does nothing.
-     *
-     * @param type The name of the event.
-     * @param event The callback to remove from being called.
-     * @return This EventHandler object.
-     */
-    EventHandler.prototype.remove = function( type, event ) {
-        var es = this.events[ type ];
-
-        if ( es !== undefined ) {
-            for ( var i = 0; i < es.length; i++ ) {
-                if ( es[i] === event ) {
-                    es.splice( i, 1 );
-
-                    break;
-                }
-            }
-        }
-
-        return this;
-    };
-
-    /**
-     * Runs all of the events stored under the type given.
-     * Each event is called as if it were run on the 'context' object.
-     *
-     * @param type The type of events to run.
-     * @param context What 'this' will be in each event.
-     * @return this EventHandler object.
-     */
-    EventHandler.prototype.run = function( type ) {
-        var es = this.events[ type ];
-
-        if ( es !== undefined ) {
-            var args = [];
-
-            for ( var i = 1; i < arguments.length; i++ ) {
-                args.push( arguments[i] );
-            }
-
-            for ( var i = 0; i < es.length; i++ ) {
-                es[i].apply( this.context, args );
-            }
-        }
-
-        return this;
     };
 
     /**
@@ -2330,7 +2437,7 @@
     var CanvasManager = function( viewport, painter ) {
 		var _this = this;
 
-        _this.events = new EventHandler( _this );
+        _this.events = new events.Handler( _this );
 		_this.clipping = nil;
 
         viewport.empty().append(
@@ -2358,7 +2465,7 @@
 
 		_this.upscale = $upscale;
 
-		_this.showUpscale = new EventRunner( UPSCALE_SCROLL_DELAY );
+		_this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
 
         _this.viewport = viewport;
         _this.$canvas = $canvas;
@@ -3855,7 +3962,7 @@
     var InfoBar = function( viewport ) {
         var _this = this;
 
-        _this.hiding  = new EventRunner( 200 );
+        _this.hiding  = new events.Runner( 200 );
         _this.confirm = nil;
 
         _this.content = $('<div>').addClass('skybrush_info_content');
@@ -4105,14 +4212,12 @@
 					} );
 			var slider = $slider().
                     addClass( cssID ).
-					slide( function(ev, p) {
-						var n = pConvert( p, min, max );
-						n = Math.round( n );
-
-						slider.setSlide( n / max );
-						val.val( n );
-
+                    limit( min, max ).
+                    step( 1 ).
+					slide( function(ev, n, p) {
 						command[ field ] = n;
+                        val.val( n );
+
                         if ( callback ) {
                             callback.call( command, n, painter );
                         }
@@ -4482,7 +4587,7 @@
         max: MAX_BRUSH_SIZE,
 
         limit: function( size ) {
-            return limit( size, this.min, this.max );
+            return Math.limit( size, this.min, this.max );
         }
     };
 
@@ -5967,7 +6072,7 @@
         _this.shape = undefined;
 
         _this.canvas = newCanvas( 1, 1 );
-        _this.cursorReplace = new EventRunner();
+        _this.cursorReplace = new events.Runner();
 
         // ensure it's all setup right!
         _this.update( 0, 0 );
@@ -6462,7 +6567,7 @@
                     ev.preventDefault();
                 } );
 
-        _this.events = new EventHandler( this );
+        _this.events = new events.Handler( this );
         _this.canvas = new CanvasManager( _this.viewport, _this );
 
         _this.keysEnabled = true;
@@ -6581,24 +6686,26 @@
         $(document).
                 // these return false to stop chrome from changing the mouse cursor
                 leftdown(
-                        function(ev) {return _this.onMouseDown( ev );}
+                        function(ev) { return _this.onMouseDown( ev );  }
                 ).
                 mousemove(
-                        function(ev) {return _this.onMove( ev );}
+                        function(ev) { return _this.onMove( ev );       }
                 ).
                 leftup(
-                        function(ev) {return _this.onMouseUp( ev );}
+                        function(ev) { return _this.onMouseUp( ev );    }
                 );
 
         var startingWidth  = options.width  || DEFAULT_WIDTH,
             startingHeight = options.height || DEFAULT_HEIGHT;
+
+        var defaultCommand = _this.getCommand( DEFAULT_COMMAND ) || _this.commands[1] ;
 
         // Finally, set defaults
         _this.setSize( startingWidth, startingHeight ).
                 setZoom( DEFAULT_ZOOM, undefined, undefined, true ).
                 setColor( DEFAULT_COLOR ).
                 setAlpha( DEFAULT_ALPHA ).
-                setCommand( _this.commands[0] );
+                setCommand( defaultCommand );
 
         _this.canvas.resetUndoRedo();
 
@@ -7144,7 +7251,7 @@
 			var num = input.val();
 
 			if ( ! isNaN(num) ) {
-				return limit( num, 0, max );
+				return Math.limit( num, 0, max );
 			} else {
 				return 0;
 			}
@@ -7269,7 +7376,7 @@
                     var pos = $alphaCanvas.offset(),
                           h = $alphaCanvas.height();
 
-                    var y = limit( ev.pageY - pos.top, 0, h );
+                    var y = Math.limit( ev.pageY - pos.top, 0, h );
                     painter.setAlpha( y / h );
                 } );
         alphaGradient.replaceWith( $alphaCanvas );
@@ -7338,7 +7445,7 @@
 
             mixerVertical.css({
                     left: colX,
-                    height: limit(
+                    height: Math.limit(
                             (mixerSize - colX) + COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_WIDTH
@@ -7346,7 +7453,7 @@
             });
             mixerHorizontal.css({
                     top: colY,
-                    width: limit(
+                    width: Math.limit(
                             (mixerSize - colY) + COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_WIDTH
@@ -7423,7 +7530,7 @@
         var commandsGUI = new GUI( 'Tools', 'commands' );
         commandsGUI.add( commands, controlsHeader, controlsWrap );
         painter.addGUI( commandsGUI );
-        commandsGUI.xy( GUI_DEFAULT_X, GUI_DEFAULT_Y+40 );
+        commandsGUI.xy( GUI_DEFAULT_X, GUI_DEFAULT_Y+60 );
 
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command) {
@@ -7552,9 +7659,9 @@
 						var width  = painter.getCanvas().getWidth(),
 							height = painter.getCanvas().getHeight();
 
-						var widthInput  = $('<input type="text" value="' + width  + '">').
+						var widthInput  = $('<input type="number" value="' + width  + '">').
                                     addClass( 'sb_width' ),
-							heightInput = $('<input type="text" value="' + height + '">').
+							heightInput = $('<input type="number" value="' + height + '">').
                                     addClass( 'sb_height' ),
 							constrain = $('<input type="checkbox">').
                                     addClass( 'constrain' );
@@ -7706,17 +7813,20 @@
 					width.val( grid.getWidth() );
 					height.val( grid.getHeight() );
 
+                    var updateSize = function() {
+                        setTimeout( function() {
+                            grid.setSize(
+                                    width.val(),
+                                    height.val()
+                            );
+                        }, 0 );
+                    };
+
 					$().add( width ).add( height ).
 							forceNumeric( false ).
-							attr( 'type', 'text' ).
-							keydown( function() {
-								setTimeout( function() {
-									grid.setSize(
-											width.val(),
-											height.val()
-									);
-								}, 0 );
-							} );
+							attr( 'type', 'number' ).
+                            click( updateSize ).
+							change( updateSize );
 
 					var offsetX = $('<input>'),
 						offsetY = $('<input>');
@@ -7724,17 +7834,20 @@
 					offsetX.val( grid.getOffsetX() );
 					offsetY.val( grid.getOffsetY() );
 
+                    var updateOffset = function() {
+                        setTimeout( function() {
+                            grid.setSize(
+                                    width.val(),
+                                    height.val()
+                            );
+                        }, 0 );
+                    };
+
 					$().add( offsetX ).add( offsetY ).
 								forceNumeric( false ).
-								attr( 'type', 'text' ).
-								keydown( function() {
-									setTimeout( function() {
-										grid.setOffset(
-												offsetX.val(),
-												offsetY.val()
-										)
-									} );
-								});
+								attr( 'type', 'number' ).
+                                click( updateOffset ).
+                                change( updateOffset );
 
 					var show = $('<input>').
 							attr( 'type', 'checkbox' ).
@@ -7808,8 +7921,11 @@
         var zoomSlider =
                 $slider().
                         addClass('skybrush_zoom_bar').
-                        slide( function(ev, val) {
-                            painter.setZoomPercent( val );
+                        limit( 0, MAX_ZOOM ).
+                        val( MAX_ZOOM/2 ).
+                        step( 1 ).
+                        slide( function(ev, n, p) {
+                            painter.setZoomPercent( p );
                         } );
 
         var zoomLabel = $('<div>').addClass( 'skybrush_zoom_label' );
@@ -7836,28 +7952,36 @@
 				addClass( 'skybrush_zoom_control' ).
 				addClass( 'skybrush_button' );
 
+        // the zoom in/out buttons
+        var zoomOutButton = $a('+', 'skybrush_top_bar_zoom_in').
+                stopPropagation( 'click', 'leftdown' ).
+                click( function() {
+                    zoomSlider.slideUp();
+                } );
+        var zoomInButton = $a('-', 'skybrush_top_bar_zoom_out').
+                stopPropagation( 'click', 'leftdown' ).
+                click( function() {
+                    zoomSlider.slideDown();
+                } );
+
         zoom.
                 append( zoomLabel ).
-                append(
-                        $a('-', 'skybrush_top_bar_zoom_out').
-                        stopPropagation( 'click', 'leftdown' ).
-                        click( function() {
-                            zoomSlider.slideDown();
-                        } )
-                ).
+                append( zoomInButton ).
                 append( zoomSlider ).
-                append(
-                        $a('+', 'skybrush_top_bar_zoom_in').
-                        stopPropagation( 'click', 'leftdown' ).
-                        click( function() {
-                            zoomSlider.slideUp();
-                        } )
-                );
+                append( zoomOutButton );
 
-		var zoomWrap = $('<div>').
-				addClass( 'skybrush_topbar_zoom_wrap' ).
-				append( zoomLabel ).
-				append( zoom );
+        if ( zoomSlider.isFake() ) {
+            zoom.addClass( 'sb_fake' );
+            zoomOutButton.addClass( 'sb_fake' );
+            zoomInButton.addClass( 'sb_fake' );
+        }
+            
+        var zoomWrap = $('<div>').
+                addClass( 'skybrush_topbar_zoom_wrap' ).
+                append( zoomLabel ).
+                append( zoom );
+
+
 
         topbar.
                 append( zoomWrap ).
@@ -8000,7 +8124,7 @@
      * @return The zoom for the value given.
      */
     var percentToZoom = function( p ) {
-        p = limit( p, 0, 1 );
+        p = Math.limit( p, 0, 1 );
 
         // convert p from: 0.0 to 1.0 => -1.0 to 1.0;
         p = (p-0.5) * 2;
@@ -8020,7 +8144,7 @@
     }
 
     var zoomToPercent = function( zoom ) {
-        zoom = limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
+        zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
 
         var slide;
 
@@ -8171,13 +8295,18 @@
             }
         }
 
+        var $target = $(ev.target);
+
         /*
          * If we are drawing from totally outside SkyBrush,
          * skip it.
          *
          * This is so surrounding controls work ok.
          */
-        if ( $(ev.target).parents('.skybrush').size() > 0 ) {
+        if (
+                $target.parents('.skybrush').size() > 0 &&
+                !$target.is('input')
+        ) {
             this.dom.focus();
 
             if ( this.isSkipEvent ) {
@@ -8579,7 +8708,7 @@
      * @param force optional, true to force a zoom update (shouldn't ever need to do this).
      */
     SkyBrush.prototype.setZoom = function( zoom, x, y, force ) {
-        zoom = limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
+        zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
         if ( zoom > 1 ) {
             zoom = Math.round( zoom );
         }
@@ -8784,7 +8913,7 @@
      * @param alpha The alpha value used when drawing to the canvas.
      */
     SkyBrush.prototype.setAlpha = function( alpha ) {
-        alpha = limit( alpha, 0, 1 );
+        alpha = Math.limit( alpha, 0, 1 );
 
         // account for the dead zone
         if ( alpha > 1-ALPHA_DEAD_ZONE ) {
