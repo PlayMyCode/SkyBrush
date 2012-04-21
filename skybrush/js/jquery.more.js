@@ -1119,7 +1119,7 @@
         return oldRound( n/step )*step;
     };
 
-    if ( Function.prototype.implements === undefined ) {
+    if ( Function.prototype.implementing === undefined ) {
         /**
          * For extending a prototype, or for adding methods.
          * Pass in either another function object to be extended,
@@ -1127,7 +1127,7 @@
          * 
          * @return This function object.
          */
-        Function.prototype.implements = function() {
+        Function.prototype.implementing = function() {
             var proto = this.prototype;
 
             for ( var i = 0; i < arguments.length; i++ ) {
