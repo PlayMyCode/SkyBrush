@@ -1991,6 +1991,15 @@
             y = y|0;
         }
 
+        if ( x < 0 ) {
+            x = - ( x%this.width );
+            x = this.width-x;
+        }
+        if ( y < 0 ) {
+            y = - ( y%this.height );
+            y = this.height-y;
+        }
+
 		var update = ( this.offsetX !== x || this.offsetY !== y );
 
 		if ( update ) {
@@ -7835,11 +7844,11 @@
 
                     var updateOffset = function() {
                         setTimeout( function() {
-                            grid.setSize(
-                                    width.val(),
-                                    height.val()
+                            grid.setOffset(
+                                    offsetX.val(),
+                                    offsetY.val()
                             );
-                        }, 0 );
+                        }, 1 );
                     };
 
 					$().add( offsetX ).add( offsetY ).
