@@ -77,7 +77,7 @@
  *  ctrl+a - select all
  *
  * @dependencies jQuery
- * @author Joseph Lenton - joe@playmycode.com
+ * @author Joseph Lenton
  *
  * @param window The browser Window.
  * @param document The document HTML Dom document.
