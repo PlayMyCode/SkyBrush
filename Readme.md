@@ -16,12 +16,16 @@ Features
  * all the basics; brush, pencil, zoom, shapes, colour picker, mixer, copy+paste, alpha blending modes, overlay grid, resizing/scaling, selections and more
  * no cruft! Built to work well on it's own, or with hooks tied in, so you can easily add your own stuff around it.
 
-Try the demo!
+Try it out!
 -------------
 
-A live demo is online [here](http://www.studiofortress.com/skybrush).
+ * A live demo is online [here](http://www.studiofortress.com/skybrush).
+ * it's also on [MDN](https://developer.mozilla.org/en-US/demos/detail/skybrush) (remember to like it!)
+ * it is used for editing images on [Play My Code](http://www.playmycode.com), which you can [try here](http://www.playmycode.com/build/try-play-my-code).
 
-It is also used for painting and editing images on the [Play My Code](http://www.playmycode.com) IDE, which you can try [here](http://www.playmycode.com/build/try-play-my-code).
+### Are you using SkyBrush?
+
+If you are, tell us, and we'll be happy to add you to the list.
 
 Key Bindings
 ------------
@@ -88,7 +92,7 @@ This is the bare minimum to embed SkyBrush:
 	    </body>
 
 	    <script src="./skybrush/js/jquery-1.7.2.min.js"></script>
-	    <script src="./skybrush/js/util.js"></script>
+	    <script src="./skybrush/js/jquery.more.js"></script>
 	    <script src="./skybrush/js/skybrush.js"></script>
 
 	    <script>
@@ -112,6 +116,46 @@ On the page:
 
 Embedding API
 -------------
+
+When you create a SkyBrush art package, you set it up in HTML, by creating a new JS object you can interact with. You can do this by using the SkyBrush constructor.
+
+### new SkyBrush( dom )
+
+This creates a new SkyBrush instance, and sets up the art package using the div given. That div is as the basis of where to put the SkyBrush HTML it adds.
+
+Dom can be:
+ * A HTML element
+ * A jQuery object
+ * A string describing a CSS selector, such as ".skybrush"
+
+For example:
+
+```html
+	<div id="skybrush"></div>
+
+	<script>
+		var div = document.getElementById( 'skybrush' );
+		var skybrush = new SkyBrush( div );
+	</script>
+```
+
+```html
+	<div class="skybrush"></div>
+
+	<script>
+		var skybrush = new SkyBrush( $('.skybrush') );
+	</script>
+```
+
+```html
+	<div class="skybrush"></div>
+
+	<script>
+		var skybrush = new SkyBrush( '.skybrush' );
+	</script>
+```
+
+### new SkyBrush( dom, options )
 
 Some options are included to help make embedding a little easier, as a second parameter. A JS object is expected, with the properties set as the options. All of the options include:
 
@@ -141,7 +185,7 @@ For example:
     var skybrush = new SkyBrush( dom, options );
 ```
 
-### About Ctrl+R
+#### About Ctrl+R
 
 Ctrl+R is grabbed as this is often used for redo in painting apps, but this disabled the ctrl+r used by the browser for refreshing the page. Gravving it also avoids the user reaching for it instinctively, and then having that "oh $*%&!" moment when the browser refreshes, and they lose their image.
 
@@ -155,7 +199,7 @@ You can prevent this behaviour using the 'grab_ctrl_r' option:
 	} );
 ```
 
-### Change Image Location
+#### Change Image Location
 
 If your images are not showing up, you probably need to read this! Otherwise skip it.
 
