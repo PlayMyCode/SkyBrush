@@ -20,12 +20,13 @@ Try it out!
 -------------
 
  * A live demo is online [here](http://www.studiofortress.com/skybrush).
- * it's also on [MDN](https://developer.mozilla.org/en-US/demos/detail/skybrush) (remember to like it!)
  * it is used for editing images on [Play My Code](http://www.playmycode.com), which you can [try here](http://www.playmycode.com/build/try-play-my-code).
+ * it's on the [Mozilla Developer Network](https://developer.mozilla.org/en-US/demos/detail/skybrush) (remember to like it!)
+ * and it's also a [Chrome Experiment](http://www.chromeexperiments.com/detail/skybrush/)
 
 ### Are you using SkyBrush?
 
-If you are, tell us, and we'll be happy to add you to the list.
+If you are, tell us, and we'll be happy to add you to the list!
 
 Key Bindings
 ------------
@@ -134,6 +135,7 @@ For example:
 	<div id="skybrush"></div>
 
 	<script>
+		// using a dom element
 		var div = document.getElementById( 'skybrush' );
 		var skybrush = new SkyBrush( div );
 	</script>
@@ -143,6 +145,7 @@ For example:
 	<div class="skybrush"></div>
 
 	<script>
+		// using a jQuery object
 		var skybrush = new SkyBrush( $('.skybrush') );
 	</script>
 ```
@@ -151,6 +154,7 @@ For example:
 	<div class="skybrush"></div>
 
 	<script>
+		// using a CSS selector
 		var skybrush = new SkyBrush( '.skybrush' );
 	</script>
 ```
