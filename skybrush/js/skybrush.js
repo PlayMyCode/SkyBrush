@@ -128,7 +128,8 @@
  * does.
  */
 (function(window, document, nil, undefined) {
-    var $ = window['$'] || window['jquery'];
+    // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
+    var $ = window['jquery'] || window['$'];
     if ( ! $ ) {
         throw Error("jQuery is required, and it cannot be found!");
     }
@@ -147,7 +148,6 @@
 
 		DEFAULT_GRID_WIDTH  = 5, // pixels
 		DEFAULT_GRID_HEIGHT = 5, // pixels
-		GRID_FADE_SPEED = 250, // milliseconds
 
         /**
          * The name of the command to select as default,
@@ -535,7 +535,7 @@
     var $slider = function() {
         var sliderBar;
 
-        if ( $.browser.supports.input.range ) {
+        if ( $.supports.input.range ) {
             sliderBar = $('<input>').
 //                    stopPropagation( 'click', 'leftdown' ).
                     addClass( 'skybrush_slider_bar' ).
@@ -6530,13 +6530,28 @@
      */
     var SkyBrush = function( dom, options ) {
         if ( ! dom ) {
-            dom = $('.skybrush');
-        } else if ( ! dom.jquery ) {
-            dom = $(dom);
+            if ( arguments.length === 0 ) {
+                throw new Error( 'no dom value provided' );
+            } else {
+                throw new Error( 'invalid dom value given' );
+            }
         }
-        
-        if ( dom.size() === 0 ) {
-            throw new Error( 'no dom object given for skybrush to wrap' );
+        if ( (dom instanceof String) || (typeof dom) == 'string' ) {
+            var domObj = $( dom );
+
+            if ( domObj.size() === 0 ) {
+                throw new Error( 'HTML element not found: \'' + dom + '\'' );
+            } else {
+                dom = domObj;
+            }
+        } else {
+            if ( ! dom.jquery ) {
+                dom = $( dom );
+            }
+            
+            if ( dom.size() === 0 ) {
+                throw new Error( 'no dom object given for skybrush to wrap' );
+            }
         }
         
         /*
@@ -6556,6 +6571,10 @@
         ) );
         
         dom.ensureClass( 'skybrush' );
+
+        if ( $.browser.iOS ) {
+            dom.ensureClass( 'sb_ios' );
+        }
 
         if ( DISABLE_CONTEXT_MENU ) {
             dom.bind( 'contextmenu', function(ev) {
@@ -6692,13 +6711,13 @@
         /* Handle GUI dragging. */
         $(document).
                 // these return false to stop chrome from changing the mouse cursor
-                leftdown(
+                vLeftDown(
                         function(ev) { return _this.onMouseDown( ev );  }
                 ).
-                mousemove(
+                vMouseMove(
                         function(ev) { return _this.onMove( ev );       }
                 ).
-                leftup(
+                vLeftUp(
                         function(ev) { return _this.onMouseUp( ev );    }
                 );
 
@@ -7974,9 +7993,11 @@
                 } );
 
         zoom.
-                append( zoomLabel ).
                 append( zoomInButton ).
-                append( zoomSlider ).
+                append(
+                        $('<span class="skybrush_zoom_bar_wrap"></span>').
+                                append( zoomSlider )
+                ).
                 append( zoomOutButton );
 
         if ( zoomSlider.isFake() ) {
@@ -7984,11 +8005,11 @@
             zoomOutButton.addClass( 'sb_fake' );
             zoomInButton.addClass( 'sb_fake' );
         }
-            
+
         var zoomWrap = $('<div>').
                 addClass( 'skybrush_topbar_zoom_wrap' ).
-                append( zoomLabel ).
-                append( zoom );
+                append( zoom ).
+                append( zoomLabel );
 
 
 

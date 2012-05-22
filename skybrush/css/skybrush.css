@@ -264,7 +264,7 @@
         position: relative;
 
         -moz-box-sizing: border-box;
-        box-sizing: border-box;
+             box-sizing: border-box;
         
         padding: 10px 6px 0 6px;
     }
@@ -295,7 +295,7 @@
             font-family:helvetica neue,arial,sans-serif;
             font-size:12px;
             
-            padding:1px 5px;
+            padding:2px 5px;
             line-height:normal;
             display:inline-block;
             text-align:center;
@@ -321,70 +321,100 @@
         .skybrush_topbar_button_group {
             float: left;
         }
+
+        /*
+         * The complex wrapping is to achieve vertical centreing,
+         * where the inner content is centred even if larger then
+         * the outer content.
+         * 
+         * This is to correctly centre all of the different types of sliders.
+         */
         .skybrush_topbar_zoom_wrap {
             float: right;
             clear: right;
             
             position: relative;
+            margin: auto 0;
         }
+            /*
+             * 3) This layer moves back up, to full fill the vertical-centre effect.
+             */
             .skybrush_zoom_control {
-                margin-right: 0;
-                margin-top: -3px;
-                padding-top: 1px;
-                padding-bottom: 0;
+                position: relative;
 
-                height: 22px;
+                margin-right: 0;
+                padding: 1px 5px;
+
+                display: table;
+                float: right;
+                clear: right;
+
+                width: 145px;
+
+                -moz-box-sizing: border-box;
+                     box-sizing: border-box;
             }
             .skybrush_zoom_control.sb_fake {
                 margin-top: 1px;
-                padding-top: 1px;
-                padding-bottom: 1px;
                 height: 15px;
             }
             .skybrush_zoom_label {
-				float: left;
                 font-size: 16px;
                 font-weight: bold;
                 margin-top: 2px;
+                line-height: 22px;
+                vertical-align: middle;
+
+                float: right;
             }
             .skybrush_top_bar_zoom_out,
-            .skybrush_top_bar_zoom_in {
+            .skybrush_top_bar_zoom_in,
+            .skybrush_zoom_bar_wrap {
+                display: table-cell;
+                vertical-align: middle;
+            }
+            .skybrush_top_bar_zoom_in,
+            .skybrush_top_bar_zoom_out {
                 cursor: pointer;
-            }
-            .skybrush_top_bar_zoom_out,
-            .skybrush_top_bar_zoom_in {
+
 				font-weight: bold;
 				font-size: 15px;
 				color: #7F7F7F !important;
 				height: 15px;
 
-                display: inline-block;
-                vertical-align: top;
-			}
-            .skybrush_top_bar_zoom_out {
-				/* Secretly make it bigger then it is, so it's easier to click */
-				padding-left: 5px;
-				margin-left: -4px;
+                /* Secretly make it bigger then it is, so it's easier to click */
+                min-width: 15px;
+                text-align: center;
+
+                height: 100%;
+                line-height: 12px;
 			}
             .skybrush_top_bar_zoom_in {
-                position: relative;
-                top: 1px;
             }
-            .skybrush_top_bar_zoom_out.sb_fake {
-                margin-top: -3px;
+            .skybrush_top_bar_zoom_out {
+                padding-bottom: 3px;
             }
             .skybrush_top_bar_zoom_in.sb_fake {
+                padding-top: 2px;
+                padding-bottom: 0;
                 margin-top: -2px;
             }
-            .skybrush_zoom_control > .skybrush_slider_bar {
+            .skybrush_top_bar_zoom_out.sb_fake {
+                padding-bottom: 1px;
+            }
+            .skybrush.sb_ios .skybrush_top_bar_zoom_in {
+                padding-bottom: 3px;
+            }
+            .skybrush_slider_bar.skybrush_zoom_bar {
                 width: 100px;
                 margin: 0 8px;
                 display: inline-block;
                 float: none;
-            }
-            .skybrush_zoom_control > .skybrush_slider_bar.sb_fake {
-                top: 3px;
-                margin-bottom: 2px;
+                position: static;
+                vertical-align: middle;
+
+                position: relative;
+                top: 0;
             }
     .skybrush_info_bar {
         display: none;
@@ -866,7 +896,6 @@
         
         width: 100%;
         
-        -webkit-box-sizing: border-box;
            -moz-box-sizing: border-box;
                 box-sizing: border-box;
         

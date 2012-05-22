@@ -54,6 +54,13 @@
 (function(window, document, $, jQuery, undefined){
     /**
      * Feature sniffing for various browsers.
+     * 
+     * If you set an input type to 'date', and it's supported,
+     * then it sticks. If it is not supported, it goes back to
+     * the default, 'text'.
+     * 
+     * This just goes through all the types we want to test,
+     * and uses that trick to test for support.
      */
     (function() {
         var supportedInputs = {};
@@ -82,11 +89,23 @@
             input.setAttribute('type', 'text');
         }
 
-        $.browser.supports = {
+        $.supports = {
                 input: supportedInputs,
 
                 touch: (!! window.Touch)
         };
+
+        var ua = window['navigator']['userAgent'];
+        var isIPhone = ua.indexOf( 'iPhone' ) > -1,
+            isIPod  = ua.indexOf( 'iPod' ) > -1,
+            isIPad  = ua.indexOf( 'iPad' ) > -1;
+
+        var isIOS = isIPhone || isIPad || isIPod ;
+
+        $.browser.iOS = isIPhone || isIPad || isIPod ;
+        $.browser.iPhone = isIPhone;
+        $.browser.iPad = isIPad;
+        $.browser.iPod = isIPod;
     })();
 
     /**
@@ -228,6 +247,85 @@
         };
         $.fn.rightup = function( fun ) {
             return wrapButtonEvent( this, fun, 'mousedown', 1 );
+        };
+
+        /* 
+         * Virtual Mouse Events
+         * 
+         * These work on both touch and mouse.
+         */
+
+        $.fn.vLeftDown = function( fun ) {
+            return $(this).leftdown( fun ).oneTouchDown( fun );
+        };
+
+        $.fn.vMouseMove = function( fun ) {
+            return $(this).mousemove( fun ).oneTouchMove( fun );
+        };
+
+        $.fn.vLeftUp = function( fun ) {
+            return $(this).leftup( fun ).oneTouchUp( fun );
+        };
+
+        /*
+         * Touch Event Support
+         * 
+         */
+        $.fn.touchDown = function( fun ) {
+            return $(this).on( 'touchstart', null, null, fun );
+        };
+
+        $.fn.touchMove = function( fun ) {
+            return $(this).on( 'touchmove', null, null, fun );
+        };
+
+        $.fn.touchUp = function( fun ) {
+            return $(this).on( 'touchend', null, null, fun );
+        };
+
+        /*
+         * One Touch Event Support
+         * 
+         * This acts as though only 1 finger was pressed.
+         */
+
+        var fingerDown = null;
+
+        var getTouchEvent = function( ev, fDown ) {
+            var touches = ev.targetTouches;
+
+            if ( fDown !== null ) {
+                for ( var i = 0; i < touches.length; i++ ) {
+                    if ( touches[i].identifier === fDown ) {
+                        return touches[i];
+                    }
+                }
+            }
+
+            return touches[0];
+        };
+
+        var oneTouch = function( self, type, fun ) {
+            return $(self)[type](
+                function(ev) {
+                    ev = getTouchEvent( ev );
+                    fingerDown = ev.identifier;
+
+                    return fun.call( this, ev );
+                }
+            );
+        };
+
+        $.fn.oneTouchDown = function( fun ) {
+            return oneTouch( this, 'touchDown', fun );
+        };
+
+        $.fn.oneTouchMove = function( fun ) {
+            return oneTouch( this, 'touchMove', fun );
+        };
+
+        $.fn.oneTouchUp = function( fun ) {
+            return oneTouch( this, 'touchUp', fun );
         };
 
         /**
