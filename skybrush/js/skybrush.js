@@ -1504,9 +1504,7 @@
                     $this.siblings( '.skybrush_gui.sb_focus' ).removeClass( 'sb_focus' );
                     $this.addClass( 'sb_focus' );
 
-					if ( $(ev.target).is(':input') ) {
-						_this.parent.skipEvent();
-					} else {
+					if ( ! $(ev.target).is(':input') ) {
 						return false;
 					}
                 } );
@@ -6605,7 +6603,6 @@
 
         // state flags
         _this.isPainting  = false;
-		_this.isSkipEvent = false;
 
         // A flag for skipping either 'shift' or 'alt' events,
         // so only one of them is ever active at any time.
@@ -8339,19 +8336,9 @@
         ) {
             this.dom.focus();
 
-            if ( this.isSkipEvent ) {
-                this.isSkipEvent = false;
-                
-                return;
-            } else {
-                return this.startDraw( ev );
-            }
+            return this.startDraw( ev );
         }
     };
-
-	SkyBrush.prototype.skipEvent = function() {
-		this.isSkipEvent = true;
-	};
 
     SkyBrush.prototype.startDraw = function( ev ) {
 		if ( ! this.isDragging() ) {
