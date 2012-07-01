@@ -294,24 +294,32 @@
         var getTouchEvent = function( ev, fDown ) {
             var touches = ev.targetTouches;
 
-            if ( fDown !== null ) {
-                for ( var i = 0; i < touches.length; i++ ) {
-                    if ( touches[i].identifier === fDown ) {
-                        return touches[i];
+            if ( touches.length > 0 ) {
+                if ( fDown !== null ) {
+                    for ( var i = 0; i < touches.length; i++ ) {
+                        if ( touches[i].identifier === fDown ) {
+                            return touches[i];
+                        }
                     }
                 }
-            }
 
-            return touches[0];
+                return touches[0];
+            } else {
+                return null;
+            }
         };
 
         var oneTouch = function( self, type, fun ) {
             return $(self)[type](
                 function(ev) {
-                    ev = getTouchEvent( ev );
-                    fingerDown = ev.identifier;
+                    var fingerEv = getTouchEvent( ev.originalEvent );
 
-                    return fun.call( this, ev );
+                    // this is null on touchup, why????
+                    if ( fingerEv !== null ) {
+                        fingerDown = fingerEv.identifier;
+
+                        return fun.call( this, fingerEv );
+                    }
                 }
             );
         };
