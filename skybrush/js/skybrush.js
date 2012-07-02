@@ -7053,19 +7053,25 @@
 					stopPropagation( 'click', 'mousedown' ).
 					append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
                     css({background: strColor}).
-                    data( 'color', strColor ).
-                    click( function(ev) {
-                        console.log('click');
-                        var $this = $(this);
+                    data( 'color', strColor );
 
-                        painter.setColor( $this.data('color') );
+            var onClick = function() {
+                var $this = $(this);
 
-                        currentColor = $this.children('.skybrush_colors_palette_color_border');
-                        currentColor.addClass('sb_show');
+                painter.setColor( $this.data('color') );
 
-                        //ev.preventDefault();
-                        //
-                    } );
+                currentColor = $this.children('.skybrush_colors_palette_color_border');
+                currentColor.addClass('sb_show');
+            }
+
+            if ( $.browser.iOS ) {
+                color.bind( 'vclick', function(ev) {
+                    onClick.call(this);
+                    ev.preventDefault();
+                } );
+            } else {
+                color.click( onClick );
+            }
 
             if ( ! $.supports.touch ) {
                 color.addClass('sb_hover_border');
