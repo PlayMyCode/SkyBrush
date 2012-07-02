@@ -119,8 +119,10 @@
  * Such as all links having no underline, and all non-text inputs
  * having no user select, and common reset properties.
  */
-.skybrush :not(input[type=text]),
-.skybrush :not(input[type=number]) {
+.skybrush_topbar,
+.skybrush_topbar *,
+.skybrush_viewport,
+.skybrush_viewport * {
     -webkit-user-select: none;
      -khtml-user-select: none;
        -moz-user-select: none;
@@ -130,6 +132,7 @@
     
     -webkit-appearance: none;
 }
+
 .skybrush a,
 .skybrush a:hover,
 .skybrush a:visited,
