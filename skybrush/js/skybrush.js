@@ -142,8 +142,8 @@
     /**
      * @const
      */
-    var DEFAULT_WIDTH  = 640, // pixels
-        DEFAULT_HEIGHT = 480, // pixels
+    var DEFAULT_WIDTH  = 480, // pixels
+        DEFAULT_HEIGHT = 360, // pixels
         DEFAULT_ZOOM   =   1, // from 1/MAX_ZOOM to MAX_ZOOM
 
 		DEFAULT_GRID_WIDTH  = 5, // pixels
@@ -6739,7 +6739,7 @@
 
         _this.infoBar = new InfoBar( dom );
 
-        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH );
+        _this.brushCursor = new BrushCursor( _this.dom, IS_TOUCH );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {

@@ -254,6 +254,7 @@
     cursor: default;
     
     font-family: sans-serif;
+
 }
     /* 
      * The top bar at the top of SkyBrush.
@@ -553,6 +554,11 @@
     .skybrush_viewport {
         position: absolute;
         
+        /* magical webkit speedup */
+        -webkit-backface-visibility: hidden;
+        -webkit-perspective: 1000;
+        -webkit-transform: translateZ(0);
+
         /* this is the height of .skybrush .topbar */
         top: 41px;
         
@@ -845,7 +851,8 @@
     border-radius:5px 5px 2px 2px;
 }
     .skybrush_gui_header {
-        border-radius:5px 5px 0 0;
+        border-radius:4px 4px 0 0;
+        border-bottom: 1px solid #333;
     }
 
 .skybrush_gui {
@@ -1227,7 +1234,6 @@
 
 .skybrush_gui.sb_gui_commands {
     width: 150px;
-	min-height: 300px;
 
 	/* IE9 SVG, needs conditional override of 'filter' to 'none' */
 	background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI2NiUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI3OCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
@@ -1412,11 +1418,21 @@
  */
 .skybrush_brush {
     position: fixed;
-    
+
     /* above the canvas and overlay */
     z-index: 3;
     
     background: transparent;
     background-repeat: no-repeat;
     cursor: none !important;
+}
+
+/*
+ * Browser specific differences.
+ */
+.skybrush.sb_ios * {
+    text-shadow: none;
+}
+.skybrush.sb_ios > .skybrush_gui {
+    background: #f5f5f5;
 }
