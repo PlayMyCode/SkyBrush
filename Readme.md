@@ -9,6 +9,7 @@ This uses and requires jQuery. As of writing, the latest version is bundled with
 
 Features
 --------
+ * Works on iPad!
  * easy embeddable painting application
  * cross browser; supports IE 9+, Firefox, Chrome, Safari and Opera
  * in-built common key bindings
