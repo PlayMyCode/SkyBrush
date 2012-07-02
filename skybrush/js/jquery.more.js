@@ -241,6 +241,14 @@
                 });
             });
         };
+        
+        $.fn.vclick = function( fun ) {
+            if ( $.browser.iOS ) {
+                return this.bind( 'vclick', fun );
+            } else {
+                return this.click( fun );
+            }
+        };
 
         /**
          * Helper for just attaching an event to the left click.
@@ -535,7 +543,7 @@
          * All of the events to pass on are listed after 'to'.
          *
          * Usage:
-         *	foo.forwardEvents( $('.bar'), 'mousedown', 'click', 'mouseup' );
+         *  foo.forwardEvents( $('.bar'), 'mousedown', 'click', 'mouseup' );
          *
          * @param to The element to forward events on to.
          * @return This jQuery object for chaining.
@@ -1166,6 +1174,14 @@
 
         return oldRound( n/step )*step;
     };
+
+    /**
+     * @param obj The object to check.
+     * @return True if the given object is a function, false if not.
+     */
+    window['isFunction'] = function(obj) {
+        return (obj instanceof Function) || ((typeof obj) == 'function') ;
+    }
 
     if ( Function.prototype.implementing === undefined ) {
         /**

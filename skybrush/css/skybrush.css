@@ -172,36 +172,36 @@
  */
 
     .skybrush_slider_bar {
-    	width: 100%;
+        width: 100%;
 
         display: block;
         
         position: relative;
 
-		float: left;
+        float: left;
     }
     .skybrush_slider_bar.sb_fake {
         height: 10px;
         top: 13px;
         cursor: pointer;
     }
-		.skybrush_slider_bar_inner {
-			position: absolute;
+        .skybrush_slider_bar_inner {
+            position: absolute;
 
-			width: 100%;
-			height: 2px;
-			background: #7F7F7F;
+            width: 100%;
+            height: 2px;
+            background: #7F7F7F;
 
-			border-radius: 2px;
-			box-shadow: 0 0 5px rgba( 0, 51, 102, 0.35 );
+            border-radius: 2px;
+            box-shadow: 0 0 5px rgba( 0, 51, 102, 0.35 );
         
-			top: 50%;
-			margin-top: -1px;
-		}
-		.skybrush_slider_bar_slider {
-			background: url(./../images/slider_arrow.png) no-repeat 0 0;
+            top: 50%;
+            margin-top: -1px;
+        }
+        .skybrush_slider_bar_slider {
+            background: url(./../images/slider_arrow.png) no-repeat 0 0;
             height: 13px;
-			width: 8px;
+            width: 8px;
 
             position: absolute;
             top: -2px;
@@ -211,29 +211,29 @@
             display: block;
             
             cursor: pointer;
-		}
+        }
 
 .skybrush_rgb_input,
 .skybrush_input {
-	display: inline-block;
-	width: 24px;
-	padding: 0 2px;
-	margin: 0 0 0 3px;
-	text-align: left;
+    display: inline-block;
+    width: 24px;
+    padding: 0 2px;
+    margin: 0 0 0 3px;
+    text-align: left;
 
     font-size: 10px;
-	font-weight: bold;
+    font-weight: bold;
 
     vertical-align: middle;
 
-	-webkit-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
-	   -moz-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
-			box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+    -webkit-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+       -moz-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
+            box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
 }
 .skybrush_input_button {
-	font-size: 11px;
-	min-width: 50px;
-	margin-left: 4px;
+    font-size: 11px;
+    min-width: 50px;
+    margin-left: 4px;
 }
 
 /* 
@@ -320,10 +320,10 @@
         }
         
         .skybrush_topbar_seperator {
-			float: left;
-			margin: 2px 1px 0 1px;
-			color: #aaa;
-		}
+            float: left;
+            margin: 2px 1px 0 1px;
+            color: #aaa;
+        }
         .skybrush_topbar_button_group {
             float: left;
         }
@@ -383,10 +383,10 @@
             .skybrush_top_bar_zoom_out {
                 cursor: pointer;
 
-				font-weight: bold;
-				font-size: 15px;
-				color: #7F7F7F !important;
-				height: 15px;
+                font-weight: bold;
+                font-size: 15px;
+                color: #7F7F7F !important;
+                height: 15px;
 
                 /* Secretly make it bigger then it is, so it's easier to click */
                 min-width: 15px;
@@ -394,7 +394,7 @@
 
                 height: 100%;
                 line-height: 12px;
-			}
+            }
             .skybrush_top_bar_zoom_in {
             }
             .skybrush_top_bar_zoom_out {
@@ -435,26 +435,26 @@
              -o-transition: opacity 100ms linear 0s;
                 transition: opacity 100ms linear 0s;
 
-		opacity: 0;
+        opacity: 0;
 
-		height: 0;
+        height: 0;
     }
     .skybrush_info_bar.sb_show {
-		opacity: 1;
+        opacity: 1;
 
-		height: auto;
+        height: auto;
     }
-		.skybrush_info_bar_wrap {
-			position: relative;
+        .skybrush_info_bar_wrap {
+            position: relative;
 
-			/* same height as the top_arrow */
-			margin-top: 14px;
+            /* same height as the top_arrow */
+            margin-top: 14px;
 
-			float: left;
-			clear: both;
+            float: left;
+            clear: both;
 
-			border-radius: 4px;
-			box-shadow: 0px 3px 9px rgba( 0, 0, 0, 0.48 ), 0px 1px 1px rgba( 0, 0, 0, 0.6 );
+            border-radius: 4px;
+            box-shadow: 0px 3px 9px rgba( 0, 0, 0, 0.48 ), 0px 1px 1px rgba( 0, 0, 0, 0.6 );
 
             background: #295b75; /* Old browsers */
             background: -moz-linear-gradient(top,  #295b75 0%, #4d758c 2%, #4d758c 34%, #3c667f 94%, #204f6b 100%); /* FF3.6+ */
@@ -463,23 +463,23 @@
             background: -o-linear-gradient(top,  #295b75 0%,#4d758c 2%,#4d758c 34%,#3c667f 94%,#204f6b 100%); /* Opera 11.10+ */
             background: -ms-linear-gradient(top,  #295b75 0%,#4d758c 2%,#4d758c 34%,#3c667f 94%,#204f6b 100%); /* IE10+ */
             background: linear-gradient(top,  #295b75 0%,#4d758c 2%,#4d758c 34%,#3c667f 94%,#204f6b 100%); /* W3C */
-		}
-			.skybrush_info_bar_wrap_top_arrow {
-				border: 0 solid transparent;
-				border-left-width: 15px;
-				border-right-width: 15px;
-				border-bottom: 14px solid #4D758C;
+        }
+            .skybrush_info_bar_wrap_top_arrow {
+                border: 0 solid transparent;
+                border-left-width: 15px;
+                border-right-width: 15px;
+                border-bottom: 14px solid #4D758C;
 
-				width: 0;
-				height: 0;
+                width: 0;
+                height: 0;
 
-				/* center it horizontally */
-				position: absolute;
-				left: 50%;
-				margin-left: -15px;
+                /* center it horizontally */
+                position: absolute;
+                left: 50%;
+                margin-left: -15px;
 
-				top: -13px;
-			}
+                top: -13px;
+            }
             .skybrush_info_content,
             .skybrush_info_content > input,
             .skybrush_info_content > form > input {
@@ -489,68 +489,68 @@
             .skybrush_info_content > input[type=button],
             .skybrush_info_content > form > input[type=button],
             .skybrush_info_content > form > input[type=submit] {
-				font-weight: bold;
-				color: white;
-				text-shadow: 0 1px 1px rgba( 0, 0, 0, 0.7 );
+                font-weight: bold;
+                color: white;
+                text-shadow: 0 1px 1px rgba( 0, 0, 0, 0.7 );
             }
             .skybrush_info_content {
-				margin: 13px 16px 14px 16px;
+                margin: 13px 16px 14px 16px;
                 float: left;
                 min-height: 28px;
             }
-				.skybrush_info_content > *,
-				.skybrush_info_content > form > * {
-					float: left;
-				}
+                .skybrush_info_content > *,
+                .skybrush_info_content > form > * {
+                    float: left;
+                }
                 .skybrush_info_content > div,
-				.skybrush_info_content > form > div {
-				}
-				.skybrush_info_label {
-					margin: 4px 4px 0 14px;
-					text-transform: lowercase;
-				}
-				.skybrush_info_label:first-of-type {
-					margin-left: 0;
-				}
+                .skybrush_info_content > form > div {
+                }
+                .skybrush_info_label {
+                    margin: 4px 4px 0 14px;
+                    text-transform: lowercase;
+                }
+                .skybrush_info_label:first-of-type {
+                    margin-left: 0;
+                }
                 .skybrush_info_content > input[type=text],
                 .skybrush_info_content > form > input[type=text] {
-					margin: 0;
-					width: 42px;
-				}
+                    margin: 0;
+                    width: 42px;
+                }
                 .skybrush_info_content > input[type=number],
                 .skybrush_info_content > form > input[type=number] {
                     margin: 0;
                     width: 58px;
                 }
-				.skybrush_info_content > input[type=checkbox],
-				.skybrush_info_content > form > input[type=checkbox] {
-					margin-top: 8px;
-				}
-				.skybrush_info_content > input[type=button],
-				.skybrush_info_content > form > input[type=button],
-				.skybrush_info_content > form > input[type=submit] {
-					background: none;
+                .skybrush_info_content > input[type=checkbox],
+                .skybrush_info_content > form > input[type=checkbox] {
+                    margin-top: 8px;
+                }
+                .skybrush_info_content > input[type=button],
+                .skybrush_info_content > form > input[type=button],
+                .skybrush_info_content > form > input[type=submit] {
+                    background: none;
 
-					border: #fff 3px solid;
-					box-shadow: 2px 2px 3px rgba( 0, 0, 0, 0.3 );
-					border-radius: 4px;
-					padding: 1px 4px 3px 4px;
+                    border: #fff 3px solid;
+                    box-shadow: 2px 2px 3px rgba( 0, 0, 0, 0.3 );
+                    border-radius: 4px;
+                    padding: 1px 4px 3px 4px;
 
-					margin-left: 13px;
+                    margin-left: 13px;
 
-					cursor: pointer;
-				}
-				.skybrush_info_content > form > input[type=submit] {
+                    cursor: pointer;
+                }
+                .skybrush_info_content > form > input[type=submit] {
                     margin-bottom: 0;
                     margin-top: -1px;
                     padding-bottom: 1px;
                 }
-				.skybrush_info_content > input[type=button]:hover,
-				.skybrush_info_content > form > input[type=button]:hover,
-				.skybrush_info_content > form > input[type=submit]:hover {
-					border-color: #e9e9e9;
-					color: #e9e9e9;
-				}
+                .skybrush_info_content > input[type=button]:hover,
+                .skybrush_info_content > form > input[type=button]:hover,
+                .skybrush_info_content > form > input[type=submit]:hover {
+                    border-color: #e9e9e9;
+                    color: #e9e9e9;
+                }
     .skybrush_viewport {
         position: absolute;
         
@@ -583,7 +583,7 @@
             background: url(./../images/canvas_back.png) repeat;
         }
         .skybrush_canvas_draw {
-			border-radius: 3px;
+            border-radius: 3px;
             z-index: 0;
         }
         .skybrush_canvas_overlay {
@@ -604,15 +604,15 @@
                     transition: opacity 200ms linear 0s;
         }
         .skybrush_canvas_upscale.sb_offscreenY {
-			border-radius: 0;
-			border-top: 1px solid #ccc;
-			border-bottom: 1px solid #ccc;
-		}
+            border-radius: 0;
+            border-top: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+        }
         .skybrush_canvas_upscale.sb_offscreenX {
-			border-radius: 0;
-			border-left: 1px solid #ccc;
-			border-right: 1px solid #ccc;
-		}
+            border-radius: 0;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+        }
 
 /*
  * Cursors
@@ -655,9 +655,9 @@
  */
 
 .skybrush_grid {
-	position: absolute;
-	/* Above the overlay */
-	z-index: 3;
+    position: absolute;
+    /* Above the overlay */
+    z-index: 3;
     
     -webkit-transition: visibility 0s linear 200ms, opacity 200ms linear;
        -moz-transition: visibility 0s linear 200ms, opacity 200ms linear;
@@ -678,24 +678,24 @@
          -o-transition-delay: 0s;
             transition-delay: 0s;
 }
-	.skybrush_grid_line {
-		position: absolute;
-		display: block;
-		background: rgba( 60, 130, 160, 0.8 );
-	}
-    	.skybrush_grid_line_vertical {
-    		height: 100%;
-    		width: 1px;
-    	}
-    	.skybrush_grid_line_horizontal {
-    		height: 1px;
-    		width: 100%;
-    	}
+    .skybrush_grid_line {
+        position: absolute;
+        display: block;
+        background: rgba( 60, 130, 160, 0.8 );
+    }
+        .skybrush_grid_line_vertical {
+            height: 100%;
+            width: 1px;
+        }
+        .skybrush_grid_line_horizontal {
+            height: 1px;
+            width: 100%;
+        }
 
 .skybrush_copy,
 .skybrush_marquee {
-	display: none;
-	position: absolute;
+    display: none;
+    position: absolute;
     
     -webkit-animation-duration: 1s;
     -webkit-animation-iteration-count: infinite;
@@ -713,8 +713,8 @@
     display: block;
 }
 .skybrush_copy {
-	z-index: 4;
-	border: 2px dashed #999;
+    z-index: 4;
+    border: 2px dashed #999;
     
     -webkit-animation-name: skybrush_copy_border_anim;
        -moz-animation-name: skybrush_copy_border_anim;
@@ -727,13 +727,13 @@
     image-rendering: -webkit-optimize-contrast;
 }
 .skybrush_copy.sb_show {
-	opacity: 0.9;
+    opacity: 0.9;
 }
 .skybrush_marquee {
-	z-index: 5;
+    z-index: 5;
 
-	width: 0;
-	height: 0;
+    width: 0;
+    height: 0;
 
     -webkit-transition: opacity 200ms linear 0s;
        -moz-transition: opacity 200ms linear 0s;
@@ -742,13 +742,13 @@
             transition: opacity 200ms linear 0s;
     
     -webkit-transition-property: background-color, border-color;
-	   -moz-transition-property: background-color, border-color;
+       -moz-transition-property: background-color, border-color;
         -ms-transition-property: background-color, border-color;
          -o-transition-property: background-color, border-color;
             transition-property: background-color, border-color;
-	
-	background-color: transparent;
-	border: 2px dashed #18C;
+    
+    background-color: transparent;
+    border: 2px dashed #18C;
     
     -webkit-animation-name: skybrush_marquee_border_anim;
        -moz-animation-name: skybrush_marquee_border_anim;
@@ -756,30 +756,30 @@
          -o-animation-name: skybrush_marquee_border_anim;
             animation-name: skybrush_marquee_border_anim;
 }
-	.skybrush_marquee.sb_show {
-		opacity: 0.6;
-	}
-	.skybrush_marquee.sb_highlight {
-		background-color: #33aaFF;
-	}
-	.skybrush_marquee.sb_highlight.sb_outside {
-		box-shadow: 0 0 40px rgba( 200, 40, 40, 0.7 );
-		background-color: #aa3333;
-		border-color: #881111;
+    .skybrush_marquee.sb_show {
+        opacity: 0.6;
+    }
+    .skybrush_marquee.sb_highlight {
+        background-color: #33aaFF;
+    }
+    .skybrush_marquee.sb_highlight.sb_outside {
+        box-shadow: 0 0 40px rgba( 200, 40, 40, 0.7 );
+        background-color: #aa3333;
+        border-color: #881111;
     
         -webkit-animation-name: skybrush_marquee_border_anim_outside;
            -moz-animation-name: skybrush_marquee_border_anim_outside;
             -ms-animation-name: skybrush_marquee_border_anim_outside;
              -o-animation-name: skybrush_marquee_border_anim_outside;
                 animation-name: skybrush_marquee_border_anim_outside;
-	}
-	.skybrush_marquee.sb_reposition {
-		-webkit-transition-property: background-color, border-color, left, top, width, height;
-		   -moz-transition-property: background-color, border-color, left, top, width, height;
-			-ms-transition-property: background-color, border-color, left, top, width, height;
-			 -o-transition-property: background-color, border-color, left, top, width, height;
-		    	transition-property: background-color, border-color, left, top, width, height;
-	}
+    }
+    .skybrush_marquee.sb_reposition {
+        -webkit-transition-property: background-color, border-color, left, top, width, height;
+           -moz-transition-property: background-color, border-color, left, top, width, height;
+            -ms-transition-property: background-color, border-color, left, top, width, height;
+             -o-transition-property: background-color, border-color, left, top, width, height;
+                transition-property: background-color, border-color, left, top, width, height;
+    }
 
 @-webkit-keyframes skybrush_marquee_border_anim {
     0%, 100% { border-color: #3cf; }
@@ -911,7 +911,7 @@
            -moz-box-sizing: border-box;
                 box-sizing: border-box;
         
-        padding: 6px 6px 4px 6px;
+        padding: 7px 6px 4px 6px;
         
         box-shadow: 0 2px 2px rgba( 50, 50, 50, 0.2 );
         
@@ -924,7 +924,7 @@
         text-transform: uppercase;
         text-shadow: 0 2px 1px rgba( 0, 0, 0, 0.7 );
 
-        font-size: 15px;
+        font-size: 16px;
     }
     .skybrush_gui_content {
         float: left;
@@ -939,48 +939,48 @@
         width: 100%;
         height: 100%;
     }
-	/* For the 'SWATCHES' and TOOL SETTINGS' headers */
-	.skybrush_controls_header {
-		float: left;
-		clear: both;
-		width: 100%;
-		-moz-box-sizing: border-box;
-			 box-sizing: border-box;
-		padding: 5px 5px 0 5px;
-	}
-		.skybrush_controls_header_line {
-			float: right;
-			height: 1px;
-			background: #999;
-			margin: 6px 0;
-		}
-		.skybrush_controls_header_text {
-			float: left;
-			font-size: 10px;
-			font-weight: bold;
-			text-align: center;
-			-ms-text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
-			text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
-		}
+    /* For the 'SWATCHES' and TOOL SETTINGS' headers */
+    .skybrush_controls_header {
+        float: left;
+        clear: both;
+        width: 100%;
+        -moz-box-sizing: border-box;
+             box-sizing: border-box;
+        padding: 5px 5px 0 5px;
+    }
+        .skybrush_controls_header_line {
+            float: right;
+            height: 1px;
+            background: #999;
+            margin: 6px 0;
+        }
+        .skybrush_controls_header_text {
+            float: left;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            -ms-text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
+            text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
+        }
 
 /**
  * The color picker.
  */
 .skybrush_gui.sb_gui_colors {
-	width: 150px;
+    width: 150px;
 
-	/* IE9 SVG */
-	background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI0NSUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
-	background: -moz-linear-gradient(top,  #dddddd 45%, #ffffff 50%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(45%,#dddddd), color-stop(50%,#ffffff)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* IE10+ */
-	background: linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* W3C */
+    /* IE9 SVG */
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI0NSUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -moz-linear-gradient(top,  #dddddd 45%, #ffffff 50%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(45%,#dddddd), color-stop(50%,#ffffff)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* IE10+ */
+    background: linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* W3C */
 }
     .skybrush_gui.sb_gui_colors > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
-		width: 78px;
-	}
+        width: 78px;
+    }
     .skybrush_colors_palette,
     .skybrush_color_alpha_bar,
     .skybrush_color_picker_current_color_back,
@@ -1013,8 +1013,8 @@
     
             display: inline-block;
         }
-			.skybrush_colors_palette_color_border {
-				display: none;
+            .skybrush_colors_palette_color_border {
+                display: none;
 
                 width:  20px;
                 height: 16px;
@@ -1026,7 +1026,7 @@
                 box-shadow: inset 0 0 3px rgba( 0, 0, 0, 0.65 );
                 opacity: 0.5;
             }
-			.skybrush_colors_palette_color_border.sb_show {
+            .skybrush_colors_palette_color_border.sb_show {
                 opacity: 0.65;
             }
             /*
@@ -1070,20 +1070,20 @@
             width: 0;
             height: 0;
             background: white;
-			opacity: 0.25;
+            opacity: 0.25;
             display: block;
         }
         .skybrush_mixer_horizontal_line {
             width: 100%;
             height: 4px;
-			margin-top: -2px;
+            margin-top: -2px;
             left: 0;
         }
         .skybrush_mixer_vertical_line {
             width: 4px;
             height: 100%;
             top: 0;
-			margin-left: -2px;
+            margin-left: -2px;
         }
         .skybrush_color_wheel_wrap {
             position: absolute;
@@ -1100,41 +1100,41 @@
             }
             .skybrush_color_wheel_line_outer {
                 top :  38px;
-				left: 0;
+                left: 0;
                 position: absolute;
 
-				width: 100%;
-				height: 1px;
+                width: 100%;
+                height: 1px;
             }
                 .skybrush_color_wheel_line {
-					width: 43px;
-					height: 17px;
-					margin-top: -8px;
-					margin-left: 4px;
+                    width: 43px;
+                    height: 17px;
+                    margin-top: -8px;
+                    margin-left: 4px;
 
-					background: url(./../images/colour_wheel_line.png) no-repeat 0 0;
+                    background: url(./../images/colour_wheel_line.png) no-repeat 0 0;
                     font-family: "kdkdkdkdlfsjfdj";
 
-					position: absolute;
+                    position: absolute;
                     left: 0;
                     top : 0;
 
-					opacity: 1;
+                    opacity: 1;
                 }
     .skybrush_color_alpha_wrap {
         float: right;
         
-		margin: 0 7px 0 0;
-		width: 24px;
-		height: 100%;
+        margin: 0 7px 0 0;
+        width: 24px;
+        height: 100%;
 
-		-moz-box-sizing: border-box;
-			 box-sizing: border-box;
+        -moz-box-sizing: border-box;
+             box-sizing: border-box;
     }
         .skybrush_color_alpha_bar {
-			border: 1px solid #aaa;
+            border: 1px solid #aaa;
 
-			width: 100%;
+            width: 100%;
             height: 100%;
             background: black;
             
@@ -1146,22 +1146,22 @@
                 display: block;
             }
             .skybrush_color_alpha_line {
-				width: 30px;
-				height: 10px;
-				margin-top: -5px;
-				margin-left: -4px;
+                width: 30px;
+                height: 10px;
+                margin-top: -5px;
+                margin-left: -4px;
 
-				background: url(./../images/alpha_slider.png) no-repeat 0 0;
+                background: url(./../images/alpha_slider.png) no-repeat 0 0;
 
-				position: absolute;
-				left: 0;
-				top : 0;
+                position: absolute;
+                left: 0;
+                top : 0;
             }
     .skybrush_color_picker {
         clear: both;
         
         width: 140px;
-		height: 90px;
+        height: 90px;
         
         position: relative;
         
@@ -1194,63 +1194,63 @@
         .skybrush_rgb_form {
             float: right;
             clear: right;
-			margin: 1px 0 0 5px;
+            margin: 1px 0 0 5px;
         }
             .skybrush_rgb_wrap {
                 float: left;
                 clear: both;
                 width: 100%;
-				margin: 3px 0;
+                margin: 3px 0;
             }
                 .skybrush_rgb_label {
-					text-transform: uppercase;
+                    text-transform: uppercase;
                     margin-top: 2px;
                     float: left;
-					font-size: 10px;
-					font-weight: bold;
+                    font-size: 10px;
+                    font-weight: bold;
                 }
                 .skybrush_rgb_input {
                     float: right;
-				}
-	.skybrush_destination_alpha {
-		margin: 0 5px 5px 5px;
-		float: left;
-		clear: both;
-		text-align: center;
-		position: relative;
-		left: 50%;
-	}
-		.skybrush_destination_alpha > .skybrush_command_control_label {
-			margin-top: 5px;
-			position: relative;
-			left: -50%;
-			height: 100%;
-		}
-		.skybrush_destination_alpha > input {
-			float: right;
-			position: relative;
-			left: -50%;
-		}
+                }
+    .skybrush_destination_alpha {
+        margin: 0 5px 5px 5px;
+        float: left;
+        clear: both;
+        text-align: center;
+        position: relative;
+        left: 50%;
+    }
+        .skybrush_destination_alpha > .skybrush_command_control_label {
+            margin-top: 5px;
+            position: relative;
+            left: -50%;
+            height: 100%;
+        }
+        .skybrush_destination_alpha > input {
+            float: right;
+            position: relative;
+            left: -50%;
+        }
 
 .skybrush_gui.sb_gui_commands {
     width: 150px;
 
-	/* IE9 SVG, needs conditional override of 'filter' to 'none' */
-	background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI2NiUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI3OCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
-	background: -moz-linear-gradient(top,  #dddddd 66%, #ffffff 78%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(66%,#dddddd), color-stop(78%,#ffffff)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* IE10+ */
-	background: linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* W3C */
+    /* IE9 SVG, needs conditional override of 'filter' to 'none' */
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI2NiUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI3OCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -moz-linear-gradient(top,  #dddddd 66%, #ffffff 78%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(66%,#dddddd), color-stop(78%,#ffffff)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* IE10+ */
+    background: linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* W3C */
 }
-		.skybrush_gui.sb_gui_commands > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
-			width: 55px;
-		}
+        .skybrush_gui.sb_gui_commands > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
+            width: 55px;
+        }
     .skybrush_commands_pane {
-		float: left;
-		clear: both;
-		margin: 5px;
+        float: left;
+        clear: both;
+        margin: 5px;
     }
         /*
          * Actual Command button setup.
@@ -1267,76 +1267,76 @@
             
             margin: 0 4px 4px 0;
 
-			position: relative;
+            position: relative;
         }
         .skybrush_gui_command:nth-of-type(3n) {
-			margin-right: 0;
-		}
-			.skybrush_command_back {
-				position: absolute;
-				left: -1px;
-				top: -1px;
+            margin-right: 0;
+        }
+            .skybrush_command_back {
+                position: absolute;
+                left: -1px;
+                top: -1px;
 
-				background: url(./../images/tool_back.png) no-repeat 0 0;
+                background: url(./../images/tool_back.png) no-repeat 0 0;
 
-				opacity: 0;
+                opacity: 0;
 
-				display: block;
-				width: 46px;
-				height: 46px;
+                display: block;
+                width: 46px;
+                height: 46px;
 
-				-webkit-transition: opacity 150ms linear 0s;
-				   -moz-transition: opacity 150ms linear 0s;
-					-ms-transition: opacity 150ms linear 0s;
-					 -o-transition: opacity 150ms linear 0s;
-						transition: opacity 150ms linear 0s;
-			}
-			.skybrush_gui_command:hover > .skybrush_command_back {
-				opacity: 0.5;
-			}
-			.skybrush_gui_command.sb_selected > .skybrush_command_back,
-			.skybrush_gui_command.sb_selected:hover > .skybrush_command_back {
-				opacity: 1;
-			}
-			.skybrush_gui_command > a {
-				position: absolute;
-				width: 44px;
-				height: 44px;
+                -webkit-transition: opacity 150ms linear 0s;
+                   -moz-transition: opacity 150ms linear 0s;
+                    -ms-transition: opacity 150ms linear 0s;
+                     -o-transition: opacity 150ms linear 0s;
+                        transition: opacity 150ms linear 0s;
+            }
+            .skybrush_gui_command:hover > .skybrush_command_back {
+                opacity: 0.5;
+            }
+            .skybrush_gui_command.sb_selected > .skybrush_command_back,
+            .skybrush_gui_command.sb_selected:hover > .skybrush_command_back {
+                opacity: 1;
+            }
+            .skybrush_gui_command > a {
+                position: absolute;
+                width: 44px;
+                height: 44px;
 
-				top: 0;
-				left: 0;
-				background: url(./../images/tool_command_buttons.png) 0 0;
-			}
-			.sb_command_pencil > a {
-				background-position: 0 0;
-			}
-			.sb_command_eraser > a {
-				background-position: -44px 0;
-			}
-			.sb_command_rectangle > a {
-				background-position: -44px -44px;
-			}
-			.sb_command_circle > a {
-				background-position: 0 -44px;
-			}
-			.sb_command_line > a {
-				background-position: -88px -44px;
-			}
-			.sb_command_fill > a {
-				background-position: -88px 0;
-			}
-			.sb_command_zoom > a {
-				background-position: 0 -88px;
-			}
-			.sb_command_select > a {
-				background-position: -44px -88px;
-			}
-			.sb_command_brush > a {
-				background-position: -88px -88px;
-			}
-			.sb_command_move > a {
-				background-position: 0px -132px;
-			}
+                top: 0;
+                left: 0;
+                background: url(./../images/tool_command_buttons.png) 0 0;
+            }
+            .sb_command_pencil > a {
+                background-position: 0 0;
+            }
+            .sb_command_eraser > a {
+                background-position: -44px 0;
+            }
+            .sb_command_rectangle > a {
+                background-position: -44px -44px;
+            }
+            .sb_command_circle > a {
+                background-position: 0 -44px;
+            }
+            .sb_command_line > a {
+                background-position: -88px -44px;
+            }
+            .sb_command_fill > a {
+                background-position: -88px 0;
+            }
+            .sb_command_zoom > a {
+                background-position: 0 -88px;
+            }
+            .sb_command_select > a {
+                background-position: -44px -88px;
+            }
+            .sb_command_brush > a {
+                background-position: -88px -88px;
+            }
+            .sb_command_move > a {
+                background-position: 0px -132px;
+            }
         .sb_command_picker {
             position: absolute;
             bottom: -2px;
@@ -1358,59 +1358,59 @@
                 height: 35px;
             }
 
-	.skybrush_command_controls {
-		float: left;
-		clear: both;
-		width: 140px;
-		margin: 8px 5px 13px 5px;
-	}
-		.skybrush_command_controls_inner {
-			float: left;
-			clear: both;
-			width:  100%;
-			height: 100%;
-		}
-			.skybrush_command_controls_inner > .skybrush_control {
-				float: left;
-				clear: both;
-				width: 100%;
-			}
-			.skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox {
-			}
-				.skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox > input {
-					margin: 0 3px 3px 4px;
+    .skybrush_command_controls {
+        float: left;
+        clear: both;
+        width: 140px;
+        margin: 8px 5px 13px 5px;
+    }
+        .skybrush_command_controls_inner {
+            float: left;
+            clear: both;
+            width:  100%;
+            height: 100%;
+        }
+            .skybrush_command_controls_inner > .skybrush_control {
+                float: left;
+                clear: both;
+                width: 100%;
+            }
+            .skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox {
+            }
+                .skybrush_command_controls_inner > .skybrush_control.sb_control_checkbox > input {
+                    margin: 0 3px 3px 4px;
                     vertical-align: bottom;
-				}
-			.skybrush_command_controls_inner > .skybrush_control.skybrush_control_slider {
-				margin-bottom: 2px;
-			}
-				.skybrush_control.sb_control_slider > .skybrush_slider_bar {
-					float: right;
+                }
+            .skybrush_command_controls_inner > .skybrush_control.skybrush_control_slider {
+                margin-bottom: 2px;
+            }
+                .skybrush_control.sb_control_slider > .skybrush_slider_bar {
+                    float: right;
                     width: 65px;
                     top: -3px;
                 }
                 .skybrush_control.sb_control_slider > .skybrush_slider_bar.sb_fake {
-					top: 4px;
+                    top: 4px;
                 }
-				.skybrush_control.sb_control_slider.sb_outline_size_cmd > .skybrush_slider_bar {
-					width: 55px;
-				}
-				.skybrush_control.sb_control_slider.sb_tolerance > .skybrush_slider_bar {
-					width: 42px;
-				}
-					.skybrush_control.sb_control_slider > .skybrush_slider_bar_inner {
-						height: 1px;
-					}
-				.skybrush_control.sb_control_slider > .skybrush_input {
-					float: right;
-					clear: right;
+                .skybrush_control.sb_control_slider.sb_outline_size_cmd > .skybrush_slider_bar {
+                    width: 55px;
+                }
+                .skybrush_control.sb_control_slider.sb_tolerance > .skybrush_slider_bar {
+                    width: 42px;
+                }
+                    .skybrush_control.sb_control_slider > .skybrush_slider_bar_inner {
+                        height: 1px;
+                    }
+                .skybrush_control.sb_control_slider > .skybrush_input {
+                    float: right;
+                    clear: right;
 
-					margin-left: 8px;
-					width: 22px;
-				}
-				.skybrush_control.sb_control_toggle > .skybrush_command_control_label {
-					padding-top: 5px;
-				}
+                    margin-left: 8px;
+                    width: 22px;
+                }
+                .skybrush_control.sb_control_toggle > .skybrush_command_control_label {
+                    padding-top: 5px;
+                }
 
 /*
  * The custom drawn mouse cursor,

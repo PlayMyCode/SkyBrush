@@ -146,8 +146,8 @@
         DEFAULT_HEIGHT = 360, // pixels
         DEFAULT_ZOOM   =   1, // from 1/MAX_ZOOM to MAX_ZOOM
 
-		DEFAULT_GRID_WIDTH  = 5, // pixels
-		DEFAULT_GRID_HEIGHT = 5, // pixels
+        DEFAULT_GRID_WIDTH  = 5, // pixels
+        DEFAULT_GRID_HEIGHT = 5, // pixels
 
         /**
          * If we are touch, or not.
@@ -247,21 +247,21 @@
          */
         CONTROL_ID_CSS_PREFIX = 'painter_control_css_id_',
 
-		/**
-		 * Starting X location of the GUI dialogues.
-		 *
-		 * @const
-		 * @type {number}
-		 */
-		GUI_DEFAULT_X = 24,
+        /**
+         * Starting X location of the GUI dialogues.
+         *
+         * @const
+         * @type {number}
+         */
+        GUI_DEFAULT_X = 24,
 
-		/**
-		 * Startying y location.
-		 *
-		 * @const
-		 * @type {number}
-		 */
-		GUI_DEFAULT_Y = 70,
+        /**
+         * Startying y location.
+         *
+         * @const
+         * @type {number}
+         */
+        GUI_DEFAULT_Y = 70,
         
         /**
          * When scrolling, the canvas will wait this amount of time
@@ -379,13 +379,13 @@
          */
         MAX_ZOOM = 16,
 
-		/**
-		 * The maximum brush size allowed.
-		 *
-		 * @const
-		 * @type {number}
-		 */
-		MAX_BRUSH_SIZE = 50,
+        /**
+         * The maximum brush size allowed.
+         *
+         * @const
+         * @type {number}
+         */
+        MAX_BRUSH_SIZE = 50,
 
         /*
          * WARNING! All colours _MUST_ be 6 values hex values!
@@ -646,7 +646,7 @@
             sliderBar = $a('', 'skybrush_slider_bar').
                     addClass( 'sb_fake' ).
                     stopPropagation( 'click', 'leftdown' ).
-    				append( $('<div>').addClass('skybrush_slider_bar_inner') ).
+                                append( $('<div>').addClass('skybrush_slider_bar_inner') ).
                     append( slider ).
 
                     // zoom in/out when you click on the slider bar
@@ -994,10 +994,11 @@
                 y -=  h;
             }
 
-			// increase the clear area by 1, by default
-			// this is to account for any anti-aliasing
-			x--;
-			y--;
+            // increase the clear area by 1, by default
+            // this is to account for any anti-aliasing
+            x--;
+            y--;
+
             w += 2;
             h += 2;
 
@@ -1177,8 +1178,8 @@
 
                     /*
                      * Skip Transparency When:
-                     *	= canvas and overlay are empty
-                     *	= using destination alpha and canvas is empty
+                     *  = canvas and overlay are empty
+                     *  = using destination alpha and canvas is empty
                      */
                     if ( ! (
                             ca === 0 && ( oa === 0 || forceSrcAlpha )
@@ -1347,8 +1348,8 @@
 
                     /*
                      * Skip Transparency When:
-                     *	= canvas and overlay are empty
-                     *	= using destination alpha and canvas is empty
+                     *  = canvas and overlay are empty
+                     *  = using destination alpha and canvas is empty
                      */
                     if ( ! (
                             ca === 0 && ( oa === 0 || forceSrcAlpha )
@@ -1512,7 +1513,7 @@
 
         _this.dom = $('<div>').
                 addClass( 'skybrush_gui' ).
-				addClass( GUI_CSS_PREFIX + klass ).
+                addClass( GUI_CSS_PREFIX + klass ).
                 leftdown( function(ev) {
                     var $this = $(this);
 
@@ -1520,9 +1521,9 @@
                     $this.siblings( '.skybrush_gui.sb_focus' ).removeClass( 'sb_focus' );
                     $this.addClass( 'sb_focus' );
 
-					if ( ! $(ev.target).is(':input') ) {
-						return false;
-					}
+                    if ( ! $(ev.target).is(':input') ) {
+                        return false;
+                    }
                 } );
 
         var header = $('<div>').addClass('skybrush_gui_header'),
@@ -1790,104 +1791,104 @@
         canvas.ctx = canvas.getContext( '2d' );
 
         initializeCtx( canvas.ctx );
-		canvas.ctx.save();
+        canvas.ctx.save();
 
         return canvas;
     };
 
-	/**
-	 * Sets up a circle path on the context given.
-	 *
-	 * This is everthing involved with drawing a circle
-	 * _but_ the actual stroke/fill.
-	 */
-	var circlePath = function( ctx, x, y, w, h ) {
-		var kappa = .5522848;
-		var ox = (w / 2) * kappa,   // control point offset horizontal
-			oy = (h / 2) * kappa,   // control point offset vertical
-			xe = x + w,             // x-end
-			ye = y + h,             // y-end
-			xm = x + w / 2,         // x-middle
-			ym = y + h / 2;         // y-middle
+    /**
+     * Sets up a circle path on the context given.
+     *
+     * This is everthing involved with drawing a circle
+     * _but_ the actual stroke/fill.
+     */
+    var circlePath = function( ctx, x, y, w, h ) {
+        var kappa = .5522848;
+        var ox = (w / 2) * kappa,   // control point offset horizontal
+            oy = (h / 2) * kappa,   // control point offset vertical
+            xe = x + w,             // x-end
+            ye = y + h,             // y-end
+            xm = x + w / 2,         // x-middle
+            ym = y + h / 2;         // y-middle
 
-		ctx.beginPath();
-		ctx.moveTo(x, ym);
-		ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-		ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-		ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-		ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
-		ctx.closePath();
-	};
+        ctx.beginPath();
+        ctx.moveTo(x, ym);
+        ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+        ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+        ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+        ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+        ctx.closePath();
+    };
 
-	/**
-	 * Creates a new canvas, and returns it,
-	 * but after being painted with a checkerboard.
-	 *
-	 * The third argument states if it should
-	 * gradient the alpha across it, from left to right.
-	 */
-	var newCheckerboard = function( w, h, gradientAlpha ) {
-		var canvas = newCanvas( w, h );
-		var ctx = canvas.ctx;
-		var ctxData = ctx.getImageData( 0, 0, w, h );
-		var data = ctxData.data;
+    /**
+     * Creates a new canvas, and returns it,
+     * but after being painted with a checkerboard.
+     *
+     * The third argument states if it should
+     * gradient the alpha across it, from left to right.
+     */
+    var newCheckerboard = function( w, h, gradientAlpha ) {
+        var canvas = newCanvas( w, h );
+        var ctx = canvas.ctx;
+        var ctxData = ctx.getImageData( 0, 0, w, h );
+        var data = ctxData.data;
 
-		for ( var x = 0; x < w; x++ ) {
-			for ( var y = 0; y < h; y++ ) {
-				var i = (x + y*w) * 4,
-                    a = ( (1 - y/h)*255 + 0.5 ) | 0;
+        for ( var x = 0; x < w; x++ ) {
+            for ( var y = 0; y < h; y++ ) {
+                var i = (x + y*w) * 4,
+                a = ( (1 - y/h)*255 + 0.5 ) | 0;
 
-				// generate a Photoshop-like checker board
-				data[i] = data[i+1] = data[i+2] =
-						( (((y/8) | 0) % 2) === (((x/8) | 0) % 2) ) ?
-								254 :
-								203 ;
+                // generate a Photoshop-like checker board
+                data[i] = data[i+1] = data[i+2] =
+                        ( (((y/8) | 0) % 2) === (((x/8) | 0) % 2) ) ?
+                                254 :
+                                203 ;
 
-				data[i+3] = gradientAlpha ?
-						a :
-						1.0 ;
-			}
-		}
+                data[i+3] = gradientAlpha ?
+                        a :
+                        1.0 ;
+            }
+        }
 
-		ctx.putImageData( ctxData, 0, 0 );
+        ctx.putImageData( ctxData, 0, 0 );
 
-		return canvas;
-	}
+        return canvas;
+    }
 
-	/**
-	 * The GridManager wraps up all of the grid handling for the canvas.
-	 * It's very closely tied to the CanvasManger,
-	 * and exists pretty much solely to make the code a little more
-	 * modular.
-	 *
-	 * @constructor
-	 * @private
-	 */
+    /**
+     * The GridManager wraps up all of the grid handling for the canvas.
+     * It's very closely tied to the CanvasManger,
+     * and exists pretty much solely to make the code a little more
+     * modular.
+     *
+     * @constructor
+     * @private
+     */
     var GridManager = function( parent ) {
-		var dom = $('<div>').addClass( 'skybrush_grid' );
-		this.dom = dom;
-		parent.append( dom );
+        var dom = $('<div>').addClass( 'skybrush_grid' );
+        this.dom = dom;
+        parent.append( dom );
 
-		this.offsetX = 0;
-		this.offsetY = 0;
-		this.width  = DEFAULT_GRID_WIDTH;
-		this.height = DEFAULT_GRID_HEIGHT;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.width  = DEFAULT_GRID_WIDTH;
+        this.height = DEFAULT_GRID_HEIGHT;
 
-		this.zoom = 1;
-		this.isDirty = true;
-	};
+        this.zoom = 1;
+        this.isDirty = true;
+    };
 
-	/**
-	 * Moves this grid to the area stated,
-	 * and re-organizes the grid to look how it's shown.
-	 *
-	 * The CanvasManager does work to located the upscale
-	 * canvas to fill the proper canvas. To avoid duplicating
-	 * this code, this method is provided to allow the canvas
-	 * to just pass the results on to this grid.
-	 */
-	GridManager.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
-		var _this = this;
+    /**
+     * Moves this grid to the area stated,
+     * and re-organizes the grid to look how it's shown.
+     *
+     * The CanvasManager does work to located the upscale
+     * canvas to fill the proper canvas. To avoid duplicating
+     * this code, this method is provided to allow the canvas
+     * to just pass the results on to this grid.
+     */
+    GridManager.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
+        var _this = this;
 
         _this.zoom = zoom;
         _this.dom.css({
@@ -1898,71 +1899,71 @@
         });
 
         _this.update();
-	};
+    };
 
-	/**
-	 * Updates the layout of the grid.
-	 *
-	 * This should be called right after any properties have
-	 * been altered, but is only used internally.
-	 *
-	 * Calls such as 'setSize' and 'setOffset' already call
-	 * this automatically.
-	 */
-	GridManager.prototype.update = function() {
-		this.dom.empty();
+    /**
+     * Updates the layout of the grid.
+     *
+     * This should be called right after any properties have
+     * been altered, but is only used internally.
+     *
+     * Calls such as 'setSize' and 'setOffset' already call
+     * this automatically.
+     */
+    GridManager.prototype.update = function() {
+        this.dom.empty();
 
-		if ( this.isShown() ) {
-			this.forceUpdate();
-		} else {
-			this.isDirty = true;
-		}
-	};
+        if ( this.isShown() ) {
+            this.forceUpdate();
+        } else {
+            this.isDirty = true;
+        }
+    };
 
-	/**
-	 * Forces an update.
-	 *
-	 * This differs from the standard update, because this guarantees
-	 * that an update is performed, whilst the standard update might
-	 * skip it, for performance reasons.
-	 */
-	GridManager.prototype.forceUpdate = function() {
-		var zoom = this.zoom,
-			 dom = this.dom;
+    /**
+     * Forces an update.
+     *
+     * This differs from the standard update, because this guarantees
+     * that an update is performed, whilst the standard update might
+     * skip it, for performance reasons.
+     */
+    GridManager.prototype.forceUpdate = function() {
+        var zoom = this.zoom,
+             dom = this.dom;
 
-		var w = dom.width(),
-			h = dom.height(),
-			xInc = Math.max( zoom * this.width , 1 ),
-			yInc = Math.max( zoom * this.height, 1 );
+        var w = dom.width(),
+            h = dom.height(),
+            xInc = Math.max( zoom * this.width , 1 ),
+            yInc = Math.max( zoom * this.height, 1 );
 
-		var startX = ( this.offsetX % this.width ) * zoom,
-			startY = ( this.offsetY % this.height ) * zoom;
+        var startX = ( this.offsetX % this.width ) * zoom,
+            startY = ( this.offsetY % this.height ) * zoom;
 
-		for ( var x = startX; x <= w; x += xInc ) {
-			dom.append(
-					$('<div>').
-							addClass('skybrush_grid_line').
-							addClass('skybrush_grid_line_vertical').
-							css({left: x + 'px', height: h+'px'})
-			);
-		}
-		for ( var y = startY; y <= h; y += yInc ) {
-			dom.append(
-					$('<div>').
-							addClass('skybrush_grid_line').
-							addClass('skybrush_grid_line_horizontal').
-							css({top: y + 'px', width: w+'px'})
-			);
-		}
+        for ( var x = startX; x <= w; x += xInc ) {
+            dom.append(
+                    $('<div>').
+                            addClass('skybrush_grid_line').
+                            addClass('skybrush_grid_line_vertical').
+                            css({left: x + 'px', height: h+'px'})
+            );
+        }
+        for ( var y = startY; y <= h; y += yInc ) {
+            dom.append(
+                    $('<div>').
+                            addClass('skybrush_grid_line').
+                            addClass('skybrush_grid_line_horizontal').
+                            css({top: y + 'px', width: w+'px'})
+            );
+        }
 
-		this.isDirty = false;
-	};
+        this.isDirty = false;
+    };
 
 
-	/**
-	 * Sets the size of the grid squares, in pixels.
-	 */
-	GridManager.prototype.setSize = function( w, h ) {
+    /**
+     * Sets the size of the grid squares, in pixels.
+     */
+    GridManager.prototype.setSize = function( w, h ) {
         w = Math.max( w|0, 0 );
         h = Math.max( h|0, 0 );
 
@@ -1972,39 +1973,39 @@
 
             this.update();
         }
-	};
+    };
 
-	GridManager.prototype.getWidth = function() {
-		return this.width;
-	};
+    GridManager.prototype.getWidth = function() {
+        return this.width;
+    };
 
-	GridManager.prototype.getHeight = function() {
-		return this.height;
-	};
+    GridManager.prototype.getHeight = function() {
+        return this.height;
+    };
 
-	GridManager.prototype.getOffsetX = function() {
-		return this.offsetX;
-	};
+    GridManager.prototype.getOffsetX = function() {
+        return this.offsetX;
+    };
 
-	GridManager.prototype.getOffsetY = function() {
-		return this.offsetY;
-	};
+    GridManager.prototype.getOffsetY = function() {
+        return this.offsetY;
+    };
 
-	/**
-	 * Allows you to offset the location of the grid,
-	 * from the top left corner,
-	 * by the amounts given.
-	 */
-	GridManager.prototype.setOffset = function( x, y ) {
-		if ( isNaN(x) ) {
-			x = 0;
+    /**
+     * Allows you to offset the location of the grid,
+     * from the top left corner,
+     * by the amounts given.
+     */
+    GridManager.prototype.setOffset = function( x, y ) {
+        if ( isNaN(x) ) {
+            x = 0;
         } else {
             x = x|0;
-		}
+        }
 
-		if ( isNaN(y) ) {
-			y = 0;
-		} else {
+        if ( isNaN(y) ) {
+            y = 0;
+        } else {
             y = y|0;
         }
 
@@ -2017,411 +2018,413 @@
             y = this.height-y;
         }
 
-		var update = ( this.offsetX !== x || this.offsetY !== y );
+        var update = ( this.offsetX !== x || this.offsetY !== y );
 
-		if ( update ) {
+        if ( update ) {
             this.offsetX = x,
             this.offsetY = y;
 
-			this.update();
-		}
+            this.update();
+        }
 
-		return this;
-	};
+        return this;
+    };
 
-	GridManager.prototype.isShown = function() {
+    GridManager.prototype.isShown = function() {
         return this.dom.hasClass( 'sb_show' );
-	};
+    };
 
-	GridManager.prototype.show = function() {
-		if ( this.isDirty ) {
-			this.forceUpdate();
-		}
+    GridManager.prototype.show = function() {
+        if ( this.isDirty ) {
+            this.forceUpdate();
+        }
 
         this.dom.ensureClass('sb_show');
 
-		return this;
-	};
+        return this;
+    };
 
-	GridManager.prototype.hide = function() {
+    GridManager.prototype.hide = function() {
         this.dom.removeClass( 'sb_show' );
 
-		return this;
-	};
+        return this;
+    };
 
-	var ViewOverlay = function( viewport, css ) {
-		if ( viewport && css ) {
-			var _this = this,
-				dom;
+    var ViewOverlay = function( viewport, css ) {
+        if ( viewport && css ) {
+            var _this = this,
+                dom;
 
-			_this.dom = dom = $('<div>').addClass( css );
-			viewport.append( dom );
+            _this.dom = dom = $('<div>').addClass( css );
+            viewport.append( dom );
 
-			_this.x = 0;
-			_this.y = 0;
-			_this.w = 0;
-			_this.h = 0;
-			_this.zoom = 1;
+            _this.x = 0;
+            _this.y = 0;
+            _this.w = 0;
+            _this.h = 0;
+            _this.zoom = 1;
 
-			_this.canvasX = 0;
-			_this.canvasY = 0;
-		}
-	};
+            _this.canvasX = 0;
+            _this.canvasY = 0;
+        }
+    };
 
-	ViewOverlay.prototype.update = function() {
-		// do nothing
-		return this;
-	};
+    ViewOverlay.prototype.update = function() {
+        // do nothing
+        return this;
+    };
 
-	ViewOverlay.prototype.setCanvasSize = function( x, y, w, h ) {
-		var zoom = this.zoom;
-		this.dom.css({
-				left  : this.canvasX + x*zoom,
-				top   : this.canvasY + y*zoom,
-				/* -2 is to accommodate the 2-pixel border width in the CSS */
-				width : Math.max( 0, ((w*zoom)|0)-2 ),
-				height: Math.max( 0, ((h*zoom)|0)-2 )
-		});
-	};
+    ViewOverlay.prototype.setCanvasSize = function( x, y, w, h ) {
+        var zoom = this.zoom;
+        this.dom.css({
+                left  : this.canvasX + x*zoom,
+                top   : this.canvasY + y*zoom,
+                /* -2 is to accommodate the 2-pixel border width in the CSS */
+                width : Math.max( 0, ((w*zoom)|0)-2 ),
+                height: Math.max( 0, ((h*zoom)|0)-2 )
+        });
+    };
 
-	/**
-	 * Tells this about any view changes in the SkyBrush viewport.
-	 */
-	ViewOverlay.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
-		this.zoom = zoom;
-		this.canvasX = canvasX,
-		this.canvasY = canvasY;
+    /**
+     * Tells this about any view changes in the SkyBrush viewport.
+     */
+    ViewOverlay.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
+        this.zoom = zoom;
+        this.canvasX = canvasX,
+        this.canvasY = canvasY;
 
-		return this.update();
-	};
+        return this.update();
+    };
 
-	/**
-	 * This handles the clipping/select region on the Canvas.
-	 *
-	 * @constructor
-	 * @private
-	 */
-	var Marquee = function( canvas, viewport ) {
-		var _this = this;
-		_this.canvas = canvas;
+    /**
+     * This handles the clipping/select region on the Canvas.
+     *
+     * @constructor
+     * @private
+     */
+    var Marquee = function( canvas, viewport ) {
+        var _this = this;
+        _this.canvas = canvas;
 
-		ViewOverlay.call( this, viewport, 'skybrush_marquee' );
-	};
-	Marquee.prototype = new ViewOverlay();
+        ViewOverlay.call( this, viewport, 'skybrush_marquee' );
+    };
 
-	/**
-	 * Puts this into highlighting mode.
-	 *
-	 * This is a visual change, to give the user a visual
-	 * indication that the marquee is currently being altered.
-	 */
-	Marquee.prototype.startHighlight = function() {
-		this.dom.ensureClass( 'sb_highlight' );
+    Marquee.prototype = new ViewOverlay();
 
-		return this.clear();
-	};
+    /**
+     * Puts this into highlighting mode.
+     *
+     * This is a visual change, to give the user a visual
+     * indication that the marquee is currently being altered.
+     */
+    Marquee.prototype.startHighlight = function() {
+        this.dom.ensureClass( 'sb_highlight' );
 
-	/**
-	 * Ends highlighting mode,
-	 * so the visual highlighting that this marquee
-	 * shows will now end.
-	 */
-	Marquee.prototype.stopHighlight = function() {
-		var _this = this;
+        return this.clear();
+    };
 
-		var x = _this.x,
-			y = _this.y,
-			w = _this.w,
-			h = _this.h;
+    /**
+     * Ends highlighting mode,
+     * so the visual highlighting that this marquee
+     * shows will now end.
+     */
+    Marquee.prototype.stopHighlight = function() {
+        var _this = this;
 
-		_this.dom.removeClass( 'sb_highlight' );
+        var x = _this.x,
+            y = _this.y,
+            w = _this.w,
+            h = _this.h;
 
-		if (
-				x < 0 ||
-				y < 0 ||
-				w+x > _this.canvas.width  ||
-				h+y > _this.canvas.height
-		) {
-			var x2 = Math.max( x, 0 ),
-				y2 = Math.max( y, 0 );
-			var w2 = Math.min( w+x, _this.canvas.width  ) - x2,
-				h2 = Math.min( h+y, _this.canvas.height ) - y2;
+        _this.dom.removeClass( 'sb_highlight' );
 
-			_this.selectArea( x2, y2, w2, h2 );
-		}
+        if (
+                x < 0 ||
+                y < 0 ||
+                w+x > _this.canvas.width  ||
+                h+y > _this.canvas.height
+        ) {
+            var x2 = Math.max( x, 0 ),
+                    y2 = Math.max( y, 0 );
+            var w2 = Math.min( w+x, _this.canvas.width  ) - x2,
+                    h2 = Math.min( h+y, _this.canvas.height ) - y2;
 
-		if ( _this.hasClipArea() ) {
-			_this.canvas.setClip( _this.x, _this.y, _this.w, _this.h );
-		} else {
+            _this.selectArea( x2, y2, w2, h2 );
+        }
+
+        if ( _this.hasClipArea() ) {
+            _this.canvas.setClip( _this.x, _this.y, _this.w, _this.h );
+        } else {
             _this.dom.removeClass('sb_show');
         }
 
-		return _this;
-	};
+        return _this;
+    };
 
-	Marquee.prototype.hasClipArea = function() {
-		var _this = this;
+    Marquee.prototype.hasClipArea = function() {
+        var _this = this;
 
-		return ! (
-				_this.w <= 0 ||
-				_this.h <= 0 ||
-				_this.x+_this.w < 0 ||
-				_this.y+_this.h < 0 ||
-				_this.x >= _this.canvas.getWidth() ||
-				_this.y >= _this.canvas.getHeight()
-		);
-	};
+        return ! (
+                _this.w <= 0 ||
+                _this.h <= 0 ||
+                _this.x+_this.w < 0 ||
+                _this.y+_this.h < 0 ||
+                _this.x >= _this.canvas.getWidth() ||
+                _this.y >= _this.canvas.getHeight()
+        );
+    };
 
-	/**
-	 * Selections the region given.
-	 *
-	 * If the region is outside of the canvas then it is counted
-	 * as a non-selection.
-	 */
-	Marquee.prototype.select = function( x, y, x2, y2 ) {
-		return this.selectArea(
-				Math.min( x, x2 ),
-				Math.min( y, y2 ),
+    /**
+     * Selections the region given.
+     *
+     * If the region is outside of the canvas then it is counted
+     * as a non-selection.
+     */
+    Marquee.prototype.select = function( x, y, x2, y2 ) {
+        return this.selectArea(
+                Math.min( x, x2 ),
+                Math.min( y, y2 ),
 
-				Math.abs( x2-x ),
-				Math.abs( y2-y )
-		);
-	};
+                Math.abs( x2-x ),
+                Math.abs( y2-y )
+        );
+    };
 
     Marquee.prototype.xy = function( x, y ) {
         return this.selectArea( x, y, this.w, this.h );
     };
 
-	Marquee.prototype.selectArea = function( x, y, w, h ) {
-		var _this = this;
+    Marquee.prototype.selectArea = function( x, y, w, h ) {
+        var _this = this;
 
-		// floor all locations
-		_this.x = x|0,
-		_this.y = y|0,
-		_this.w = w|0,
-		_this.h = h|0;
+        // floor all locations
+        _this.x = x|0,
+        _this.y = y|0,
+        _this.w = w|0,
+        _this.h = h|0;
 
-		return _this.update();
-	};
+        return _this.update();
+    };
 
-	/**
-	 * Cleares the current selection on the Marquee.
-	 *
-	 * This is the same as selection a 0x0 region.
-	 */
-	Marquee.prototype.clear = function() {
-		var _this = this;
+    /**
+     * Cleares the current selection on the Marquee.
+     *
+     * This is the same as selection a 0x0 region.
+     */
+    Marquee.prototype.clear = function() {
+        var _this = this;
 
-		if ( _this.dom.hasClass('sb_show') ) {
-			_this.select( 0, 0, 0, 0 );
-			_this.canvas.removeClip();
-			_this.dom.removeClass( 'sb_reposition' );
+        if ( _this.dom.hasClass('sb_show') ) {
+            _this.select( 0, 0, 0, 0 );
+            _this.canvas.removeClip();
+            _this.dom.removeClass( 'sb_reposition' );
 
-			return _this.update();
-		}
+            return _this.update();
+        }
 
         return this;
-	};
+    };
 
-	/**
-	 * Returns an object showing the current selection,
-	 * in canvas pixels, or null if there is no selection.
-	 *
-	 * @return null if there is no selection, or an object describing it.
-	 */
-	Marquee.prototype.getSelection = function() {
-		var _this = this;
+    /**
+     * Returns an object showing the current selection,
+     * in canvas pixels, or null if there is no selection.
+     *
+     * @return null if there is no selection, or an object describing it.
+     */
+    Marquee.prototype.getSelection = function() {
+        var _this = this;
 
-		if ( _this.dom.hasClass('sb_show') ) {
-			return {
-					x: _this.x,
-					y: _this.y,
-					w: _this.w,
-					h: _this.h
-			};
-		} else {
-			return nil;
-		}
-	};
+        if ( _this.dom.hasClass('sb_show') ) {
+            return {
+                    x: _this.x,
+                    y: _this.y,
+                    w: _this.w,
+                    h: _this.h
+            };
+        } else {
+            return nil;
+        }
+    };
 
-	/**
-	 * Cases this to hide/show it's self,
-	 * based on the current selection,
-	 * and if it is shown it will resize accordingly.
-	 */
-	Marquee.prototype.update = function() {
-		var _this = this;
+    /**
+     * Cases this to hide/show it's self,
+     * based on the current selection,
+     * and if it is shown it will resize accordingly.
+     */
+    Marquee.prototype.update = function() {
+        var _this = this;
 
-		var x = _this.x,
-			y = _this.y,
-			w = _this.w,
-			h = _this.h,
-			zoom = _this.zoom,
-			canvas = _this.canvas,
-			dom = _this.dom;
+        var x = _this.x,
+            y = _this.y,
+            w = _this.w,
+            h = _this.h,
+            zoom = _this.zoom,
+            canvas = _this.canvas,
+            dom = _this.dom;
 
-		if ( dom.hasClass('sb_highlight' ) ) {
-			dom.ensureClass('sb_show');
+        if ( dom.hasClass('sb_highlight' ) ) {
+            dom.ensureClass('sb_show');
 
-			if ( _this.hasClipArea() ) {
-				dom.removeClass('sb_outside');
-			} else {
-				dom.ensureClass('sb_outside');
-			}
-		} else if ( _this.hasClipArea() ) {
-			dom.removeClass('sb_outside');
-			dom.ensureClass('sb_reposition');
-		} else {
-			dom.removeClass('sb_outside');
-			dom.removeClass('sb_reposition');
-			dom.removeClass('sb_show');
-		}
+            if ( _this.hasClipArea() ) {
+                dom.removeClass('sb_outside');
+            } else {
+                dom.ensureClass('sb_outside');
+            }
+        } else if ( _this.hasClipArea() ) {
+            dom.removeClass('sb_outside');
+            dom.ensureClass('sb_reposition');
+        } else {
+            dom.removeClass('sb_outside');
+            dom.removeClass('sb_reposition');
+            dom.removeClass('sb_show');
+        }
 
-		/*
-		* Always update the dom location,
-		* because it might be fading out when
-		* this is called.
-		*/
-		if ( _this.hasClipArea() || dom.hasClass('sb_highlight') ) {
-			_this.setCanvasSize( x, y, w, h );
-		}
+        /*
+        * Always update the dom location,
+        * because it might be fading out when
+        * this is called.
+        */
+        if ( _this.hasClipArea() || dom.hasClass('sb_highlight') ) {
+            _this.setCanvasSize( x, y, w, h );
+        }
 
-		return _this;
-	};
+        return _this;
+    };
 
-	/**
-	 * The copy manager is simply some logic bound together
-	 * for pushing out the copy code from the CanvasManager.
-	 *
-	 * By this point in the project the CanvasManager is getting
-	 * really fat, so anything I can do to help keep it lean
-	 * helps!
-	 *
-	 * You can set and get copies to and from this CopyManager.
-	 * When you get a copy from it, make sure you _don't_ draw
-	 * on to it, because it's meant to be immutable.
-	 *
-	 * You'll mess up the copy system if you draw on to it!
-	 *
-	 * @private
-	 * @constructor
-	 */
-	var CopyManager = function( viewport ) {
-		ViewOverlay.call( this, viewport, 'skybrush_copy' );
+    /**
+     * The copy manager is simply some logic bound together
+     * for pushing out the copy code from the CanvasManager.
+     *
+     * By this point in the project the CanvasManager is getting
+     * really fat, so anything I can do to help keep it lean
+     * helps!
+     *
+     * You can set and get copies to and from this CopyManager.
+     * When you get a copy from it, make sure you _don't_ draw
+     * on to it, because it's meant to be immutable.
+     *
+     * You'll mess up the copy system if you draw on to it!
+     *
+     * @private
+     * @constructor
+     */
+    var CopyManager = function( viewport ) {
+        ViewOverlay.call( this, viewport, 'skybrush_copy' );
 
-		this.copy = nil;
+        this.copy = nil;
 
-		this.copyX = 0;
-		this.copyY = 0;
+        this.copyX = 0;
+        this.copyY = 0;
 
-		/*
-		* When these two are not undefined,
-		* then we no longer in 'paste' mode.
-		*/
-		this.pasteX = undefined;
-		this.pasteY = undefined;
-	};
-	CopyManager.prototype = new ViewOverlay();
+        /*
+        * When these two are not undefined,
+        * then we no longer in 'paste' mode.
+        */
+        this.pasteX = undefined;
+        this.pasteY = undefined;
+    };
+    CopyManager.prototype = new ViewOverlay();
 
-	CopyManager.prototype.update = function() {
-		if ( this.hasPaste() ) {
-			this.setCanvasSize(
-				this.pasteX, this.pasteY,
-				this.copy.width, this.copy.height
-			);
-		}
-	};
+    CopyManager.prototype.update = function() {
+        if ( this.hasPaste() ) {
+            this.setCanvasSize(
+                    this.pasteX, this.pasteY,
+                    this.copy.width, this.copy.height
+            );
+        }
+    };
 
-	CopyManager.prototype.draw = function( dest ) {
-		dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY );
-		return this;
-	};
+    CopyManager.prototype.draw = function( dest ) {
+        dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY );
+        return this;
+    };
 
-	CopyManager.prototype.hasPaste = function() {
-		return this.pasteX !== undefined && this.pasteY !== undefined;
-	};
+    CopyManager.prototype.hasPaste = function() {
+        return this.pasteX !== undefined && this.pasteY !== undefined;
+    };
 
-	CopyManager.prototype.pasteCopy = function( dest ) {
-		this.pasteX = this.pasteY = 0;
-		this.dom.ensureClass( 'sb_show' );
-		return this.movePaste( dest, this.copyX, this.copyY, true );
-	};
+    CopyManager.prototype.pasteCopy = function( dest ) {
+        this.pasteX = this.pasteY = 0;
+        this.dom.ensureClass( 'sb_show' );
 
-	CopyManager.prototype.movePaste = function( dest, x, y, finalize ) {
-		x = (this.pasteX + (x || 0)) | 0,
-		y = (this.pasteY + (y || 0)) | 0;
+        return this.movePaste( dest, this.copyX, this.copyY, true );
+    };
 
-		dest.ctx.clearRect( 0, 0, dest.width, dest.height );
-		dest.ctx.drawImage( this.copy, x, y );
-		this.setCanvasSize( x, y, this.copy.width, this.copy.height );
+    CopyManager.prototype.movePaste = function( dest, x, y, finalize ) {
+        x = (this.pasteX + (x || 0)) | 0,
+        y = (this.pasteY + (y || 0)) | 0;
 
-		if ( finalize ) {
-			this.pasteX = x;
-			this.pasteY = y;
-		}
+        dest.ctx.clearRect( 0, 0, dest.width, dest.height );
+        dest.ctx.drawImage( this.copy, x, y );
+        this.setCanvasSize( x, y, this.copy.width, this.copy.height );
 
-		return this;
-	};
+        if ( finalize ) {
+            this.pasteX = x;
+            this.pasteY = y;
+        }
 
-	CopyManager.prototype.setCopy = function( canvas, x, y, w, h ) {
-		if ( x === undefined ) {
-			x = 0,
-			y = 0,
-			w = canvas.width,
-			h = canvas.height;
-		} else {
-			w = Math.min( w, canvas.width  ),
-			h = Math.min( h, canvas.height );
-		}
+        return this;
+    };
 
-		if ( this.copy == nil ) {
-			this.copy = newCanvas( w, h );
-		} else {
-			this.copy.width  = w,
-			this.copy.height = h;
-		}
+    CopyManager.prototype.setCopy = function( canvas, x, y, w, h ) {
+        if ( x === undefined ) {
+            x = 0,
+            y = 0,
+            w = canvas.width,
+            h = canvas.height;
+        } else {
+            w = Math.min( w, canvas.width  ),
+            h = Math.min( h, canvas.height );
+        }
 
-		this.copy.ctx.drawImage( canvas, -x, -y );
-		this.copyX = x,
-		this.copyY = y;
+        if ( this.copy == nil ) {
+            this.copy = newCanvas( w, h );
+        } else {
+            this.copy.width  = w,
+            this.copy.height = h;
+        }
 
-		return this;
-	};
+        this.copy.ctx.drawImage( canvas, -x, -y );
+        this.copyX = x,
+        this.copyY = y;
 
-	CopyManager.prototype.hasCopy = function() {
-		return this.copy !== nil;
-	};
+        return this;
+    };
 
-	CopyManager.prototype.getCopy = function() {
-		return this.copy;
-	};
+    CopyManager.prototype.hasCopy = function() {
+        return this.copy !== nil;
+    };
 
-	CopyManager.prototype.overlapsPaste = function( area ) {
-		if ( this.hasPaste() ) {
-			var x = this.pasteX,
-				y = this.pasteY,
-				w = this.copy.width,
-				h = this.copy.height;
+    CopyManager.prototype.getCopy = function() {
+        return this.copy;
+    };
 
-			return ! (
-					x > area.x+area.w ||
-					y > area.y+area.h ||
-					x+w < area.x ||
-					y+h < area.y
-			);
-		}
+    CopyManager.prototype.overlapsPaste = function( area ) {
+        if ( this.hasPaste() ) {
+            var x = this.pasteX,
+                y = this.pasteY,
+                w = this.copy.width,
+                h = this.copy.height;
 
-		return false;
-	};
+            return ! (
+                    x > area.x+area.w ||
+                    y > area.y+area.h ||
+                    x+w < area.x ||
+                    y+h < area.y
+            );
+        }
 
-	/**
-	 * Cleares this from being in pasting mode.
-	 */
-	CopyManager.prototype.clearPaste = function() {
-		this.dom.removeClass( 'sb_show' );
-		this.pasteX = this.pasteY = undefined;
-		return this;
-	};
+        return false;
+    };
+
+    /**
+     * Cleares this from being in pasting mode.
+     */
+    CopyManager.prototype.clearPaste = function() {
+        this.dom.removeClass( 'sb_show' );
+        this.pasteX = this.pasteY = undefined;
+        return this;
+    };
 
     /**
      * This is a fat prototype that manages the whole canvas stack.
@@ -2459,10 +2462,10 @@
      * ensuring the current canvas 2D context is using the current colour.
      */
     var CanvasManager = function( viewport, painter ) {
-		var _this = this;
+        var _this = this;
 
         _this.events = new events.Handler( _this );
-		_this.clipping = nil;
+        _this.clipping = nil;
 
         viewport.empty().append(
                 '<canvas class="skybrush_canvas_draw" width="1" height="1"></canvas>' +
@@ -2481,15 +2484,15 @@
             $overlay.bind( 'selectstart', function() {return false;} );
         }
 
-		var upscale = newCanvas(),
-			$upscale = $(upscale);
-		$upscale.addClass( 'skybrush_canvas_upscale' );
+        var upscale = newCanvas(),
+            $upscale = $(upscale);
+        $upscale.addClass( 'skybrush_canvas_upscale' );
 
-		viewport.append( $upscale );
+        viewport.append( $upscale );
 
-		_this.upscale = $upscale;
+        _this.upscale = $upscale;
 
-		_this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
+        _this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
 
         _this.viewport = viewport;
         _this.$canvas = $canvas;
@@ -2541,54 +2544,54 @@
             _this.updateCanvasSize();
         } );
 
-		_this.grid = new GridManager( viewport );
-		_this.marquee = new Marquee( _this, viewport );
-		_this.copyObj = new CopyManager( viewport );
+        _this.grid    = new GridManager( viewport );
+        _this.marquee = new Marquee( _this, viewport );
+        _this.copyObj = new CopyManager( viewport );
 
-		painter.onSetCommand( function( command ) {
-			if ( command.name.toLowerCase() != 'move' ) {
-				_this.endPaste();
-			}
-		} );
-		painter.onSetAlpha( function( alpha ) {
-			if ( _this.copyObj.hasPaste() ) {
-				_this.copyObj.movePaste( _this.overlay, 0, 0 );
-			}
-		} );
+        painter.onSetCommand( function( command ) {
+            if ( command.name.toLowerCase() != 'move' ) {
+                _this.endPaste();
+            }
+        } );
+        painter.onSetAlpha( function( alpha ) {
+            if ( _this.copyObj.hasPaste() ) {
+                _this.copyObj.movePaste( _this.overlay, 0, 0 );
+            }
+        } );
     };
 
     /**
      * @return The current contents of the canvas as an image url.
      */
     CanvasManager.prototype.toDataURL = function( type ) {
-		if ( ! type ) {
-			type = "image/png";
-		}
+        if ( ! type ) {
+            type = "image/png";
+        }
 
-		return this.canvas.toDataURL( type );
+        return this.canvas.toDataURL( type );
     };
 
-	/**
-	 * @return The marquee manager.
-	 */
-	CanvasManager.prototype.getMarquee = function() {
-		return this.marquee;
-	};
+    /**
+     * @return The marquee manager.
+     */
+    CanvasManager.prototype.getMarquee = function() {
+        return this.marquee;
+    };
 
-	/**
-	 * @return The GridManager used on this canvas.
-	 */
+    /**
+     * @return The GridManager used on this canvas.
+     */
     CanvasManager.prototype.getGrid = function() {
-		return this.grid;
-	};
+        return this.grid;
+    };
 
-	CanvasManager.prototype.hideOverlay = function() {
+    CanvasManager.prototype.hideOverlay = function() {
         $(this.overlay).hide();
     };
 
-	/**
-	 * @return true if this is using the upscale layer, and false if not.
-	 */
+        /**
+         * @return true if this is using the upscale layer, and false if not.
+         */
     CanvasManager.prototype.hasUpscale = function() {
         return !! this.upscale;
     };
@@ -2619,7 +2622,7 @@
     };
 
     CanvasManager.prototype.onEndDraw = function( fun ) {
-		this.events.add( 'onDraw', fun );
+        this.events.add( 'onDraw', fun );
     };
 
     /**
@@ -2631,28 +2634,28 @@
      */
     CanvasManager.prototype.endDraw = function( updateArea ) {
         if ( updateArea ) {
-			var _this = this,
-				refresh = false,
+            var _this = this,
+                refresh = false,
                 ux, uy, uw, uh;
 
             if ( updateArea !== true ) {
                 ux = updateArea.x,
                 uy = updateArea.y;
 
-				/*
-				 * Supports using both 'w' and 'h' in the update area,
-				 * or 'endX' and 'endY'.
-				 */
-				if ( updateArea.w !== undefined ) {
-					uw = updateArea.w;
-				} else {
-					uw = updateArea.endX - updateArea.x;
-				}
-				if ( updateArea.h !== undefined ) {
-					uh = updateArea.h;
-				} else {
-					uh = updateArea.endY - updateArea.y;
-				}
+                /*
+                 * Supports using both 'w' and 'h' in the update area,
+                 * or 'endX' and 'endY'.
+                 */
+                if ( updateArea.w !== undefined ) {
+                    uw = updateArea.w;
+                } else {
+                    uw = updateArea.endX - updateArea.x;
+                }
+                if ( updateArea.h !== undefined ) {
+                    uh = updateArea.h;
+                } else {
+                    uh = updateArea.endY - updateArea.y;
+                }
 
                 // if we are updating outside the canvas, leave early
                 if (
@@ -2661,39 +2664,39 @@
                 ) {
                     return false;
                 } else {
-					/*
-					* No point refreshing outside of the clipping area,
-					* or if drawing too place outside the clipping area.
-					*
-					* So we quit early if either has happened.
-					*
-					* If drawing has taken place in the clipping,
-					* then we also work out the smallest update area.
-					*/
-					var clip = _this.clipping;
-					if ( clip !== nil ) {
-						if (
-								ux > clip.x + clip.w ||
-								uy > clip.y + clip.h ||
-								ux+uw < clip.x ||
-								uy+uh < clip.y
-						) {
-						    return false;
-					    } else {
-							ux = Math.max( ux, clip.x );
-							uy = Math.max( uy, clip.y );
-							uw = Math.min( uw, clip.w );
-							uh = Math.min( uh, clip.h );
-					    }
-					}
+                    /*
+                    * No point refreshing outside of the clipping area,
+                    * or if drawing too place outside the clipping area.
+                    *
+                    * So we quit early if either has happened.
+                    *
+                    * If drawing has taken place in the clipping,
+                    * then we also work out the smallest update area.
+                    */
+                    var clip = _this.clipping;
+                    if ( clip !== nil ) {
+                        if (
+                                ux > clip.x + clip.w ||
+                                uy > clip.y + clip.h ||
+                                ux+uw < clip.x ||
+                                uy+uh < clip.y
+                        ) {
+                            return false;
+                        } else {
+                            ux = Math.max( ux, clip.x );
+                            uy = Math.max( uy, clip.y );
+                            uw = Math.min( uw, clip.w );
+                            uh = Math.min( uh, clip.h );
+                        }
+                    }
 
                     refresh = true;
                 }
             }
 
-			_this.drawSafeAlpha( function() {
-				_this.canvas.ctx.drawImage( _this.overlay, 0, 0 );
-			} );
+            _this.drawSafeAlpha( function() {
+                    _this.canvas.ctx.drawImage( _this.overlay, 0, 0 );
+            } );
 
             _this.overlay.ctx.clearRect( 0, 0, _this.overlay.width, _this.overlay.height );
             if ( refresh ) {
@@ -2705,7 +2708,7 @@
 
             _this.undos.add( _this.canvas );
 
-			// finally, run the events!
+            // finally, run the events!
             _this.events.run( 'onDraw' );
         }
     };
@@ -2791,9 +2794,9 @@
             $upscale.width  = Math.min( newWidth , viewport.width()  );
             $upscale.height = Math.min( newHeight, viewport.height() );
 
-			onComplete = function() {
-				_this.displayUpscale();
-			};
+            onComplete = function() {
+                _this.displayUpscale();
+            };
         }
 
          $canvas.clearQueue().animate( zoomSize, CANVAS_UPDATE_SPEED, onComplete );
@@ -2850,8 +2853,8 @@
         var heightChange = newHeight / $canvas.height(),
             widthChange  = newHeight / $canvas.height();
 
-		var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
-			scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
+        var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
+                scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
 
         viewport.clearQueue().animate(
                 {
@@ -2861,11 +2864,11 @@
                 CANVAS_UPDATE_SPEED
         );
 
-		var viewWidth  = Math.min( newWidth , viewport.width()  ),
-			viewHeight = Math.min( newHeight, viewport.height() );
-		this.grid.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
-		this.marquee.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
-		this.copyObj.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
+        var viewWidth  = Math.min( newWidth , viewport.width()  ),
+            viewHeight = Math.min( newHeight, viewport.height() );
+        this.grid.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
+        this.marquee.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
+        this.copyObj.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
     };
 
     /**
@@ -2923,7 +2926,7 @@
         if ( _this.hasUpscale() ) {
             _this.hideUpscale();
 
-			_this.showUpscale.run( function() {
+            _this.showUpscale.run( function() {
                     var viewport = _this.viewport,
                         $upscale = $(_this.upscale);
 
@@ -2997,170 +3000,172 @@
         }
     };
 
-	CanvasManager.prototype.isPasting = function() {
-		return this.copyObj.hasPaste();
-	};
+    CanvasManager.prototype.isPasting = function() {
+        return this.copyObj.hasPaste();
+    };
 
-	CanvasManager.prototype.isInPaste = function( x, y ) {
-		return this.copyObj.overlapsPaste({
-				x: x|0,
-				y: y|0,
-				w: 1,
-				h: 1
-		});
-	};
+    CanvasManager.prototype.isInPaste = function( x, y ) {
+        return this.copyObj.overlapsPaste({
+                x: x|0,
+                y: y|0,
+                w: 1,
+                h: 1
+        });
+    };
 
-	CanvasManager.prototype.movePaste = function( x, y, finalize ) {
-		if ( this.copyObj.hasPaste() ) {
-			this.copyObj.movePaste( this.overlay, x, y, finalize );
-		}
+    CanvasManager.prototype.movePaste = function( x, y, finalize ) {
+        if ( this.copyObj.hasPaste() ) {
+            this.copyObj.movePaste( this.overlay, x, y, finalize );
+        }
 
-		return this;
-	};
+        return this;
+    };
 
-	/**
-	 * Ends pasting mode.
-	 */
-	CanvasManager.prototype.endPaste = function() {
-		if ( this.copyObj.hasPaste() ) {
-			var clip = this.getFullClip();
+    /**
+     * Ends pasting mode.
+     */
+    CanvasManager.prototype.endPaste = function() {
+        if ( this.copyObj.hasPaste() ) {
+            var clip = this.getFullClip();
 
-			if ( this.copyObj.overlapsPaste(clip) ) {
+            if ( this.copyObj.overlapsPaste(clip) ) {
                 this.drawSafe( function() {
                     this.copyObj.draw( this.canvas );
                     this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
                     this.endDraw( clip );
                 } );
-			}
+            }
 
-			this.clearPaste();
-		}
+            this.clearPaste();
+        }
 
-		return this;
-	};
+        return this;
+    };
 
-	CanvasManager.prototype.paste = function() {
+    CanvasManager.prototype.paste = function() {
         this.endPaste();
-		this.copyObj.pasteCopy( this.overlay );
+        this.copyObj.pasteCopy( this.overlay );
+        this.events.run( 'onPaste' );
 
-		this.events.run( 'onPaste' );
-		return this;
-	};
+        return this;
+    };
 
-	CanvasManager.prototype.clearPaste = function() {
-		if ( this.copyObj.hasPaste() ) {
-			this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
-			this.copyObj.clearPaste();
-		}
+    CanvasManager.prototype.clearPaste = function() {
+        if ( this.copyObj.hasPaste() ) {
+            this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
+            this.copyObj.clearPaste();
+        }
 
-		return this;
-	};
+        return this;
+    };
 
-	CanvasManager.prototype.onPaste = function( fun ) {
-		this.events.add( 'onPaste', fun );
-		return this;
-	};
+    CanvasManager.prototype.onPaste = function( fun ) {
+        this.events.add( 'onPaste', fun );
 
-	CanvasManager.prototype.cut = function() {
-		var clip = this.getFullClip();
-		this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
-		this.drawSafe( function() {
-			this.canvas.ctx.clearRect( clip.x, clip.y, clip.w, clip.h );
-		} );
-		this.endDraw( clip );
+        return this;
+    };
 
-		this.events.run( 'onCopy' );
+    CanvasManager.prototype.cut = function() {
+        var clip = this.getFullClip();
+        this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
+        this.drawSafe( function() {
+                this.canvas.ctx.clearRect( clip.x, clip.y, clip.w, clip.h );
+        } );
+        this.endDraw( clip );
+
+        this.events.run( 'onCopy' );
         this.marquee.clear();
 
-		return this;
-	};
+        return this;
+    };
 
-	CanvasManager.prototype.copy = function() {
-		var clip = this.getFullClip();
+    CanvasManager.prototype.copy = function() {
+        var clip = this.getFullClip();
 
-		this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
-		this.events.run( 'onCopy' );
+        this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
+        this.events.run( 'onCopy' );
         this.marquee.clear();
 
-		return this;
-	};
+        return this;
+    };
 
-	CanvasManager.prototype.onCopy = function( fun ) {
-		this.events.add( 'onCopy', fun );
-		return this;
-	};
+    CanvasManager.prototype.onCopy = function( fun ) {
+        this.events.add( 'onCopy', fun );
+        return this;
+    };
 
-	CanvasManager.prototype.removeClip = function() {
-		var _this = this,
-			ctx = _this.canvas.ctx,
-			overCtx = _this.overlay.ctx;
+    CanvasManager.prototype.removeClip = function() {
+        var _this = this,
+            ctx = _this.canvas.ctx,
+            overCtx = _this.overlay.ctx;
 
-		if ( _this.clipping !== nil ) {
-			var ctxSetup = backupCtx( ctx );
-			ctx.restore();
-			restoreCtx( ctx, ctxSetup );
+        if ( _this.clipping !== nil ) {
+            var ctxSetup = backupCtx( ctx );
+            ctx.restore();
+            restoreCtx( ctx, ctxSetup );
 
-				ctxSetup = backupCtx( overCtx );
-			overCtx.restore();
-			restoreCtx( overCtx, ctxSetup );
+            ctxSetup = backupCtx( overCtx );
+            overCtx.restore();
+            restoreCtx( overCtx, ctxSetup );
 
-			_this.clipping = nil;
-		}
+            _this.clipping = nil;
+        }
 
-		_this.events.run( 'onClip', _this.clipping );
+        _this.events.run( 'onClip', _this.clipping );
 
-		return _this;
-	};
+        return _this;
+    };
 
-	CanvasManager.prototype.onClip = function( f ) {
-		this.events.add( 'onClip', f );
-		return this;
-	};
+    CanvasManager.prototype.onClip = function( f ) {
+        this.events.add( 'onClip', f );
+        return this;
+    };
 
-	CanvasManager.prototype.getClip = function() {
-		return this.clipping;
-	};
-	CanvasManager.prototype.getFullClip = function() {
-		if ( this.clipping ) {
-			return this.clipping;
-		} else {
-			return {
-					x: 0,
-					y: 0,
-					w: this.width,
-					h: this.height
-			};
-		}
-	};
+    CanvasManager.prototype.getClip = function() {
+        return this.clipping;
+    };
 
-	CanvasManager.prototype.setClip = function(x, y, w, h) {
-		var _this = this;
-		var cCtx = _this.canvas.ctx,
-			oCtx = _this.overlay.ctx;
+    CanvasManager.prototype.getFullClip = function() {
+        if ( this.clipping ) {
+            return this.clipping;
+        } else {
+            return {
+                    x: 0,
+                    y: 0,
+                    w: this.width,
+                    h: this.height
+            };
+        }
+    };
 
-		this.removeClip();
+    CanvasManager.prototype.setClip = function(x, y, w, h) {
+        var _this = this;
+        var cCtx = _this.canvas.ctx,
+            oCtx = _this.overlay.ctx;
 
-		_this.clipping = {
-				x: x,
-				y: y,
-				w: w,
-				h: h
-		};
+        this.removeClip();
 
-		cCtx.save();
-		cCtx.beginPath();
-		cCtx.rect( x, y, w, h );
-		cCtx.clip();
+        _this.clipping = {
+                x: x,
+                y: y,
+                w: w,
+                h: h
+        };
 
-		oCtx.save();
-		oCtx.beginPath();
-		oCtx.rect( x, y, w, h );
-		oCtx.clip();
+        cCtx.save();
+        cCtx.beginPath();
+        cCtx.rect( x, y, w, h );
+        cCtx.clip();
 
-		_this.events.run( 'onClip', _this.clipping );
+        oCtx.save();
+        oCtx.beginPath();
+        oCtx.rect( x, y, w, h );
+        oCtx.clip();
 
-		return _this;
-	};
+        _this.events.run( 'onClip', _this.clipping );
+
+        return _this;
+    };
 
     /**
      * Refreshes the contents of the upscaled canvas.
@@ -3187,24 +3192,24 @@
             zoom = this.zoom;
 
         if ( $upscale ) {
-			if ( Math.abs(w) < 1 ) {
-				if ( w < 1 ) {
-					w = w;
-				} else {
-					w = -1;
-				}
-			}
+            if ( Math.abs(w) < 1 ) {
+                if ( w < 1 ) {
+                    w = w;
+                } else {
+                    w = -1;
+                }
+            }
 
-			if ( Math.abs(h) < 1 ) {
-				if ( h < 1 ) {
-					h = 1;
-				} else {
-					h = -1;
-				}
-			}
+            if ( Math.abs(h) < 1 ) {
+                if ( h < 1 ) {
+                    h = 1;
+                } else {
+                    h = -1;
+                }
+            }
 
             /*
-			 * This is to allow easier usage.
+             * This is to allow easier usage.
              * So you can update in the negative direction.
              */
             if ( w < 0 ) {
@@ -3225,7 +3230,7 @@
             }
 
             /*
-			 * After handling the buffer, and other possible values,
+             * After handling the buffer, and other possible values,
              * if the width/height are empty, then quit early.
              */
             if ( w === 0 || h === 0 ) {
@@ -3307,6 +3312,7 @@
 
             var wDiff = Math.min( 1, canvas.width  - w ),
                 hDiff = Math.min( 1, canvas.height - h );
+
             w += wDiff;
             h += hDiff;
 
@@ -3425,7 +3431,7 @@
     CanvasManager.prototype.scale = function( newWidth, newHeight, isSmooth ) {
         var _this = this;
 
-		if ( newWidth != _this.width || newHeight != _this.height ) {
+        if ( newWidth != _this.width || newHeight != _this.height ) {
             _this.endPaste();
 
             // use existing smoothing
@@ -3470,21 +3476,23 @@
 //                }
             }
 
-			_this.endDraw( true );
-		}
-	};
+            _this.endDraw( true );
+        }
+    };
 
-	CanvasManager.prototype.resetCompositeOpration = function() {
-		var compOp = this.canvas.ctx.globalCompositeOperation;
-		this.canvas.ctx.globalCompositeOperation = 'source-over';
-		return compOp;
-	};
+    CanvasManager.prototype.resetCompositeOpration = function() {
+        var compOp = this.canvas.ctx.globalCompositeOperation;
+        this.canvas.ctx.globalCompositeOperation = 'source-over';
 
-	CanvasManager.prototype.resetAlpha = function() {
-		var alpha = this.canvas.ctx.globalAlpha;
-		this.canvas.ctx.globalAlpha = 1.0;
-		return alpha;
-	};
+        return compOp;
+    };
+
+    CanvasManager.prototype.resetAlpha = function() {
+        var alpha = this.canvas.ctx.globalAlpha;
+        this.canvas.ctx.globalAlpha = 1.0;
+
+        return alpha;
+    };
 
     /**
      * @private
@@ -3510,9 +3518,9 @@
             var overlayCtxSetup = backupCtx( oldCtx );
 
             // replace the current canvas
-			if ( ! clear ) {
-				newC.ctx.drawImage( _this.canvas, 0, 0 );
-			}
+            if ( ! clear ) {
+                newC.ctx.drawImage( _this.canvas, 0, 0 );
+            }
             _this.$canvas.replaceWith( newC );
 
             _this.canvas = newC;
@@ -3524,7 +3532,7 @@
             _this.overlay.width  = newWidth,
             _this.overlay.height = newHeight;
 
-            restoreCtx( _this.canvas.ctx  , ctxSetup		);
+            restoreCtx( _this.canvas.ctx  , ctxSetup        );
             restoreCtx( _this.overlay.ctx , overlayCtxSetup );
 
             // re-center
@@ -3606,22 +3614,20 @@
     };
 
     CanvasManager.prototype.useBlendAlpha = function() {
-		this.canvas.ctx.globalCompositeOperation =
-				'source-over' ;
+        this.canvas.ctx.globalCompositeOperation = 'source-over' ;
 
-		return this;
-	};
+        return this;
+    };
 
-	/**
-	 * True to use the destination alpha when drawing,
-	 * false to not.
-	 */
+        /**
+         * True to use the destination alpha when drawing,
+         * false to not.
+         */
     CanvasManager.prototype.useDestinationAlpha = function() {
-		this.canvas.ctx.globalCompositeOperation =
-				'source-atop' ;
+        this.canvas.ctx.globalCompositeOperation = 'source-atop' ;
 
-		return this;
-	};
+        return this;
+    };
 
     /**
      * @param alpha The alpha value to use when drawing.
@@ -3686,20 +3692,20 @@
         var canvas = this.undos[name]();
 
         if ( canvas !== nil ) {
-			this.drawSafe( function() {
-				if (
-						canvas.width  != this.canvas.width ||
-						canvas.height != this.canvas.height
-				) {
-					this.setSize( canvas.width, canvas.height, true );
-					this.canvas.ctx.drawImage( canvas, 0, 0 );
-					// refresh upscale happens automatically, in the future, by setSize
-				} else {
-					this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height );
-					this.canvas.ctx.drawImage( canvas, 0, 0 );
-					this.refreshUpscale();
-				}
-			} );
+            this.drawSafe( function() {
+                if (
+                        canvas.width  != this.canvas.width ||
+                        canvas.height != this.canvas.height
+                ) {
+                    this.setSize( canvas.width, canvas.height, true );
+                    this.canvas.ctx.drawImage( canvas, 0, 0 );
+                    // refresh upscale happens automatically, in the future, by setSize
+                } else {
+                    this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height );
+                    this.canvas.ctx.drawImage( canvas, 0, 0 );
+                    this.refreshUpscale();
+                }
+            } );
 
             return true;
         } else {
@@ -3707,226 +3713,226 @@
         }
     };
 
-	/**
-	 * An alternative to 'drawSafe' which only nullifies the alpha component.
-	 * For example how the alpha is mixed is left un-altered.
-	 *
-	 * @param f The function to perform.
-	 */
-	CanvasManager.prototype.drawSafeAlpha = function( f ) {
-		var alpha = this.resetAlpha();
-		f.call( this );
-		this.canvas.ctx.globalAlpha = alpha;
+    /**
+     * An alternative to 'drawSafe' which only nullifies the alpha component.
+     * For example how the alpha is mixed is left un-altered.
+     *
+     * @param f The function to perform.
+     */
+    CanvasManager.prototype.drawSafeAlpha = function( f ) {
+        var alpha = this.resetAlpha();
+        f.call( this );
+        this.canvas.ctx.globalAlpha = alpha;
 
         return this;
-	};
+    };
 
-	/**
-	 * 'drawSafe' undoes lots of the options and then runs the function given.
-	 * For example alpha is set to 1, and the default globalCompositeOperation
-	 * is used.
-	 *
-	 * This is useful to allow you to perform operations without having to
-	 * care about those settings, such as drawing/clearing the canvas.
-	 *
-	 * @param f The function to perform whilst the canvas values have been reset.
-	 */
-	CanvasManager.prototype.drawSafe = function( f ) {
-		var alpha  = this.resetAlpha(),
+    /**
+     * 'drawSafe' undoes lots of the options and then runs the function given.
+     * For example alpha is set to 1, and the default globalCompositeOperation
+     * is used.
+     *
+     * This is useful to allow you to perform operations without having to
+     * care about those settings, such as drawing/clearing the canvas.
+     *
+     * @param f The function to perform whilst the canvas values have been reset.
+     */
+    CanvasManager.prototype.drawSafe = function( f ) {
+        var alpha  = this.resetAlpha(),
             compOp = this.resetCompositeOpration(),
             fillStyle   = this.canvas.ctx.fillStyle,
             strokeStyle = this.canvas.ctx.strokeStyle;
 
-		var clip = this.getClip();
-		if ( clip ) {
-			this.removeClip();
-		}
-		f.call( this );
-		if ( clip ) {
-			this.setClip( clip.x, clip.y, clip.w, clip.h );
-		}
+        var clip = this.getClip();
+        if ( clip ) {
+            this.removeClip();
+        }
+        f.call( this );
+        if ( clip ) {
+            this.setClip( clip.x, clip.y, clip.w, clip.h );
+        }
 
-		this.canvas.ctx.globalAlpha = alpha;
-		this.canvas.ctx.globalCompositeOperation = compOp;
+        this.canvas.ctx.globalAlpha = alpha;
+        this.canvas.ctx.globalCompositeOperation = compOp;
         this.canvas.ctx.fillStyle   = fillStyle;
         this.canvas.ctx.strokeStyle = strokeStyle;
 
         return this;
-	};
+    };
 
-	/**
-	 * @return True if this can undo, and false if there is nothing to undo.
-	 */
+    /**
+     * @return True if this can undo, and false if there is nothing to undo.
+     */
     CanvasManager.prototype.hasUndo = function() {
         return this.undos.hasUndo() || this.copyObj.hasPaste();
     };
 
-	/**
-	 * @return true if this has redo options to perform.
-	 */
+    /**
+     * @return true if this has redo options to perform.
+     */
     CanvasManager.prototype.hasRedo = function() {
         return this.undos.hasRedo();
     };
 
-	/**
-	 * If this canvas is not empty, then this will attempt to crop it.
-	 * Cropping is only performed if there is available space to do so.
+    /**
+     * If this canvas is not empty, then this will attempt to crop it.
+     * Cropping is only performed if there is available space to do so.
      *
      * It also disables a number of items, such as the current paste
      * and marquee selection, for usability.
-	 */
+     */
     CanvasManager.prototype.crop = function() {
-		var _this = this;
+        var _this = this;
 
         _this.endPaste();
 
-		// check for a marquee selection
-		// and otherwise use the visible area
-		var selection = _this.marquee.getSelection();
-		if ( selection === nil ) {
-			selection = _this.getDrawnArea();
-		} else {
+        // check for a marquee selection
+        // and otherwise use the visible area
+        var selection = _this.marquee.getSelection();
+        if ( selection === nil ) {
+            selection = _this.getDrawnArea();
+        } else {
             // remove the marquee, since it is selecting everything
             _this.marquee.clear();
         }
 
-		if ( selection !== nil ) {
-			var x = selection.x,
-				y = selection.y,
-				w2 = selection.w,
-				h2 = selection.h ;
+        if ( selection !== nil ) {
+            var x = selection.x,
+                y = selection.y,
+                w2 = selection.w,
+                h2 = selection.h ;
 
-			var temp = newCanvas( w2, h2 );
-			temp.ctx.drawImage( _this.canvas, -x, -y );
+            var temp = newCanvas( w2, h2 );
+            temp.ctx.drawImage( _this.canvas, -x, -y );
 
-			_this.setSize( w2, h2, true );
+            _this.setSize( w2, h2, true );
 
-			_this.drawSafe( function() {
-				_this.canvas.ctx.drawImage( temp, 0, 0 );
-			} );
+            _this.drawSafe( function() {
+                    _this.canvas.ctx.drawImage( temp, 0, 0 );
+            } );
 
-			_this.endDraw( true );
-		}
+            _this.endDraw( true );
+        }
 
-		return _this;
-	};
+        return _this;
+    };
 
-	/**
-	 * Returns an object describing the area on the canvas,
-	 * which has been drawn to.
-	 *
-	 * If there has been no drawing, then null is returned.
-	 */
-	CanvasManager.prototype.getDrawnArea = function() {
-		var w = this.width,
-			h = this.height;
+    /**
+     * Returns an object describing the area on the canvas,
+     * which has been drawn to.
+     *
+     * If there has been no drawing, then null is returned.
+     */
+    CanvasManager.prototype.getDrawnArea = function() {
+        var w = this.width,
+            h = this.height;
 
         var data = this.canvas.ctx.getImageData( 0, 0, w, h ).data;
 
-		var minX = 0,
-			minY = 0,
-			maxX = w,
-			maxY = h;
+        var minX = 0,
+            minY = 0,
+            maxX = w,
+            maxY = h;
 
-		// search for minX, minY, maxX, maxY, working inwards on all sides
-		// search for minY
-		for ( var y = 0; y < h; y++ ) {
-			var hasAlpha = false;
+        // search for minX, minY, maxX, maxY, working inwards on all sides
+        // search for minY
+        for ( var y = 0; y < h; y++ ) {
+            var hasAlpha = false;
 
-			for ( var x = 0; x < w; x++ ) {
-				var i = (y*w + x) * 4;
+            for ( var x = 0; x < w; x++ ) {
+                var i = (y*w + x) * 4;
 
-				if ( data[i+3] > 0 ) {
-					hasAlpha = true;
-					break;
-				}
-			}
+                if ( data[i+3] > 0 ) {
+                    hasAlpha = true;
+                    break;
+                }
+            }
 
-			if ( hasAlpha ) {
-				break;
-			} else {
-				minY = y+1;
-			}
-		}
+            if ( hasAlpha ) {
+                break;
+            } else {
+                minY = y+1;
+            }
+        }
 
-		// search for maxY
-	    for ( var y = h-1; y >= 0; y-- ) {
-			var hasAlpha = false;
+            // search for maxY
+        for ( var y = h-1; y >= 0; y-- ) {
+            var hasAlpha = false;
 
-			for ( var x = 0; x < w; x++ ) {
-				var i = (y*w + x) * 4;
+            for ( var x = 0; x < w; x++ ) {
+                var i = (y*w + x) * 4;
 
-				if ( data[i+3] > 0 ) {
-					hasAlpha = true;
-					break;
-				}
-			}
+                if ( data[i+3] > 0 ) {
+                    hasAlpha = true;
+                    break;
+                }
+            }
 
-			if ( y <= minY ) {
-				return;
-			} else if ( hasAlpha ) {
-				break;
-			} else {
-				maxY = y;
-			}
-		}
+            if ( y <= minY ) {
+                return nil;
+            } else if ( hasAlpha ) {
+                break;
+            } else {
+                maxY = y;
+            }
+        }
 
-		// search for minX
-		for ( var x = 0; x < w; x++ ) {
-			var hasAlpha = false;
+        // search for minX
+        for ( var x = 0; x < w; x++ ) {
+            var hasAlpha = false;
 
-			for ( var y = 0; y < h; y++ ) {
-				var i = (y*w + x) * 4;
+            for ( var y = 0; y < h; y++ ) {
+                var i = (y*w + x) * 4;
 
-				if ( data[i+3] > 0 ) {
-					hasAlpha = true;
-					break;
-				}
-			}
+                if ( data[i+3] > 0 ) {
+                    hasAlpha = true;
+                    break;
+                }
+            }
 
-			if ( hasAlpha ) {
-				break;
-			} else {
-				minX = x+1;
-			}
-		}
+            if ( hasAlpha ) {
+                break;
+            } else {
+                minX = x+1;
+            }
+        }
 
         // search for maxX
-		for ( var x = w-1; x >= 0; x-- ) {
-			var hasAlpha = false;
+        for ( var x = w-1; x >= 0; x-- ) {
+            var hasAlpha = false;
 
-			for ( var y = 0; y < h; y++ ) {
-				var i = (y*w + x) * 4;
+            for ( var y = 0; y < h; y++ ) {
+                var i = (y*w + x) * 4;
 
-				if ( data[i+3] > 0 ) {
-					hasAlpha = true;
-					break;
-				}
-			}
+                if ( data[i+3] > 0 ) {
+                    hasAlpha = true;
+                    break;
+                }
+            }
 
-			if ( x <= minX ) {
-				return;
-			} else if ( hasAlpha ) {
-				break;
-			} else {
-				maxX = x;
-			}
-		}
+            if ( x <= minX ) {
+                return nil;
+            } else if ( hasAlpha ) {
+                break;
+            } else {
+                maxX = x;
+            }
+        }
 
-		// Don't crop if the image is empty!
+        // Don't crop if the image is empty!
 
-		// if we can crop, we do:
-		if ( minX > 0 || minY > 0 || maxX < w || maxY < h ) {
-			return {
-					x: minX,
-					y: minY,
-					w: maxX-minX,
-					h: maxY-minY
-			};
-		} else {
-			return nil;
-		}
-	};
+        // if we can crop, we do:
+        if ( minX > 0 || minY > 0 || maxX < w || maxY < h ) {
+            return {
+                    x: minX,
+                    y: minY,
+                    w: maxX-minX,
+                    h: maxY-minY
+            };
+        } else {
+            return nil;
+        }
+    };
 
     CanvasManager.prototype.clearAll = function() {
         this.drawSafe( function() {
@@ -3934,10 +3940,10 @@
         } );
     };
 
-	/**
-	 * Cleares this canvas of all content,
-	 * and adds the current content to the undo stack.
-	 */
+        /**
+         * Cleares this canvas of all content,
+         * and adds the current content to the undo stack.
+         */
     CanvasManager.prototype.clear = function() {
         var _this = this,
             w = _this.width,
@@ -3968,19 +3974,20 @@
      * @return True if an undo was performed, otherwise false.
      */
     CanvasManager.prototype.undo = function() {
-		if ( this.copyObj.hasPaste() ) {
-			this.clearPaste();
+        if ( this.copyObj.hasPaste() ) {
+            this.clearPaste();
+
             return true;
-		} else {
-			return this.undoRedo( 'undo' );
-		}
+        } else {
+            return this.undoRedo( 'undo' );
+        }
     };
 
     /**
      * The Info Bar is a scroll down bar for extra settings.
      * Like resize.
      *
-	 * @private
+     * @private
      * @param viewport The SkyBrush viewport it is being attached to.
      */
     var InfoBar = function( viewport ) {
@@ -3991,37 +3998,37 @@
 
         _this.content = $('<div>').addClass('skybrush_info_content');
 
-		/* Finally, put it all together */
-		var topArrow = $('<div>').
-				addClass( 'skybrush_info_bar_wrap_top_arrow' );
+        /* Finally, put it all together */
+        var topArrow = $('<div>').
+                addClass( 'skybrush_info_bar_wrap_top_arrow' );
 
         var wrap = $('<div>').
-				addClass( 'skybrush_info_bar_wrap' ).
-				append( topArrow ).
+                addClass( 'skybrush_info_bar_wrap' ).
+                append( topArrow ).
                 append( _this.content );
 
-		_this.dom = $('<div>').
+                _this.dom = $('<div>').
                 addClass('skybrush_info_bar').
-				append( wrap );
+                append( wrap );
 
         viewport.append( _this.dom );
     };
 
     InfoBar.prototype.show = function( button ) {
-		var _this = this;
+        var _this = this;
 
-		_this.hiding.clear();
+        _this.hiding.clear();
 
-		var painterDom = _this.dom.parent( '.skybrush' );
-		var left = button.offset().left - painterDom.offset().left;
+        var painterDom = _this.dom.parent( '.skybrush' );
+        var left = button.offset().left - painterDom.offset().left;
 
-		// correct for width's
-		left += button.outerWidth()/2;
-		left -= _this.dom.outerWidth()/2;
+        // correct for width's
+        left += button.outerWidth()/2;
+        left -= _this.dom.outerWidth()/2;
 
-		_this.dom.css({left: left + 'px', display: 'block'});
+        _this.dom.css({left: left + 'px', display: 'block'});
 
-		_this.dom.ensureClass( 'sb_show' );
+        _this.dom.ensureClass( 'sb_show' );
     };
 
     InfoBar.prototype.isShown = function() {
@@ -4036,18 +4043,18 @@
     };
 
     InfoBar.prototype.hide = function() {
-		var _this = this;
+        var _this = this;
 
         _this.dom.removeClass( 'sb_show' );
 
         _this.hiding.run( function() {
-			_this.dom.css({display: 'none'});
-		} );
+            _this.dom.css({display: 'none'});
+        } );
     };
 
     InfoBar.prototype.setContent = function() {
         this.content.empty();
-		this.confirm = nil;
+        this.confirm = nil;
 
         for ( var i = 0; i < arguments.length; i++ ) {
             this.content.append( arguments[i] );
@@ -4056,9 +4063,9 @@
         return this;
     };
 
-	InfoBar.prototype.getContent = function() {
-		return this.content;
-	};
+    InfoBar.prototype.getContent = function() {
+        return this.content;
+    };
 
     /**
      * Used for turning a control name into a CSS class, for
@@ -4115,11 +4122,11 @@
             throw new Error( "Invalid Control Given" );
         }
 
-		var defaultField = command[ field ];
-		if ( defaultField === undefined ) {
-			defaultField = control.value;
-			command[ field ] = defaultField;
-		}
+        var defaultField = command[ field ];
+        if ( defaultField === undefined ) {
+            defaultField = control.value;
+            command[ field ] = defaultField;
+        }
 
         var cDom = $('<div>').
                 addClass( 'skybrush_control' ).
@@ -4130,9 +4137,9 @@
             cDom.addClass( 'sb_' + css );
         }
 
-		var label = $('<div>').
-				addClass('skybrush_command_control_label');
-		label.text( name );
+        var label = $('<div>').
+                addClass('skybrush_command_control_label');
+        label.text( name );
 
         var cssID = controlNameToCSSID( name );
 
@@ -4141,125 +4148,128 @@
          * All supported types are listed here.
          */
         if ( type == 'checkbox' ) {
-			if ( defaultField === undefined ) {
-				defaultField = false;
-			}
+            if ( defaultField === undefined ) {
+                    defaultField = false;
+            }
 
-			var checkbox = $('<input>').
-					attr( 'type', 'checkbox' ).
+            var checkbox = $('<input>').
+                    attr( 'type', 'checkbox' ).
                     addClass( cssID ).
-					change( function() {
+                    change( function() {
                         var isChecked = $(this).is(':checked')
 
-						command[ field ] = isChecked;
+                        command[ field ] = isChecked;
                         if ( callback ) {
                             callback.call( command, isChecked, painter );
                         }
-					} );
+                    } );
 
-			if ( command[field] ) {
-				checkbox.attr( 'checked', 'checked' );
-			}
+            if ( command[field] ) {
+                checkbox.attr( 'checked', 'checked' );
+            }
 
-            cDom.append( label ).
-					append( checkbox );
+            cDom.
+                    append( label ).
+                    append( checkbox );
         } else if ( type == 'toggle' ) {
-			cDom.append( label );
-			var cssStates = control.css_options,
-				names = control.name_options;
+            cDom.append( label );
+            var cssStates = control.css_options,
+                    names = control.name_options;
 
-			var numOptions =
-					( cssStates ? cssStates.length :
-					( names		? names.length	   :
-							0 ) );
+            var numOptions =
+                    ( cssStates ? cssStates.length :
+                    ( names     ? names.length     :
+                                  0 ) );
 
-			var option = -1;
-			var toggle = $('<input>').
-					addClass( 'skybrush_input_button' ).
+            var option = -1;
+            var toggle = $('<input>').
+                    addClass( 'skybrush_input_button' ).
                     addClass( cssID ).
-					attr( 'type', 'button' );
-			var switchOption = function() {
-				if ( cssStates && cssStates[option] ) {
-					toggle.removeClass( cssStates[option] );
-				}
-
-				option = (option+1) % numOptions;
-				if ( names ) {
-					toggle.val( names[option] );
-				}
-				if ( cssStates && cssStates[option] ) {
-					toggle.addClass( cssStates[option] );
-				}
-			};
-
-			switchOption();
-
-			toggle.click( function(ev) {
-				ev.stopPropagation();
-				ev.preventDefault();
-				switchOption();
-
-				command[ field ] = option;
-                if ( callback ) {
-                    callback.call( command, option, painter );
+                    attr( 'type', 'button' );
+            var switchOption = function() {
+                if ( cssStates && cssStates[option] ) {
+                    toggle.removeClass( cssStates[option] );
                 }
-			} );
 
-			cDom.append( toggle );
-		} else if ( type == 'slider' ) {
-			if ( defaultField === undefined ) {
-				defaultField = 1;
-			}
+                option = (option+1) % numOptions;
+                if ( names ) {
+                    toggle.val( names[option] );
+                }
+                if ( cssStates && cssStates[option] ) {
+                    toggle.addClass( cssStates[option] );
+                }
+            };
+
+            switchOption();
+
+            toggle.click( function(ev) {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                    switchOption();
+
+                    command[ field ] = option;
+                    if ( callback ) {
+                        callback.call( command, option, painter );
+                    }
+            } );
+
+            cDom.append( toggle );
+        } else if ( type == 'slider' ) {
+            if ( defaultField === undefined ) {
+                defaultField = 1;
+            }
 
             var min = control.min,
                 max = control.max;
 
-			var val = $('<input>').
-					addClass( 'skybrush_input' ).
-					forceNumeric( false ).
-					keydown( function() {
-						var $this = $(this);
+            var val = $('<input>').
+                    addClass( 'skybrush_input' ).
+                    forceNumeric( false ).
+                    keydown( function() {
+                        var $this = $(this);
 
-						setTimeout( function() {
-							var n = $this.val();
+                        setTimeout( function() {
+                            var n = $this.val();
 
-							if ( n && n >= 1 ) {
-								n = Math.round( n );
-								slider.setSlide( n / max );
+                            if ( n && n >= 1 ) {
+                                n = Math.round( n );
+                                slider.setSlide( n / max );
 
-								command[ field ] = n;
+                                command[ field ] = n;
+
                                 if ( callback ) {
                                     callback.call( command, n, painter );
                                 }
-							}
-						}, 0 );
-					} );
-			var slider = $slider().
+                            }
+                        }, 0 );
+                    } );
+
+            var slider = $slider().
                     addClass( cssID ).
                     limit( min, max ).
                     step( 1 ).
-					slide( function(ev, n, p) {
-						command[ field ] = n;
+                    slide( function(ev, n, p) {
+                        command[ field ] = n;
                         val.val( n );
 
                         if ( callback ) {
                             callback.call( command, n, painter );
                         }
-					} );
+                    } );
 
-			// initialize
-			val.val( defaultField );
+            // initialize
+            val.val( defaultField );
 
             cDom.
-					append( label ).
-					append( val ).
-					append( slider );
+                    append( label ).
+                    append( val ).
+                    append( slider );
 
-			// Slider must be updated in the future,
-			// after the reflow.
-			setTimeout( function() {
-				slider.setSlide( defaultField / max );
-			}, 0 );
+            // Slider must be updated in the future,
+            // after the reflow.
+            setTimeout( function() {
+                slider.setSlide( defaultField / max );
+            }, 0 );
         } else {
             throw new Error( "Unknown control setup given" );
         }
@@ -4336,7 +4346,7 @@
                 '' ;
         this.caption = setup.caption  || '' ;
 
-		this.cursor = setup.cursor;
+        this.cursor = setup.cursor;
 
         this.drawArea = nil;
 
@@ -4445,25 +4455,25 @@
         }
     };
 
-	Command.prototype.getCSSCursor = function( painter ) {
-		var cursor = this.cursor;
+    Command.prototype.getCSSCursor = function( painter ) {
+        var cursor = this.cursor;
 
-		if ( cursor === undefined ) {
-			return nil;
-		} else if ( (typeof cursor) === 'string' ) {
-			return cursor;
-		} else {
-			return cursor.call( this, painter );
-		}
-	};
+        if ( cursor === undefined ) {
+            return nil;
+        } else if ( (typeof cursor) === 'string' ) {
+            return cursor;
+        } else {
+            return cursor.call( this, painter );
+        }
+    };
 
     Command.prototype.getCaption = function() {
         return this.caption;
     };
 
-	Command.prototype.getName = function() {
-		return this.name;
-	};
+    Command.prototype.getName = function() {
+        return this.name;
+    };
 
     /**
      * Finds the control stated, based on it's 'name'.
@@ -4497,14 +4507,14 @@
                 dom = $('<div>').
                         addClass( 'skybrush_command_controls_inner' );
 
-				if ( controlsSetup instanceof Array ) {
-					for ( var i = 0; i < controlsSetup.length; i++ ) {
-						var cDom = newCommandControl( this, controlsSetup[i], painter );
-						dom.append( cDom );
-					}
-				} else {
-					dom.append( newCommandControl( this, controlsSetup, painter ) );
-				}
+                if ( controlsSetup instanceof Array ) {
+                    for ( var i = 0; i < controlsSetup.length; i++ ) {
+                        var cDom = newCommandControl( this, controlsSetup[i], painter );
+                        dom.append( cDom );
+                    }
+                } else {
+                    dom.append( newCommandControl( this, controlsSetup, painter ) );
+                }
             }
 
             this.dom = dom;
@@ -4516,6 +4526,7 @@
     Command.prototype.popDrawArea = function() {
         var t = this.drawArea;
         this.drawArea = nil;
+
         return t;
     };
 
@@ -4553,14 +4564,14 @@
     };
 
     /**
-	 * This can be used in a single args version, to allow passing
-	 * the Draw Area object from one command to another.
-	 *
-	 * Usage:
-	 *	brush.setDrawArea( otherBrush.popDrawArea() )
-	 *
-	 * You can also use it in a multi-args version to setup a drawing/refresh area.
-	 *
+     * This can be used in a single args version, to allow passing
+     * the Draw Area object from one command to another.
+     *
+     * Usage:
+     *      brush.setDrawArea( otherBrush.popDrawArea() )
+     *
+     * You can also use it in a multi-args version to setup a drawing/refresh area.
+     *
      * @param x
      * @param y
      * @param w or size, w when h is provided and size when it's omitted.
@@ -4568,36 +4579,36 @@
      * @param buffer Optional, a buffer around the area to be updated. This must be at least 1.
      */
     Command.prototype.setDrawArea = function( x, y, w, h, buffer ) {
-		// If used in single args version,
-		// this allows setting 'null' as the draw area (no draw)
-		if ( y === undefined && x !== undefined ) {
-			this.drawArea = x;
-		} else {
-			buffer = buffer || 1;
+        // If used in single args version,
+        // this allows setting 'null' as the draw area (no draw)
+        if ( y === undefined && x !== undefined ) {
+            this.drawArea = x;
+        } else {
+            buffer = buffer || 1;
 
-			if ( h === undefined ) {
-				x -= w,
-				y -= w;
-				h  = w;
-			}
+            if ( h === undefined ) {
+                x -= w,
+                y -= w;
+                h  = w;
+            }
 
-			if ( w < 0 ) {
-				w  = -w;
-				x -=  w;
-			}
+            if ( w < 0 ) {
+                w  = -w;
+                x -=  w;
+            }
 
-			if ( h < 0 ) {
-				h  = -h;
-				y -=  h;
-			}
+            if ( h < 0 ) {
+                h  = -h;
+                y -=  h;
+            }
 
-			this.drawArea = {
-					x: x-buffer,
-					y: y-buffer,
-					endX: x+w+buffer,
-					endY: y+h+buffer
-			}
-		}
+            this.drawArea = {
+                    x: x-buffer,
+                    y: y-buffer,
+                    endX: x+w+buffer,
+                    endY: y+h+buffer
+            }
+        }
 
         return this;
     };
@@ -4624,26 +4635,26 @@
      * @private
      */
     var Brush = function( setup ) {
-		var controls = setup.controls || [];
-		controls.unshift( {
-				name: 'Size',
-				field: 'size',
+        var controls = setup.controls || [];
+        controls.unshift( {
+                name: 'Size',
+                field: 'size',
 
-				type: 'slider',
-				css : 'size',
+                type: 'slider',
+                css : 'size',
 
                 callback: function(size, painter) {
                     painter.setBrushCursorSize( size );
                 },
 
-				min: 1,
-				max: MAX_BRUSH_SIZE
-		});
+                min: 1,
+                max: MAX_BRUSH_SIZE
+        });
         setup.controls = controls;
 
         Command.call( this, setup );
 
-		this.size = 0;
+        this.size = 0;
         this.setSize( 1 );
     };
 
@@ -4676,9 +4687,9 @@
      *  = onDraw - called for drawing geometry
      *  = onDown - already exists, but is wrapped in it's own onDown
      *
-	 * @constructor
-	 * @private
-	 *
+         * @constructor
+         * @private
+         *
      * @param setup The controls information for this command.
      */
     var Geometry = function( setup ) {
@@ -4686,7 +4697,7 @@
         this.startY = 0;
 
         this.isFilled = true;
-		this.size = 1;
+        this.size = 1;
 
         this.isAliased = false;
 
@@ -4758,345 +4769,344 @@
         this.isFilled = ! this.isFilled ;
     };
 
-	var ShapeGeometry = function( setup ) {
+    var ShapeGeometry = function( setup ) {
         var controls = setup.controls;
+        if ( ! controls ) {
+            controls = [];
+        } else if ( controls && ! ( controls instanceof Array ) ) {
+            controls = [ controls ];
+        }
 
-		if ( ! controls ) {
-			controls = [];
-		} else if ( controls && ! ( controls instanceof Array ) ) {
-			controls = [ controls ];
-		}
+        setup.controls = controls.concat([
+                {
+                        name: 'Mode',
+                        css: 'outline_cmd',
+                        field: 'isOutline',
+                        type: 'toggle',
+                        css_options: [ 'filled', 'outline' ],
+                        name_options: [ 'Filled', 'Outline' ]
+                },
+                {
+                        name: 'Outline',
+                        css: 'outline_size_cmd',
+                        field: 'size',
+                        type: 'slider',
 
-		setup.controls = controls.concat([
-				{
-					name: 'Mode',
-					css: 'outline_cmd',
-					field: 'isOutline',
-					type: 'toggle',
-					css_options: [ 'filled', 'outline' ],
-					name_options: [ 'Filled', 'Outline' ]
-				},
-				{
-					name: 'Outline',
-					css: 'outline_size_cmd',
-					field: 'size',
-					type: 'slider',
-
-					value: 1,
-					min: 1,
-					max: MAX_BRUSH_SIZE
-				},
-				{
-					name: 'Proportion',
-					css: 'proportion_size_cmd',
-					field: 'isProportional',
-					type: 'checkbox'
-				},
-				{
-					name: 'Center',
-					css: 'centre_size_cmd',
-					field: 'isCentred',
-					type: 'checkbox'
-				}
-		]);
+                        value: 1,
+                        min: 1,
+                        max: MAX_BRUSH_SIZE
+                },
+                {
+                        name: 'Proportion',
+                        css: 'proportion_size_cmd',
+                        field: 'isProportional',
+                        type: 'checkbox'
+                },
+                {
+                        name: 'Center',
+                        css: 'centre_size_cmd',
+                        field: 'isCentred',
+                        type: 'checkbox'
+                }
+        ]);
 
         // wrap in our own function
         var drawGeom = setup.onDraw;
-		setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
-			var size = this.size,
-				isOutline = this.isOutline;
+        setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
+            var size = this.size,
+                isOutline = this.isOutline;
 
-			x1 = this.round( x1, isOutline, size );
-			y1 = this.round( y1, isOutline, size );
-			x2 = this.round( x2, isOutline, size );
-			y2 = this.round( y2, isOutline, size );
+            x1 = this.round( x1, isOutline, size );
+            y1 = this.round( y1, isOutline, size );
+            x2 = this.round( x2, isOutline, size );
+            y2 = this.round( y2, isOutline, size );
 
-			var w = x2 - x1,
-				h = y2 - y1;
+            var w = x2 - x1,
+                h = y2 - y1;
 
-			if ( this.isProportional ) {
-				var wAbs = Math.abs(w),
-					hAbs = Math.abs(h);
+            if ( this.isProportional ) {
+                var wAbs = Math.abs(w),
+                    hAbs = Math.abs(h);
 
-				if ( wAbs > hAbs ) {
-					if ( h < 0 ) {
-						h = - wAbs;
-					} else {
-						h =   wAbs;
-					}
-				} else {
-					if ( w < 0 ) {
-						w = - hAbs;
-					} else {
-						w =   hAbs;
-					}
-				}
-			}
+                if ( wAbs > hAbs ) {
+                    if ( h < 0 ) {
+                        h = - wAbs;
+                    } else {
+                        h =   wAbs;
+                    }
+                } else {
+                    if ( w < 0 ) {
+                        w = - hAbs;
+                    } else {
+                        w =   hAbs;
+                    }
+                }
+            }
 
-			if ( this.isCentred ) {
-				x1 -= w;
-				y1 -= h;
-				w += w;
-				h += h;
-			}
+            if ( this.isCentred ) {
+                x1 -= w;
+                y1 -= h;
+                w += w;
+                h += h;
+            }
 
-			if ( this.isProportional || this.isCentred ) {
-				this.setDrawArea( x1, y1, w, h, size );
-			}
+            if ( this.isProportional || this.isCentred ) {
+                this.setDrawArea( x1, y1, w, h, size );
+            }
 
-			clearCtx( ctx,
-					this.lastX1,
-					this.lastY1,
-					this.lastW,
-					this.lastH,
-					this.size
-			);
+            clearCtx( ctx,
+                    this.lastX1,
+                    this.lastY1,
+                    this.lastW,
+                    this.lastH,
+                    this.size
+            );
 
-			this.lastX1 = x1,
-			this.lastY1 = y1,
-			this.lastW  = w,
-			this.lastH  = h;
+            this.lastX1 = x1,
+            this.lastY1 = y1,
+            this.lastW  = w,
+            this.lastH  = h;
 
-			drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
-		};
+            drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
+        };
 
-		setup.onDown = function(canvas, x, y) {
-			this.lastX1 = x,
-			this.lastY1 = y,
-			this.lastW  = 1,
-			this.lastH  = 1;
-		};
+        setup.onDown = function(canvas, x, y) {
+            this.lastX1 = x,
+            this.lastY1 = y,
+            this.lastW  = 1,
+            this.lastH  = 1;
+        };
 
-		Geometry.call( this, setup );
-	};
+        Geometry.call( this, setup );
+    };
 
-	ShapeGeometry.prototype = new Geometry( '', '', function() {}, undefined );
+    ShapeGeometry.prototype = new Geometry( '', '', function() {}, undefined );
 
-	/* Helper Drawing Function */
+    /* Helper Drawing Function */
 
-	var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
-		x1 = Math.round(x1 - size/2);
-		y1 = Math.round(y1 - size/2);
-		x2 = Math.round(x2 - size/2);
-		y2 = Math.round(y2 - size/2);
+    var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
+        x1 = Math.round(x1 - size/2);
+        y1 = Math.round(y1 - size/2);
+        x2 = Math.round(x2 - size/2);
+        y2 = Math.round(y2 - size/2);
 
-		var xDiff = x2 - x1,
-			yDiff = y2 - y1 ;
+        var xDiff = x2 - x1,
+            yDiff = y2 - y1 ;
 
-		var inc = Math.max(
-				Math.abs( xDiff ),
-				Math.abs( yDiff )
-		) / size;
+        var inc = Math.max(
+                Math.abs( xDiff ),
+                Math.abs( yDiff )
+        ) / size;
 
-		var xInc = ( xDiff / inc ) / size,
-			yInc = ( yDiff / inc ) / size,
-			x = x1,
-			y = y1 ;
+        var xInc = ( xDiff / inc ) / size,
+            yInc = ( yDiff / inc ) / size,
+            x = x1,
+            y = y1 ;
 
-		for ( var i = 0; i < inc; i++ ) {
-			fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
+        for ( var i = 0; i < inc; i++ ) {
+            fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
 
-			x += xInc,
-			y += yInc;
-		}
-	};
+            x += xInc,
+            y += yInc;
+        }
+    };
 
-	var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
-		x0 = Math.round( x0 );
-		x1 = Math.round( x1 );
-		y0 = Math.round( y0 );
-		y1 = Math.round( y1 );
+    var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
+        x0 = Math.round( x0 );
+        x1 = Math.round( x1 );
+        y0 = Math.round( y0 );
+        y1 = Math.round( y1 );
 
-		var sizeI = Math.round( size );
-		var sizeI2 = (sizeI/2) | 0;
+        var sizeI = Math.round( size );
+        var sizeI2 = (sizeI/2) | 0;
 
-		var yDiff = y1 - y0,
-			xDiff = x1 - x0;
+        var yDiff = y1 - y0,
+            xDiff = x1 - x0;
 
-		var aXDiff = Math.abs( xDiff ),
-			aYDiff = Math.abs( yDiff );
+        var aXDiff = Math.abs( xDiff ),
+            aYDiff = Math.abs( yDiff );
 
-		if ( aXDiff < aYDiff ) {
-			if ( aXDiff < 1.5 ) {
-				ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
-			}
-		} else if ( aYDiff < 1.5 ) {
-			ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
-		}
+        if ( aXDiff < aYDiff ) {
+            if ( aXDiff < 1.5 ) {
+                ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
+            }
+        } else if ( aYDiff < 1.5 ) {
+            ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
+        }
 
-		/*
-	 	 * When this is true, we draw across the screen
-	 	 * in horizontal rectangles.
-	 	 *
-	 	 * When this is false, we draw down the screen,
-	 	 * with vertical rectangles.
-	 	 */
-		var moveHorizontal = aXDiff > aYDiff;
-		if ( moveHorizontal ) {
-			y0 -= sizeI2;
-			y1 -= sizeI2;
-		} else {
-			x0 -= sizeI2;
-			x1 -= sizeI2;
-		}
+        /*
+         * When this is true, we draw across the screen
+         * in horizontal rectangles.
+         *
+         * When this is false, we draw down the screen,
+         * with vertical rectangles.
+         */
+        var moveHorizontal = aXDiff > aYDiff;
+        if ( moveHorizontal ) {
+            y0 -= sizeI2;
+            y1 -= sizeI2;
+        } else {
+            x0 -= sizeI2;
+            x1 -= sizeI2;
+        }
 
-		var inc = Math.min( aXDiff, aYDiff );
-		var xInc = xDiff / inc,
-			yInc = yDiff / inc;
+        var inc = Math.min( aXDiff, aYDiff );
+        var xInc = xDiff / inc,
+            yInc = yDiff / inc;
 
-		var x = x0;
+        var x = x0;
 
-		var yStart = y0,
-			yEnd = y1,
-			xStart = x0,
-			xEnd = x1;
+        var yStart = y0,
+            yEnd = y1,
+            xStart = x0,
+            xEnd = x1;
 
-		if ( moveHorizontal ) {
-			if ( yStart > yEnd ) {
-				var t = 0;
+        if ( moveHorizontal ) {
+            if ( yStart > yEnd ) {
+                var t = 0;
 
-				t = yStart;
-				yStart = yEnd;
-				yEnd = t;
+                t = yStart;
+                yStart = yEnd;
+                yEnd = t;
 
-				t = xStart;
-				xStart = xEnd;
-				xEnd = t;
+                t = xStart;
+                xStart = xEnd;
+                xEnd = t;
 
-				xInc = -xInc;
-			}
-		} else {
-			if ( xStart > xEnd ) {
-				var t = 0;
+                xInc = -xInc;
+            }
+        } else {
+            if ( xStart > xEnd ) {
+                var t = 0;
 
-				t = xStart;
-				xStart = xEnd;
-				xEnd = t;
+                t = xStart;
+                xStart = xEnd;
+                xEnd = t;
 
-				t = yStart;
-				yStart = yEnd;
-				yEnd = t;
+                t = yStart;
+                yStart = yEnd;
+                yEnd = t;
 
-				yInc = -yInc;
-			}
-		}
+                yInc = -yInc;
+            }
+        }
 
-		for ( var i = 0; i < sizeI; i++ ) {
-			if ( moveHorizontal ) {
-				var x = xStart;
+        for ( var i = 0; i < sizeI; i++ ) {
+            if ( moveHorizontal ) {
+                var x = xStart;
 
-				for ( var y = yStart; y < yEnd; y++ ) {
-					var drawX = x|0;
-					var drawY = y|0;
-					var xWidth = ((x + xInc)|0) - drawX ;
+                for ( var y = yStart; y < yEnd; y++ ) {
+                    var drawX = x|0;
+                    var drawY = y|0;
+                    var xWidth = ((x + xInc)|0) - drawX ;
 
-					ctx.fillRect( drawX, drawY, xWidth, 1 );
+                    ctx.fillRect( drawX, drawY, xWidth, 1 );
 
-					x += xInc;
-				}
+                    x += xInc;
+                }
 
-				yStart++;
-				yEnd++;
-			} else {
-				var y = yStart;
+                yStart++;
+                yEnd++;
+            } else {
+                var y = yStart;
 
-				for ( var x = xStart; x < xEnd; x++ ) {
-					var drawX = x|0;
-					var drawY = y|0;
-					var yWidth = ((y + yInc)|0) - drawY ;
+                for ( var x = xStart; x < xEnd; x++ ) {
+                    var drawX = x|0;
+                    var drawY = y|0;
+                    var yWidth = ((y + yInc)|0) - drawY ;
 
-					ctx.fillRect( drawX, drawY, 1, yWidth );
+                    ctx.fillRect( drawX, drawY, 1, yWidth );
 
-					y += yInc;
-				}
+                    y += yInc;
+                }
 
-				xStart++;
-				xEnd++;
-			}
-		}
+                xStart++;
+                xEnd++;
+            }
+        }
 
-		return;
+        return;
 
-		// swap values so we iterate less
-		var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
-		if ( steep ) {
-			var t;
+        // swap values so we iterate less
+        var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+        if ( steep ) {
+            var t;
 
-			t = x0;
-			x0 = y0;
-			y0 = t;
+            t = x0;
+            x0 = y0;
+            y0 = t;
 
-			t = x1;
-			x1 = y1;
-			y1 = t;
-		}
-		if ( x0 > x1 ) {
-			var t;
+            t = x1;
+            x1 = y1;
+            y1 = t;
+        }
+        if ( x0 > x1 ) {
+            var t;
 
-			t = x0;
-			x0 = x1;
-			x1 = t;
+            t = x0;
+            x0 = x1;
+            x1 = t;
 
-			t = y0;
-			y0 = y1;
-			y1 = t;
-		}
-		if ( y0 > y1 ) {
-			var t;
+            t = y0;
+            y0 = y1;
+            y1 = t;
+        }
+        if ( y0 > y1 ) {
+            var t;
 
-			t = y0;
-			y0 = y1;
-			y1 = t;
+            t = y0;
+            y0 = y1;
+            y1 = t;
 
-			t = y0;
-			y0 = y1;
-			y1 = t;
-		}
+            t = y0;
+            y0 = y1;
+            y1 = t;
+        }
 
-		var deltax = x1 - x0,
-			deltay = Math.abs(y1 - y0);
+        var deltax = x1 - x0,
+            deltay = Math.abs(y1 - y0);
 
-		var ystep;
-			if ( y0 < y1 ) {
-				ystep = 1;
-			} else {
-				ystep = -1;
-			}
+        var ystep;
+        if ( y0 < y1 ) {
+            ystep = 1;
+        } else {
+            ystep = -1;
+        }
 
-		// Now DRAW!
-		var sizeI = Math.round( size );
-		var error = deltax / 2;
-		var y = y0 - Math.round(size/2);
+        // Now DRAW!
+        var sizeI = Math.round( size );
+        var error = deltax / 2;
+        var y = y0 - Math.round(size/2);
 
-		var c = 0;
-		for ( var y = y0; y < y1; y++ ) {
-			c++;
-			if ( steep ) {
-				ctx.fillRect(y, x, sizeI, 1);
-			} else {
-				ctx.fillRect(x, y, 1, sizeI);
-			}
+        var c = 0;
+        for ( var y = y0; y < y1; y++ ) {
+            c++;
+            if ( steep ) {
+                ctx.fillRect(y, x, sizeI, 1);
+            } else {
+                ctx.fillRect(x, y, 1, sizeI);
+            }
 
-			error = error - deltay
-			if ( error < 0 ) {
-				y = y + ystep
-				error = error + deltax
-			}
-		}
-	};
+            error = error - deltay
+            if ( error < 0 ) {
+                y = y + ystep
+                error = error + deltax
+            }
+        }
+    };
 
-	/**
-	 * A bespoke brush, specifically for pixelated drawing.
+    /**
+     * A bespoke brush, specifically for pixelated drawing.
      *
-	 * @constructor
-	 * @private
-	 */
-	var PixelBrush = function( setup ) {
-		var _this = this;
-		this.brushCmd = setup.onDraw;
-		this.pencilCommand = function( canvas, x, y, size ) {
-			_this.brushCmd( canvas, x, y, size );
-		};
+     * @constructor
+     * @private
+     */
+    var PixelBrush = function( setup ) {
+        var _this = this;
+        this.brushCmd = setup.onDraw;
+        this.pencilCommand = function( canvas, x, y, size ) {
+            _this.brushCmd( canvas, x, y, size );
+        };
 
         setup.onDown = function( canvas, x, y ) {
             this.lastX = x;
@@ -5151,8 +5161,8 @@
             this.lastY = y;
         };
 
-		Brush.call( this, setup  );
-	};
+        Brush.call( this, setup  );
+    };
     PixelBrush.prototype = new Brush( '', '', {} );
 
     /**
@@ -5339,25 +5349,25 @@
                         painter.setAlpha( rgb[3] / 255.0 );
                     }
                 }
-		});
+        });
 
         var eraserSwitch   = nil,
             switchToEraser = function( shiftDown, painter ) {
-                        if ( shiftDown ) {
-                            eraserSwitch = this;
-                            painter.setCommand( eraser );
-                        }
-                    };
+                if ( shiftDown ) {
+                    eraserSwitch = this;
+                    painter.setCommand( eraser );
+                }
+            };
 
+        /* Eraser
+         *
+         * Works by having two built internally:
+         * = hard eraser, works on a pixel level
+         * = soft eraser, has faded edges
+         *
+         * The complete eraser houses both, and switches between them.
+         */
         var eraser =
-                /* Eraser
-                 *
-                 * Works by having two built internally:
-                 * = hard eraser, works on a pixel level
-                 * = soft eraser, has faded edges
-                 *
-                 * The complete eraser houses both, and switches between them.
-                 */
                 (function() {
                     var hardErase = new PixelBrush( {
                             name: 'Eraser',
@@ -5895,16 +5905,16 @@
                         cursor: 'sb_cursor_fill',
 
                         controls: [
-                            {
-                                    name : 'Tolerance',
-                                    field: 'tolerance',
-                                    type : 'slider',
-                                    css  : 'tolerance',
+                                {
+                                        name : 'Tolerance',
+                                        field: 'tolerance',
+                                        type : 'slider',
+                                        css  : 'tolerance',
 
-                                    value: 20,
-                                    min: 1,
-                                    max: 255
-                            }
+                                        value: 20,
+                                        min: 1,
+                                        max: 255
+                                }
                         ]
                 } ),
 
@@ -5935,7 +5945,7 @@
                             field: 'zoomOut',
                             type : 'toggle',
 
-                            name_options: [ 'In'     , 'Out'      ],
+                            name_options: [ 'In', 'Out' ],
 
                             callback: function() {
                                 setTimeout( function() {
@@ -6030,18 +6040,17 @@
         ];
     };
 
-
-        /**
-         * Constant for identifying the square.
-         *
-         * Doesn't matter what it is, as long as it's not 0,
-         * false, undefined, null, NaN, infinity or 'nil' (cos they evaluate to false).
-         *
-         * It must not also conflict with the other shape constants.
-         *
-         * @constant
-         * @type {number}
-         */
+    /**
+     * Constant for identifying the square.
+     *
+     * Doesn't matter what it is, as long as it's not 0,
+     * false, undefined, null, NaN, infinity or 'nil' (cos they evaluate to false).
+     *
+     * It must not also conflict with the other shape constants.
+     *
+     * @constant
+     * @type {number}
+     */
     var SQUARE = 1,
 
         /**
@@ -6563,7 +6572,7 @@
      *     app.newImage( 320, 240 );
      * 
      * @constructor
-	 * @public
+         * @public
      * @param dom The dom element to be converted into SkyBrush.
      * @param options Optional, extra parameters you can pass in to change stuff.
      */
@@ -6582,13 +6591,13 @@
      *
      * It also handles the drawing commands. This includes abstracting away
      * the zoom, and giving it the correct context to work out.
-	 *
-	 * The core of SkyBrush is a three part event loop: mousedown, mousemove and mouseup.
-	 * The mousedown (or anything called just before it) will dictate what that,
-	 * and the following two events, do when they are called.
-	 *
-	 * This includes handling dragging of the GUI's, painting to the canvas,
-	 * or even ignoring input.
+     *
+     * The core of SkyBrush is a three part event loop: mousedown, mousemove and mouseup.
+     * The mousedown (or anything called just before it) will dictate what that,
+     * and the following two events, do when they are called.
+     *
+     * This includes handling dragging of the GUI's, painting to the canvas,
+     * or even ignoring input.
      */
     var SkyBrush = function( dom, options ) {
         if ( ! dom ) {
@@ -6735,7 +6744,7 @@
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
         initializeTopBar( _this, DEFAULT_ZOOM );
-		initializeShortcuts( _this, (options.grab_ctrl_r === false) );
+        initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
         _this.infoBar = new InfoBar( dom );
 
@@ -6801,11 +6810,11 @@
             _this.runOnAlt( false );
         })
 
-		if ( options.callback ) {
-			setTimeout( function() {
-				options.callback( _this );
-			}, 0 );
-		}
+        if ( options.callback ) {
+            setTimeout( function() {
+                options.callback( _this );
+            }, 0 );
+        }
     };
 
     /**
@@ -6835,40 +6844,40 @@
         } );
     };
 
-	/**
-	 * Gives you a simple way to add ctrl/Mac-command bound key
-	 * shortcuts.
-	 *
-	 * Key describes the key being pressed (such as 'z' or 'r')
-	 * when a meta key is also pressed. If that happens, then
-	 * 'fun' will be run.
-	 */
+    /**
+     * Gives you a simple way to add ctrl/Mac-command bound key
+     * shortcuts.
+     *
+     * Key describes the key being pressed (such as 'z' or 'r')
+     * when a meta key is also pressed. If that happens, then
+     * 'fun' will be run.
+     */
     SkyBrush.prototype.onCtrl = function( key, fun ) {
-		var _this = this;
-		key = key.toLowerCase();
+        var _this = this;
+        key = key.toLowerCase();
 
-		return _this.onKeyInteraction( nil, function(ev) {
-			var evKey = String.fromCharCode(ev.keyCode).toLowerCase();
+        return _this.onKeyInteraction( nil, function(ev) {
+            var evKey = String.fromCharCode(ev.keyCode).toLowerCase();
 
-			if ( (ev.ctrlKey || ev.metaKey) && evKey == key ) {
-				fun.call( _this, ev );
+            if ( (ev.ctrlKey || ev.metaKey) && evKey == key ) {
+                fun.call( _this, ev );
 
-				return false;
-			} else {
+                return false;
+            } else {
                 return undefined;
             }
-		} );
-	};
+        } );
+    };
 
-	/**
-	 * Work modes include dragging GUI components and painting
-	 * to the canvas.
-	 *
-	 * @return True if this SkyBrush is in any work mode.
-	 */
-	SkyBrush.prototype.isBusy = function() {
-		return this.isDragging() || this.isPainting;
-	};
+    /**
+     * Work modes include dragging GUI components and painting
+     * to the canvas.
+     *
+     * @return True if this SkyBrush is in any work mode.
+     */
+    SkyBrush.prototype.isBusy = function() {
+        return this.isDragging() || this.isPainting;
+    };
 
     /**
      * Sometimes it can be difficult getting SkyBrush to ignore key shortcuts,
@@ -6989,30 +6998,30 @@
                 } );
     };
 
-	/**
-	 * This is the general purpose key shortcut binding method.
+    /**
+     * This is the general purpose key shortcut binding method.
      * For most cases, you should use 'onKey' or 'onCtrl'.
      * This method exists for them; to avoid code repetition.
-	 *
-	 * You are given the event that occurres directly,
-	 * and so you can better decide how to handle it.
-	 *
-	 * The given event must return 'false' if it has found the
-	 * key it should be run on, in order to stop key event processing.
+     *
+     * You are given the event that occurres directly,
+     * and so you can better decide how to handle it.
+     *
+     * The given event must return 'false' if it has found the
+     * key it should be run on, in order to stop key event processing.
      *
      * @param event The type of key event, defaults to 'keydown' if null or undefined.
      * @param fun The callback to run on key input.
      * @return This SkyBrush instance (for method chaining).
-	 */
-	SkyBrush.prototype.onKeyInteraction = function( event, fun ) {
+     */
+    SkyBrush.prototype.onKeyInteraction = function( event, fun ) {
         if ( ! event ) {
             event = 'keydown';
         }
 
         var _this = this;
 
-		$(document)[event]( function(ev) {
-			if (
+        $(document)[event]( function(ev) {
+            if (
                     ! _this.isBusy()                    &&
                       _this.keysEnabled                 &&
                       _this.dom.is( ':visible' )        &&
@@ -7023,12 +7032,12 @@
                 ev.stopPropagation();
 
                 return false;
-			} else {
+            } else {
                 return undefined;
             }
-		} );
+        } );
 
-		return _this;
+        return _this;
     };
 
     SkyBrush.prototype.getInfoBar = function() {
@@ -7050,29 +7059,21 @@
         var colors = $('<div>').addClass( 'skybrush_colors_palette' );
         var newColor = function( painter, colors, strColor ) {
             var color = $a( '', 'skybrush_colors_palette_color' ).
-					stopPropagation( 'click', 'mousedown' ).
-					append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
+                    stopPropagation( 'click', 'mousedown' ).
+                    append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
                     css({background: strColor}).
+                    vclick( function(ev) {
+                        var $this = $(this);
+
+                        painter.setColor( $this.data('color') );
+
+                        currentColor = $this.children('.skybrush_colors_palette_color_border');
+                        currentColor.addClass('sb_show');
+
+                        ev.preventDefault();
+                    } ).
                     data( 'color', strColor );
-
-            var onClick = function() {
-                var $this = $(this);
-
-                painter.setColor( $this.data('color') );
-
-                currentColor = $this.children('.skybrush_colors_palette_color_border');
-                currentColor.addClass('sb_show');
-            }
-
-            if ( $.browser.iOS ) {
-                color.bind( 'vclick', function(ev) {
-                    onClick.call(this);
-                    ev.preventDefault();
-                } );
-            } else {
-                color.click( onClick );
-            }
-
+ 
             if ( ! $.supports.touch ) {
                 color.addClass('sb_hover_border');
             }
@@ -7222,42 +7223,40 @@
         var colourWheel = $( colourWheelCanvas ).
                 addClass( 'skybrush_color_wheel_colour_wheel' ).
                 stopPropagation( 'click' ).
-                leftdrag(
-                        function(ev) {
-                            var pos = colourWheel.offset();
+                leftdrag( function(ev) {
+                        var pos = colourWheel.offset();
 
-                            var x = ev.pageX - pos.left,
-                                y = ev.pageY - pos.top;
+                        var x = ev.pageX - pos.left,
+                            y = ev.pageY - pos.top;
 
-                            var distX = COLOUR_WHEEL_WIDTH/2 - x,
-                                distY = COLOUR_WHEEL_WIDTH/2 - y;
-                            var hypot = Math.sqrt( distX*distX + distY*distY );
+                        var distX = COLOUR_WHEEL_WIDTH/2 - x,
+                            distY = COLOUR_WHEEL_WIDTH/2 - y;
+                        var hypot = Math.sqrt( distX*distX + distY*distY );
 
-                            // change the hue
-                            if ( hypot <= COLOUR_WHEEL_WIDTH/2 ) {
-                                hue = atan2ToHue( distY, distX );
-                                var rgbs = hsvToRGB( hue, saturation, value );
-                                painter.setColor(
-                                        rgbToColor( rgbs[0], rgbs[1], rgbs[2] )
-                                );
+                        // change the hue
+                        if ( hypot <= COLOUR_WHEEL_WIDTH/2 ) {
+                            hue = atan2ToHue( distY, distX );
+                            var rgbs = hsvToRGB( hue, saturation, value );
+                            painter.setColor(
+                                    rgbToColor( rgbs[0], rgbs[1], rgbs[2] )
+                            );
 
-                                updateHue( hue );
+                            updateHue( hue );
 
-                                ev.preventDefault();
+                            ev.preventDefault();
 
-                            /*
-                             * it's right on the edge of the colour mixer,
-                             * technically inside, but visually outside.
-                             * 
-                             * So we send the event somewhere else.
-                             */
-                            } else {
-                                mixerFront.trigger( ev );
-                            }
+                        /*
+                         * it's right on the edge of the colour mixer,
+                         * technically inside, but visually outside.
+                         * 
+                         * So we send the event somewhere else.
+                         */
+                        } else {
+                            mixerFront.trigger( ev );
                         }
-                );
+                });
 
-		wheelLine.forwardEvents( colourWheel, 'vmousemove', 'vmousedown' );
+        wheelLine.forwardEvents( colourWheel, 'vmousemove', 'vmousedown' );
 
         /* Combine Colour Mixer */
 
@@ -7271,8 +7270,8 @@
             mixerVertical = $('<div>').
                     addClass( 'skybrush_mixer_vertical_line' );
 
-		$().add( mixerHorizontal ).add( mixerVertical ).
-				forwardEvents( mixerFront, 'mousedown', 'mousemove' );
+        $().add( mixerHorizontal ).add( mixerVertical ).
+                forwardEvents( mixerFront, 'mousedown', 'mousemove' );
 
         mixer.
                 append( colourBack ).
@@ -7304,33 +7303,33 @@
                 }
         );
 
-		/* Colour Picker */
+        /* Colour Picker */
 
         var picker = $('<div>').
                 addClass( 'skybrush_gui_command' ).
                 addClass( pickerCommand.getCSS() ).
-				append( $('<div>').addClass( 'skybrush_command_back' ) ).
-				append(
-						$a( '' ).
-                                attr( 'title', pickerCommand.getCaption() ).
-								click( function(ev) {
-									painter.setCommand( pickerCommand );
+                        append( $('<div>').addClass( 'skybrush_command_back' ) ).
+                        append(
+                                $a( '' ).
+                                        attr( 'title', pickerCommand.getCaption() ).
+                                        click( function(ev) {
+                                                painter.setCommand( pickerCommand );
 
-									ev.preventDefault();
-									ev.stopPropagation();
-								})
-			    );
-		picker.data( 'command', pickerCommand );
+                                                ev.preventDefault();
+                                                ev.stopPropagation();
+                                        })
+                        );
+        picker.data( 'command', pickerCommand );
 
-		painter.onSetCommand( function( command ) {
-			if ( command == picker.data('command') ) {
-				picker.ensureClass( 'sb_selected' );
-			} else {
-				picker.removeClass('sb_selected');
-			}
-		} );
+        painter.onSetCommand( function( command ) {
+            if ( command == picker.data('command') ) {
+                picker.ensureClass( 'sb_selected' );
+            } else {
+                picker.removeClass('sb_selected');
+            }
+        } );
 
-		/* Current Colour Info */
+        /* Current Colour Info */
 
         var currentColorShow = $('<div>').
                 addClass('skybrush_color_picker_current_color');
@@ -7358,18 +7357,18 @@
             );
         };
 
-		var getVal = function( input, max ) {
-			var num = input.val();
+        var getVal = function( input, max ) {
+            var num = input.val();
 
-			if ( ! isNaN(num) ) {
-				return Math.limit( num, 0, max );
-			} else {
-				return 0;
-			}
-		};
+            if ( ! isNaN(num) ) {
+                return Math.limit( num, 0, max );
+            } else {
+                return 0;
+            }
+        };
 
-		var syncAlpha = function() {
-			var val = getVal( $(this), 1.0 );
+        var syncAlpha = function() {
+            var val = getVal( $(this), 1.0 );
             painter.setAlpha( val );
         };
 
@@ -7379,18 +7378,18 @@
                     addClass('skybrush_rgb_label');
             label.text( name );
 
-			var input = $('<input>').
+            var input = $('<input>').
                     addClass( css ).
-					addClass('skybrush_rgb_input').
+                    addClass('skybrush_rgb_input').
                     attr( 'maxLength', 3 ).
                     attr( 'type', 'text' ).
                     forceNumeric( isDecimal ).
-					keyup( event ).
-					blur( function(ev) {
-						$(this).val( getVal( $(this), max ) );
+                    keyup( event ).
+                    blur( function(ev) {
+                        $(this).val( getVal( $(this), max ) );
 
-						event.call( this, ev );
-					});
+                        event.call( this, ev );
+                    });
 
             return $('<div>').
                     addClass( 'skybrush_rgb_wrap' ).
@@ -7402,16 +7401,16 @@
             var css = rgbCSSs[ name ];
 
             rgbForm.append(
-					newInput(name, css, syncRGBFormToCurrentColor, false, 255)
-			);
+                    newInput(name, css, syncRGBFormToCurrentColor, false, 255)
+            );
         }
         var alphaInput = newInput('a', 'rgb_a', syncAlpha, true, 1.0 );
         rgbForm.append( alphaInput );
 
         /* Alpha Handling */
 
-		var alphaBar = $('<div>').
-				addClass('skybrush_color_alpha_line');
+        var alphaBar = $('<div>').
+                addClass('skybrush_color_alpha_line');
         var alphaGradient = $('<div>').
                 addClass('skybrush_color_alpha_gradient');
         var alphaBar = $('<div>').
@@ -7429,45 +7428,46 @@
                 addClass('skybrush_color_picker').
                 append( $('<div>').addClass('skybrush_color_picker_current_color_back') ).
                 append( currentColorShow ).
-				append( picker ).
+                        append( picker ).
                 append( rgbForm ).
-				append( alphaWrap );
+                        append( alphaWrap );
 
-		var controlsHeader = $('<div>').
-				addClass( 'skybrush_controls_header' );
-		var controlsHeaderText = $('<div>').
-				addClass( 'skybrush_controls_header_text' );
-		controlsHeaderText.text( 'SWATCHES' );
+                var controlsHeader = $('<div>').
+                        addClass( 'skybrush_controls_header' );
+                var controlsHeaderText = $('<div>').
+                        addClass( 'skybrush_controls_header_text' );
+                controlsHeaderText.text( 'SWATCHES' );
 
-		controlsHeader.
-				append( controlsHeaderText ).
-				append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
+                controlsHeader.
+                        append( controlsHeaderText ).
+                        append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
 
-		var destinationAlpha = $('<div>').
-				addClass( 'skybrush_destination_alpha' ).
-				append(
-						$('<div>Paint Mode</div>').addClass( 'skybrush_command_control_label' )
-				).
-				append(
-						$('<input>').
-								attr( 'type', 'button' ).
-								addClass( 'skybrush_input_button' ).
-								val( 'Normal' ).
-								click( function(ev) {
-									var $this = $(this);
-									var mode = $this.val(),
-										c = painter.getCanvas();
+                var destinationAlpha = $('<div>').
+                        addClass( 'skybrush_destination_alpha' ).
+                        append(
+                                $('<div>Paint Mode</div>').addClass( 'skybrush_command_control_label' )
+                        ).
+                        append(
+                                $('<input>').
+                                        attr( 'type', 'button' ).
+                                        addClass( 'skybrush_input_button' ).
+                                        val( 'Normal' ).
+                                        click( function(ev) {
+                                            var $this = $(this);
+                                            var mode = $this.val(),
+                                                c = painter.getCanvas();
 
-									if ( mode == 'Normal' ) {
-										mode = 'Mask';
-										c.useDestinationAlpha();
-									} else {
-										mode = 'Normal';
-										c.useBlendAlpha();
-									}
-									$this.val( mode );
-								} )
-				);
+                                            if ( mode == 'Normal' ) {
+                                                mode = 'Mask';
+                                                c.useDestinationAlpha();
+                                            } else {
+                                                mode = 'Normal';
+                                                c.useBlendAlpha();
+                                            }
+
+                                            $this.val( mode );
+                                        } )
+                        );
 
         var colorGUI = new GUI( 'Palette', 'colors' );
         painter.addGUI( colorGUI );
@@ -7475,14 +7475,14 @@
 
         /* Now generate the alpha gradient, now the canvas has reflowed */
 
-		var alphaCanvas = newCheckerboard(
-				alphaGradient.width(), alphaGradient.height(),
-				true
-		);
+        var alphaCanvas = newCheckerboard(
+            alphaGradient.width(), alphaGradient.height(),
+            true
+        );
 
         var $alphaCanvas = $(alphaCanvas).
                 addClass('gradient');
-		$().add( $alphaCanvas ).add( alphaBar ).
+                $().add( $alphaCanvas ).add( alphaBar ).
                 leftdrag( function(ev) {
                     var pos = $alphaCanvas.offset(),
                           h = $alphaCanvas.height();
@@ -7530,16 +7530,16 @@
                 g = (rgb >>  8) & 0xff,
                 b = rgb & 0xff ;
 
-			var rInput = rgbForm.find( '.skybrush_rgb_r' ),
-				gInput = rgbForm.find( '.skybrush_rgb_g' ),
-				bInput = rgbForm.find( '.skybrush_rgb_b' );
+            var rInput = rgbForm.find( '.skybrush_rgb_r' ),
+                gInput = rgbForm.find( '.skybrush_rgb_g' ),
+                bInput = rgbForm.find( '.skybrush_rgb_b' );
 
-			if ( ! (rInput.is(':focus') || gInput.is(':focus') || bInput.is(':focus')) ) {
-				// and set the values
-				rInput.val( r ),
-				gInput.val( g ),
-				bInput.val( b );
-			}
+            if ( ! (rInput.is(':focus') || gInput.is(':focus') || bInput.is(':focus')) ) {
+                // and set the values
+                rInput.val( r ),
+                gInput.val( g ),
+                bInput.val( b );
+            }
 
             /* Update the Colour Mixer */
 
@@ -7594,11 +7594,11 @@
 
             currentColorShow.css({opacity: alpha});
 
-			var aInput = alphaInput.children('input');
-			if ( ! aInput.is(':focus') ) {
-				// concat alpha down to just two decimal places
-				alphaInput.children('input').val( alpha.toFixed(2) );
-			}
+            var aInput = alphaInput.children('input');
+            if ( ! aInput.is(':focus') ) {
+                // concat alpha down to just two decimal places
+                alphaInput.children('input').val( alpha.toFixed(2) );
+            }
         } );
     };
 
@@ -7613,34 +7613,34 @@
         for ( var i = 0; i < painter.commands.length; i++ ) {
             var c = painter.commands[i];
 
-			var command = $('<div>').addClass( 'skybrush_gui_command' ).addClass( c.css ).
-					append( $('<div>').addClass( 'skybrush_command_back' ) ).
-					append(
-						$a( '' ).
-                                click( function(ev) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
+            var command = $('<div>').addClass( 'skybrush_gui_command' ).addClass( c.css ).
+                    append( $('<div>').addClass( 'skybrush_command_back' ) ).
+                    append(
+                            $a( '' ).
+                                    click( function(ev) {
+                                        ev.preventDefault();
+                                        ev.stopPropagation();
 
-                                    painter.setCommand(
-                                        $(this).parent().data('command')
-                                    );
-                                } ).
-                                attr( 'title', c.getCaption() )
-					);
+                                        painter.setCommand(
+                                            $(this).parent().data('command')
+                                        );
+                                    } ).
+                                    attr( 'title', c.getCaption() )
+                    );
+
             command.data( 'command', c );
-
             commands.append( command );
         }
 
-		var controlsHeader = $('<div>').
-				addClass( 'skybrush_controls_header' );
-		var controlsHeaderText = $('<div>').
-				addClass( 'skybrush_controls_header_text' );
-		controlsHeaderText.text( 'TOOL SETTINGS' );
+        var controlsHeader = $('<div>').
+                addClass( 'skybrush_controls_header' );
+        var controlsHeaderText = $('<div>').
+                addClass( 'skybrush_controls_header_text' );
+        controlsHeaderText.text( 'TOOL SETTINGS' );
 
-		controlsHeader.
-				append( controlsHeaderText ).
-				append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
+        controlsHeader.
+                append( controlsHeaderText ).
+                append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
 
         var controlsWrap = $('<div>').
                 addClass( 'skybrush_command_controls' );
@@ -7656,7 +7656,7 @@
                 var _this = $(this);
 
                 if ( _this.data('command') == command ) {
-					_this.addClass( 'sb_selected' );
+                    _this.addClass( 'sb_selected' );
                 } else if ( _this.hasClass('sb_selected') ) {
                     _this.removeClass( 'sb_selected' );
                 }
@@ -7664,7 +7664,7 @@
 
             var controls = command.getControlsDom( painter );
 
-			// must be detach, to avoid losing the events that are hooked up
+            // must be detach, to avoid losing the events that are hooked up
             controlsWrap.children().detach();
 
             if ( controls !== nil ) {
@@ -7684,24 +7684,68 @@
     var initializeTopBar = function( painter, defaultZoom ) {
         var topbar = painter.dom.children( '.skybrush_topbar' );
 
+        var topButton = function() {
+            var fun = null,
+                args = null;
+
+            for ( var i = arguments.length-1; i >= 0; i-- ) {
+                var arg = arguments[i];
+
+                if ( isFunction(arg) ) {
+                    fun = arg;
+                    
+                    // this is the common case
+                    if ( i === arguments.length-1 ) {
+                        args = Array.prototype.slice.call( arguments, 0, i );
+                    } else if ( i === 0 ) {
+                        args = Array.prototype.slice.call( arguments, i );
+                    } else {
+                        args = Array.prototype.slice.call( arguments, 0, i ).
+                                concat(
+                                        Array.prototype.slice.call( arguments, i+1 )
+                                );
+                    }
+
+                    break;
+                }
+            }
+
+            var button;
+            if ( args === null ) {
+                button = $a.apply( null, arguments );
+            } else {
+                button = $a.apply( null, args );
+            }
+
+            button.vclick( function() {
+                painter.getInfoBar().hide();
+            } );
+
+            if ( fun !== null ) {
+                button.vclick( fun );
+            }
+
+            return button.stopPropagation( 'click', 'leftdown' );
+        }
+
         var undoRedo = $('<div>').addClass('skybrush_topbar_button_group');
-        var undoButton = $a('Undo', 'undo', 'skybrush_button', 'sb_disabled').
-                stopPropagation( 'click', 'leftdown' ).
-                click( function() {
+        var undoButton = topButton('Undo', 'undo', 'skybrush_button', 'sb_disabled',
+                function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.undo();
                     }
-                } ),
-            redoButton = $a('Redo', 'redo', 'skybrush_button', 'sb_disabled').
-                stopPropagation( 'click', 'leftdown' ).
-                click( function() {
+                }
+            ),
+            redoButton = topButton('Redo', 'redo', 'skybrush_button', 'sb_disabled',
+                function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.redo();
                     }
-                } );
+                }
+            );
 
-		undoButton.attr( 'title', 'Undo | shortcut: ctrl+z' );
-		redoButton.attr( 'title', 'Redo | shortcut: ctrl+r or ctrl+y' );
+        undoButton.attr( 'title', 'Undo | shortcut: ctrl+z' );
+        redoButton.attr( 'title', 'Redo | shortcut: ctrl+r or ctrl+y' );
 
         var updateUndoRedo = function() {
             if ( painter.hasUndo() ) {
@@ -7717,138 +7761,137 @@
             }
         };
 
-		painter.
-				onUndo( updateUndoRedo ).
-				onRedo( updateUndoRedo ).
-				onEndDraw( updateUndoRedo );
+        painter.
+                onUndo( updateUndoRedo ).
+                onRedo( updateUndoRedo ).
+                onEndDraw( updateUndoRedo );
 
-		var copy = $a('Copy', 'skybrush_button', 'sb_disabled').
-				click( function() {
-					if ( ! $(this).hasClass('sb_disabled') ) {
-						painter.copy();
-					}
-				} ),
-			cut = $a( 'Cut', 'skybrush_button', 'sb_disabled').
-				click( function() {
-					if ( ! $(this).hasClass('sb_disabled') ) {
-						painter.cut();
-					}
-				} ),
-			paste = $a('Paste', 'skybrush_button', 'sb_disabled').
-				click( function() {
-					if ( ! $(this).hasClass('sb_disabled') ) {
-						painter.paste();
-					}
-				} );
+        var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.copy();
+                        }
+                    } ),
+            cut = topButton( 'Cut', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.cut();
+                        }
+                    } ),
+            paste = topButton('Paste', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.paste();
+                        }
+                    } );
 
-		 copy.attr( 'title', 'Copy Selection | shortcut: ctrl+c' );
-		  cut.attr( 'title', 'Cut Selection | shortcut: ctrl+x' );
-		paste.attr( 'title', 'Paste Selection | shortcut: ctrl+v' );
+         copy.attr( 'title', 'Copy Selection | shortcut: ctrl+c' );
+          cut.attr( 'title', 'Cut Selection | shortcut: ctrl+x' );
+        paste.attr( 'title', 'Paste Selection | shortcut: ctrl+v' );
 
-		painter.getCanvas().
-				onClip( function(clippingArea) {
-					if ( clippingArea !== nil ) {
-						copy.removeClass('sb_disabled');
-						 cut.removeClass('sb_disabled');
-					} else {
-						copy.ensureClass('sb_disabled');
-						 cut.ensureClass('sb_disabled');
-					}
-				} ).
-				onCopy( function() {
-					paste.removeClass( 'sb_disabled' );
-				} );
+        painter.getCanvas().
+                onClip( function(clippingArea) {
+                    if ( clippingArea !== nil ) {
+                        copy.removeClass('sb_disabled');
+                         cut.removeClass('sb_disabled');
+                    } else {
+                        copy.ensureClass('sb_disabled');
+                         cut.ensureClass('sb_disabled');
+                    }
+                } ).
+                onCopy( function() {
+                    paste.removeClass( 'sb_disabled' );
+                } );
 
         undoRedo.append( undoButton ).
-				 append( redoButton );
+                 append( redoButton );
 
         var copyButtons = $('<div>').addClass('skybrush_topbar_button_group').
-				 append( copy ).
-				 append( cut ).
-				 append( paste );
+                 append( copy ).
+                 append( cut ).
+                 append( paste );
 
         /* Resize & Scale */
-		var infoOption = function( name, onSuccess, extraComponents ) {
+        var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
 
-			return $a(name, 'skybrush_button').
-					stopPropagation( 'click', 'leftdown' ).
-					click( function() {
-						var width  = painter.getCanvas().getWidth(),
-							height = painter.getCanvas().getHeight();
+            return topButton(name, 'skybrush_button',
+                    function() {
+                        var width  = painter.getCanvas().getWidth(),
+                            height = painter.getCanvas().getHeight();
 
-						var widthInput  = $('<input type="number" value="' + width  + '">').
+                        var widthInput  = $('<input type="number" value="' + width  + '">').
                                     addClass( 'sb_width' ),
-							heightInput = $('<input type="number" value="' + height + '">').
+                            heightInput = $('<input type="number" value="' + height + '">').
                                     addClass( 'sb_height' ),
-							constrain = $('<input type="checkbox">').
+                            constrain = $('<input type="checkbox">').
                                     addClass( 'constrain' );
 
                         constrain.prop( 'checked', isConstrained );
 
-						/* Update the width/height in the other
-						*  input, when the value changes in this one,
-						*  if we're using 'constrain proportions'.
-						*/
-						widthInput.keydown( function() {
-							var $this = $(this);
+                        /* Update the width/height in the other
+                         *  input, when the value changes in this one,
+                         *  if we're using 'constrain proportions'.
+                         */
+                        widthInput.keydown( function() {
+                            var $this = $(this);
 
-							/* setTimeout is used because the input.val is
-							* only updated after this has fully bubbled up.
-							* So we run the code straight after.
-							*/
+                            /* setTimeout is used because the input.val is
+                             * only updated after this has fully bubbled up.
+                             * So we run the code straight after.
+                             */
                             if ( constrain.is(':checked') ) {
                                 setTimeout( function() {
-									var w = $this.val();
+                                    var w = $this.val();
 
-									if ( ! isNaN(w) && w > 0 ) {
-										heightInput.val(
-												Math.round(height * (w/width))
-										);
-									}
+                                    if ( ! isNaN(w) && w > 0 ) {
+                                        heightInput.val(
+                                                Math.round(height * (w/width))
+                                        );
+                                    }
                                 }, 1 );
                             }
-						} );
-						heightInput.keydown( function() {
-							var $this = $(this);
+                        } );
+                        heightInput.keydown( function() {
+                            var $this = $(this);
 
                             if ( constrain.is(':checked') ) {
                                 setTimeout( function() {
-									var h = $this.val();
+                                    var h = $this.val();
 
-									if ( ! isNaN(h) && h > 0 ) {
-										widthInput.val(
-												Math.round(width * (h/height))
-										);
-									}
+                                    if ( ! isNaN(h) && h > 0 ) {
+                                        widthInput.val(
+                                                Math.round(width * (h/height))
+                                        );
+                                    }
                                 }, 1 );
                             }
-						} );
+                        } );
 
-						/*
+                        /*
                          * Reset the width/height when the user
- 						 * turns the constrain property on.
-						 */
-						constrain.change( function() {
+                         * turns the constrain property on.
+                         */
+                        constrain.change( function() {
                             isConstrained = $(this).is(':checked');
 
-							if ( isConstrained ) {
-								widthInput.val( width );
-								heightInput.val( height );
-							}
-						} );
+                            if ( isConstrained ) {
+                                widthInput.val( width );
+                                heightInput.val( height );
+                            }
+                        } );
 
-						/*
-						 * This funky bit of syntax first creates an empty
-						 * jQuery collection (the $()), and then adds to
-						 * DOM elements to it.
-						 *
-						 * This allows us to operate on both width and height.
-						 * Just imagine it being like: [ widthInput, heightInput ].
-						 */
-						$().add( widthInput ).add( heightInput ).
-								attr( 'maxlength', 5 ).
-								forceNumeric( false );
+                        /*
+                         * This funky bit of syntax first creates an empty
+                         * jQuery collection (the $()), and then adds to
+                         * DOM elements to it.
+                         *
+                         * This allows us to operate on both width and height.
+                         * Just imagine it being like: [ widthInput, heightInput ].
+                         */
+                        $().add( widthInput ).add( heightInput ).
+                                attr( 'maxlength', 5 ).
+                                forceNumeric( false );
 
                         var form = $('<form>');
                         form.submit( function(ev) {
@@ -7865,11 +7908,11 @@
                             painter.getInfoBar().hide();
                         } );
 
-						var okButton = $('<input>').
-								attr( 'type', 'submit' ).
-								stopPropagation( 'click', 'mousedown' ).
-								val( 'ok' ).
-								click( function() {
+                        var okButton = $('<input>').
+                                attr( 'type', 'submit' ).
+                                stopPropagation( 'click', 'mousedown' ).
+                                val( 'ok' ).
+                                click( function() {
                                     form.submit();
                                 } );
 
@@ -7885,23 +7928,24 @@
                             extraComponents(form);
                         }
 
-                        form.
-                                append( okButton );
+                        form.append( okButton );
 
-						painter.getInfoBar().
-								setContent( form ).
-								show( $(this) );
-					});
-		};
+                        painter.getInfoBar().
+                                setContent( form ).
+                                show( $(this) );
+                    });
+        };
 
-		var resize = infoOption( 'Canvas Size',
+        var resize = infoOption(
+                'Canvas Size',
                 function( w, h ) {
                     painter.resize( w, h );
                 }
         );
 
         var isSmooth = false;
-		var scale = infoOption( 'Image Size',
+        var scale = infoOption(
+                'Image Size',
                 function( w, h ) {
                     painter.scale( w, h, $(this).find('input.smooth').is(':checked') );
                 },
@@ -7919,17 +7963,14 @@
                 }
         );
 
-		var grid = $a( 'Grid', 'grid', 'skybrush_button' ).
-				stopPropagation( 'click', 'leftdown' ).
-				click( function(ev) {
-					ev.preventDefault();
+        var grid = topButton( 'Grid', 'grid', 'skybrush_button',
+                function(ev) {
+                    var grid = painter.getCanvas().getGrid(),
+                        width = $('<input>'),
+                            height = $('<input>');
 
-					var grid = painter.getCanvas().getGrid(),
-					    width = $('<input>'),
-						height = $('<input>');
-
-					width.val( grid.getWidth() );
-					height.val( grid.getHeight() );
+                    width.val( grid.getWidth() );
+                    height.val( grid.getHeight() );
 
                     var updateSize = function() {
                         setTimeout( function() {
@@ -7940,88 +7981,90 @@
                         }, 1 );
                     };
 
-					$().add( width ).add( height ).
-							forceNumeric( false ).
-							attr( 'type', 'number' ).
+                    $().add( width ).add( height ).
+                            forceNumeric( false ).
+                            attr( 'type', 'number' ).
                             keypress( updateSize ).
                             click( updateSize ).
-							change( updateSize );
+                            change( updateSize );
 
-					var offsetX = $('<input>'),
-						offsetY = $('<input>');
+                    var offsetX = $('<input>'),
+                        offsetY = $('<input>');
 
-					offsetX.val( grid.getOffsetX() );
-					offsetY.val( grid.getOffsetY() );
+                    offsetX.val( grid.getOffsetX() );
+                    offsetY.val( grid.getOffsetY() );
 
                     var updateOffset = function() {
                         setTimeout( function() {
-                            grid.setOffset(
-                                    offsetX.val(),
-                                    offsetY.val()
-                            );
+                                grid.setOffset(
+                                        offsetX.val(),
+                                        offsetY.val()
+                                );
                         }, 1 );
                     };
 
-					$().add( offsetX ).add( offsetY ).
-								forceNumeric( false ).
-								attr( 'type', 'number' ).
-                                keypress( updateOffset ).
-                                click( updateOffset ).
-                                change( updateOffset );
+                    $().add( offsetX ).add( offsetY ).
+                            forceNumeric( false ).
+                            attr( 'type', 'number' ).
 
-					var show = $('<input>').
-							attr( 'type', 'checkbox' ).
-							change( function() {
-								if ( $(this).is(':checked') ) {
-									grid.show();
-								} else {
-									grid.hide();
-								}
-							} );
-					if ( grid.isShown() ) {
-						show.attr('checked', 'checked');
-					}
+                    keypress( updateOffset ).
+                    click( updateOffset ).
+                    change( updateOffset );
 
-					painter.getInfoBar().setContent(
-									$('<div>Width:</div>').addClass( 'skybrush_info_label' ),
-									width,
-									$('<div>Height:</div>').addClass( 'skybrush_info_label' ),
-									height,
+                    var show = $('<input>').
+                            attr( 'type', 'checkbox' ).
+                            change( function() {
+                                if ( $(this).is(':checked') ) {
+                                    grid.show();
+                                } else {
+                                    grid.hide();
+                                }
+                            } );
+                    if ( grid.isShown() ) {
+                        show.attr('checked', 'checked');
+                    }
 
-									$('<div>X Offset:</div>').addClass( 'skybrush_info_label' ),
-									offsetX,
-									$('<div>Y Offset:</div>').addClass( 'skybrush_info_label' ),
-									offsetY,
+                    painter.getInfoBar().setContent(
+                            $('<div>Width:</div>').addClass( 'skybrush_info_label' ),
+                            width,
+                            $('<div>Height:</div>').addClass( 'skybrush_info_label' ),
+                            height,
 
-									$('<div>Show</div>').addClass( 'skybrush_info_label' ),
-									show
-						    ).show( $(this) );
-				});
+                            $('<div>X Offset:</div>').addClass( 'skybrush_info_label' ),
+                            offsetX,
+                            $('<div>Y Offset:</div>').addClass( 'skybrush_info_label' ),
+                            offsetY,
+
+                            $('<div>Show</div>').addClass( 'skybrush_info_label' ),
+                            show
+                    ).show( $(this) );
+                }
+        );
 
         /* Clear Canvas */
-		var crop = $a('Crop', 'skybrush_button').
-				stopPropagation( 'click', 'leftdown' ).
-				click( function() {
-					painter.getCanvas().crop();
-				} );
-		crop.attr( 'title', 'Crop Image, ctrl+e' );
+        var crop = topButton('Crop', 'skybrush_button',
+                function() {
+                    painter.getCanvas().crop();
+                }
+        );
+        crop.attr( 'title', 'Crop Image, ctrl+e' );
 
-        var clear = $a('Clear', 'skybrush_button' ).
-                stopPropagation( 'click', 'leftdown' ).
-                click( function() {
+        var clear = topButton('Clear', 'skybrush_button',
+                function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.getCanvas().clear();
                     }
-                } );
-		clear.attr( 'title', 'Clear Image, delete' );
+                }
+        );
+        clear.attr( 'title', 'Clear Image, delete' );
 
         var commonControls = $('<div>').
                 addClass( 'skybrush_topbar_button_group' ).
                 append( resize ).
-				append( scale ).
-				append( grid ).
+                append( scale ).
+                append( grid ).
                 append( clear ).
-				append( crop );
+                append( crop );
 
         /* Build the Save / Load */
 
@@ -8030,23 +8073,23 @@
         // see: https://developer.mozilla.org/en/Using_files_from_web_applications
         // see: http://www.html5rocks.com/en/tutorials/file/dndfiles/
         if (window.File && window.FileReader && window.FileList && window.Blob) {
-            var load = $a( 'Load', 'load', 'skybrush_button' ).
-                    click( function() {
+            var load = topButton( 'Load', 'load', 'skybrush_button',
+                    function() {
                         // TODO
-                    } );
+                    }
+            );
         }
 
         /* Build the zoom control. */
 
-        var zoomSlider =
-                $slider().
-                        addClass('skybrush_zoom_bar').
-                        limit( 0, MAX_ZOOM ).
-                        val( MAX_ZOOM/2 ).
-                        step( 1 ).
-                        slide( function(ev, n, p) {
-                            painter.setZoomPercent( p );
-                        } );
+        var zoomSlider = $slider().
+                addClass('skybrush_zoom_bar').
+                limit( 0, MAX_ZOOM ).
+                val( MAX_ZOOM/2 ).
+                step( 1 ).
+                slide( function(ev, n, p) {
+                    painter.setZoomPercent( p );
+                } );
 
         var zoomLabel = $('<div>').addClass( 'skybrush_zoom_label' );
 
@@ -8069,18 +8112,16 @@
         } );
 
         var zoom = $('<div>').
-				addClass( 'skybrush_zoom_control' ).
-				addClass( 'skybrush_button' );
+                addClass( 'skybrush_zoom_control' ).
+                addClass( 'skybrush_button' );
 
         // the zoom in/out buttons
-        var zoomOutButton = $a('+', 'skybrush_top_bar_zoom_in').
-                stopPropagation( 'click', 'leftdown' ).
-                click( function() {
+        var zoomOutButton = topButton('+', 'skybrush_top_bar_zoom_in',
+                function() {
                     zoomSlider.slideUp();
                 } );
-        var zoomInButton = $a('-', 'skybrush_top_bar_zoom_out').
-                stopPropagation( 'click', 'leftdown' ).
-                click( function() {
+        var zoomInButton = topButton('-', 'skybrush_top_bar_zoom_out',
+                function() {
                     zoomSlider.slideDown();
                 } );
 
@@ -8103,24 +8144,22 @@
                 append( zoom ).
                 append( zoomLabel );
 
-
-
         topbar.
                 append( zoomWrap ).
                 append( undoRedo ).
-				append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
-				append( copyButtons ).
-				append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
+                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
+                append( copyButtons ).
+                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
                 append( commonControls );
 
         zoomSlider.setSlide( zoomToPercent(defaultZoom) );
     };
 
-	/*
-	 * Sets up some common shortcuts,
-	 * not that not all are set here, such as undo/redo.
-	 */
-	var initializeShortcuts = function( painter, dontGrabCtrlR ) {
+    /*
+     * Sets up some common shortcuts,
+     * not that not all are set here, such as undo/redo.
+     */
+    var initializeShortcuts = function( painter, dontGrabCtrlR ) {
         var domObj = painter.dom.get(0);
 
         // make the dom focusable
@@ -8135,7 +8174,7 @@
             SHIFT = 16,
             DELETE = 46;
 
-		painter.
+        painter.
                 /* alternate commands - Shift key */
                 onKeyToggle( SHIFT, function(isShiftDown) {
                     painter.runOnShift( isShiftDown );
@@ -8153,35 +8192,35 @@
         painter.
                 onCtrl( 'y', redoFun ).
 
-				/* Undo - ctrl + z */
-				onCtrl( 'z', function() {
-					painter.undo();
-				} ).
+                /* Undo - ctrl + z */
+                onCtrl( 'z', function() {
+                        painter.undo();
+                } ).
 
-				/* Crop - ctrl+e */
-				onCtrl( 'e', function() {
-					painter.getCanvas().crop();
-				} ).
+                /* Crop - ctrl+e */
+                onCtrl( 'e', function() {
+                        painter.getCanvas().crop();
+                } ).
 
-				/* Clear - delete key */
+                /* Clear - delete key */
                 onKey( DELETE, function(ev) {
                     painter.getCanvas().clear();
                 } ).
 
-				/* Copy */
-				onCtrl( 'c', function() {
-					painter.copy();
-				} ).
+                /* Copy */
+                onCtrl( 'c', function() {
+                        painter.copy();
+                } ).
 
-				/* Cut */
-				onCtrl( 'x', function() {
-					painter.cut();
-				} ).
+                /* Cut */
+                onCtrl( 'x', function() {
+                        painter.cut();
+                } ).
 
-				/* Paste */
-				onCtrl( 'v', function() {
-					painter.paste();
-				} ).
+                /* Paste */
+                onCtrl( 'v', function() {
+                        painter.paste();
+                } ).
 
                 /* Select All */
                 onCtrl( 'a', function() {
@@ -8236,7 +8275,7 @@
                 }
             }
         } );
-	};
+    };
 
     /**
      * Given a value from 0.0 to 1.0,
@@ -8449,14 +8488,14 @@
     };
 
     SkyBrush.prototype.startDraw = function( ev ) {
-		if ( ! this.isDragging() ) {
+        if ( ! this.isDragging() ) {
             this.processCommand( 'onDown', ev );
             this.isPainting = true;
 
             ev.preventDefault();
         }
 
-		return false;
+        return false;
     };
 
     SkyBrush.prototype.processOnDraw = function( ev ) {
@@ -8468,19 +8507,19 @@
         }
     };
 
-	/**
-	 * Called when this has finished drawing.
-	 * This starts the whole 'endDraw' process,
-	 * which can include update undo/redo stacks,
-	 * dealing with overlay's, updating the upscale,
-	 * and lots more stuff.
-	 *
-	 * All of that comes from this entry point,
-	 * but only if it's painting.
-	 *
-	 * @private
-	 * @param ev
-	 */
+    /**
+     * Called when this has finished drawing.
+     * This starts the whole 'endDraw' process,
+     * which can include update undo/redo stacks,
+     * dealing with overlay's, updating the upscale,
+     * and lots more stuff.
+     *
+     * All of that comes from this entry point,
+     * but only if it's painting.
+     *
+     * @private
+     * @param ev
+     */
     SkyBrush.prototype.endDraw = function( ev ) {
         if ( this.isPainting ) {
             this.isPainting = false;
@@ -8497,7 +8536,7 @@
     /**
      * Starts dragging on the GUI component given.
      *
-	 * @private
+     * @private
      * @param gui The GUI component being dragged.
      */
     SkyBrush.prototype.startDrag = function( gui ) {
@@ -8510,8 +8549,8 @@
 
     /**
      * The dragging action, dragging GUI elements across the screen.
-	 *
-	 * @private
+     *
+     * @private
      */
     SkyBrush.prototype.processOnDrag = function( ev ) {
         if ( this.dragging !== nil ) {
@@ -8525,8 +8564,8 @@
     /**
      * If the SkyBrush is currently dragging a GUI component,
      * then it will stop.
-	 *
-	 * @private
+     *
+     * @private
      */
     SkyBrush.prototype.endDrag = function( ev ) {
         if ( this.isDragging() ) {
@@ -8539,7 +8578,7 @@
     };
 
     /**
-	 * @private
+     * @private
      * @return True if this SkyBrush is currently dragging a GUI component, otherwise false.
      */
     SkyBrush.prototype.isDragging = function() {
@@ -8549,7 +8588,7 @@
     /**
      * Adds a new GUI component to float on top of this SkyBrush.
      *
-	 * @private
+     * @private
      * @param gui The GUI component to display.
      */
     SkyBrush.prototype.addGUI = function( gui ) {
@@ -8557,27 +8596,27 @@
         this.dom.append( gui.dom );
     };
 
-	/**
-	 * As code retrieving GUI's should never be after one
-	 * that does not exist, this will return null to force you
-	 * to get the right GUI.
-	 *
-	 * This is to avoid you accidentally working on an empty
-	 * jQuery object, and wondering why it's not working.
-	 *
-	 * @private
-	 * @return The GUI overlay with the name given, as a jQuery object, or null if not found.
-	 */
-	SkyBrush.prototype.getGUI = function( klass ) {
-		var gui = this.dom.children( '.skybrush_gui.' + klass );
-		return gui.size() > 0 ? gui : nil ;
-	};
+    /**
+     * As code retrieving GUI's should never be after one
+     * that does not exist, this will return null to force you
+     * to get the right GUI.
+     *
+     * This is to avoid you accidentally working on an empty
+     * jQuery object, and wondering why it's not working.
+     *
+     * @private
+     * @return The GUI overlay with the name given, as a jQuery object, or null if not found.
+     */
+    SkyBrush.prototype.getGUI = function( klass ) {
+        var gui = this.dom.children( '.skybrush_gui.' + klass );
+        return gui.size() > 0 ? gui : nil ;
+    };
 
-	/**
-	 * Toggles between showing/hiding the overlay GUI dialogs.
-	 *
-	 * @public
-	 */
+    /**
+     * Toggles between showing/hiding the overlay GUI dialogs.
+     *
+     * @public
+     */
     SkyBrush.prototype.toggleGUIs = function() {
         var guis = this.dom.children( '.skybrush_gui' );
 
@@ -8620,14 +8659,14 @@
         return this;
     };
 
-	/**
-	 * If the GUI overlays are not current shown,
-	 * then they will be now.
-	 *
-	 * They get faded in, and you can use 'hideGUIs' to hide them.
-	 *
-	 * @public
-	 */
+    /**
+     * If the GUI overlays are not current shown,
+     * then they will be now.
+     *
+     * They get faded in, and you can use 'hideGUIs' to hide them.
+     *
+     * @public
+     */
     SkyBrush.prototype.showGUIs = function() {
         var guis = this.dom.children( '.skybrush_gui' );
         guis.css({display: 'block'}).
@@ -8648,9 +8687,9 @@
     var CTX_BACKUP_PROPERTIES = [
             'fillStyle',
             'strokeStyle',
-			'lineCap',
-			'lineJoin',
-			'lineWidth',
+            'lineCap',
+            'lineJoin',
+            'lineWidth',
             'globalAlpha',
             'globalCompositeOperation'
     ];
@@ -8725,10 +8764,10 @@
         return this;
     };
 
-	/**
-	 * @param {number} newWidth The new Width of the canvas.
-	 * @param {number} newHeight The new Height of the canvas.
-	 */
+    /**
+     * @param {number} newWidth The new Width of the canvas.
+     * @param {number} newHeight The new Height of the canvas.
+     */
     SkyBrush.prototype.scale = function( newWidth, newHeight, isSmooth ) {
         this.canvas.scale( newWidth, newHeight, isSmooth );
 
@@ -8776,9 +8815,9 @@
         return this;
     };
 
-	/**
-	 * @return {number} The current zoom level as a percent from 0.0 (min zoom) to 1.0 (max zoom).
-	 */
+    /**
+     * @return {number} The current zoom level as a percent from 0.0 (min zoom) to 1.0 (max zoom).
+     */
     SkyBrush.prototype.getZoomPercent = function() {
         return zoomToPercent( this.getZoom() );
     };
@@ -8850,13 +8889,13 @@
         return this;
     };
 
-	/**
-	 * Zooms into the location given, or if not provided, the
+    /**
+     * Zooms into the location given, or if not provided, the
      * centre of the viewport.
-	 *
-	 * @param {number} x The x co-ordinate to zoom into.
-	 * @param {number} y The y co-ordinate to zoom into.
-	 */
+     *
+     * @param {number} x The x co-ordinate to zoom into.
+     * @param {number} y The y co-ordinate to zoom into.
+     */
     SkyBrush.prototype.zoomIn = function( x, y ) {
         var zoom = percentToZoom( this.getZoomPercent() + 1/MAX_ZOOM );
         this.setZoom( zoom, x, y );
@@ -8864,12 +8903,12 @@
         return this;
     };
 
-	/**
-	 * Zooms out at the location given (location is optional).
-	 *
-	 * @param {number} x The x co-ordinate to zoom out of.
-	 * @param {number} y The y co-ordinate to zoom out of.
-	 */
+    /**
+     * Zooms out at the location given (location is optional).
+     *
+     * @param {number} x The x co-ordinate to zoom out of.
+     * @param {number} y The y co-ordinate to zoom out of.
+     */
     SkyBrush.prototype.zoomOut = function( x, y ) {
         var zoom = percentToZoom( this.getZoomPercent() - 1/MAX_ZOOM );
         this.setZoom( zoom, x, y );
@@ -8894,7 +8933,7 @@
      * and if shift is down or not is passed into the first
      * parameter.
      *
-	 * @param fun The event to run.
+     * @param fun The event to run.
      */
     SkyBrush.prototype.removeOnShift = function( fun ) {
         this.events.remove( 'onShift', fun );
@@ -9027,11 +9066,11 @@
         return this.isAltDownFlag;
     };
 
-	/**
-	 * Add an event to be run when this zooms in.
-	 *
-	 * @param fun The event to run.
-	 */
+    /**
+     * Add an event to be run when this zooms in.
+     *
+     * @param fun The event to run.
+     */
     SkyBrush.prototype.onZoom = function( fun ) {
         this.events.add( 'onZoom', fun );
 
@@ -9075,13 +9114,13 @@
         return this;
     };
 
-	SkyBrush.prototype.getAlpha = function() {
-		return this.canvas.getAlpha();
-	};
+    SkyBrush.prototype.getAlpha = function() {
+        return this.canvas.getAlpha();
+    };
 
-	SkyBrush.prototype.getColor = function() {
-		return this.canvas.getColor();
-	};
+    SkyBrush.prototype.getColor = function() {
+        return this.canvas.getColor();
+    };
 
     /**
      * @param strColor The colour to use when drawing.
@@ -9100,44 +9139,44 @@
         return this;
     };
 
-	SkyBrush.prototype.switchCommand = function( name ) {
-		name = name.toLowerCase();
+    SkyBrush.prototype.switchCommand = function( name ) {
+        name = name.toLowerCase();
 
-		for ( var i = 0; i < this.commands.length; i++ ) {
-			if ( this.commands[i].getName().toLowerCase() == name ) {
-				return this.setCommand( this.commands[i] );
-			}
-		}
+        for ( var i = 0; i < this.commands.length; i++ ) {
+            if ( this.commands[i].getName().toLowerCase() == name ) {
+                return this.setCommand( this.commands[i] );
+            }
+        }
 
-		return this;
-	};
+        return this;
+    };
 
-	/**
-	 * Note that events are only fired if the command given
-	 * is different to the current command.
-	 *
-	 * @param command The Command object to switch to.
-	 * @return this SkyBrush object.
-	 */
+    /**
+     * Note that events are only fired if the command given
+     * is different to the current command.
+     *
+     * @param command The Command object to switch to.
+     * @return this SkyBrush object.
+     */
     SkyBrush.prototype.setCommand = function( command ) {
-		/*
-		* If you click on the same command, multiple times,
-		* then nothing happens.
-		*
-		* Update only happens when you change command.
-		*/
-		if ( this.command != command ) {
+        /*
+         * If you click on the same command, multiple times,
+         * then nothing happens.
+         *
+         * Update only happens when you change command.
+         */
+        if ( this.command != command ) {
             if ( this.command ) {
                 this.command.onDetach( this );
             }
 
-			this.command = command;
+            this.command = command;
             command.onAttach( this );
 
-			this.events.run( 'onsetcommand', command );
-		}
+            this.events.run( 'onsetcommand', command );
+        }
 
-		return this;
+        return this;
     };
 
     /**
@@ -9300,22 +9339,22 @@
         return this;
     };
 
-	SkyBrush.prototype.cut = function() {
-		this.canvas.cut();
-		return this;
-	};
+    SkyBrush.prototype.cut = function() {
+        this.canvas.cut();
+        return this;
+    };
 
-	SkyBrush.prototype.copy = function() {
-		this.canvas.copy();
-		return this;
-	};
+    SkyBrush.prototype.copy = function() {
+        this.canvas.copy();
+        return this;
+    };
 
-	SkyBrush.prototype.paste = function() {
-		this.canvas.paste();
-		this.switchCommand( 'move' );
+    SkyBrush.prototype.paste = function() {
+        this.canvas.paste();
+        this.switchCommand( 'move' );
 
-		return this;
-	};
+        return this;
+    };
 
     /* Undo / Redo functionality */
 
@@ -9329,11 +9368,13 @@
 
     SkyBrush.prototype.onUndo = function( fun ) {
         this.events.add( 'onundo', fun );
+
         return this;
     };
 
     SkyBrush.prototype.onRedo = function( fun ) {
         this.events.add( 'onredo', fun );
+
         return this;
     };
 
@@ -9389,7 +9430,7 @@
         return this.canvas.getHeight();
     };
 
-	/**
+    /**
      * Entirely removes any setup this currently has.
      *
      * This should be used when setting entirely new
@@ -9402,12 +9443,12 @@
      * 
      * @return This SkyBrush object.
      */
-	SkyBrush.prototype.reset = function() {
+    SkyBrush.prototype.reset = function() {
         this.canvas.reset();
         this.setZoom( DEFAULT_ZOOM );
 
-		return this;
-	};
+        return this;
+    };
 
     window['SkyBrush'] = SkyBrush;
 })( window, document, null );
