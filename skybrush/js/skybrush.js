@@ -150,6 +150,14 @@
 		DEFAULT_GRID_HEIGHT = 5, // pixels
 
         /**
+         * If we are touch, or not.
+         *
+         * @const
+         * @type {boolean}
+         */
+        IS_TOUCH = !! window.Touch,
+
+        /**
          * The name of the command to select as default,
          * when the user first sees painter.
          * 
@@ -652,6 +660,14 @@
                             slideTo( $this, slider, (mx > sliderX) );
                         }
                     } ).
+
+                    /*
+                     * Browsers that support touch,
+                     * also support proper sliders.
+                     *
+                     * So this should never be hit by a touch browser
+                     * (hopefully).
+                     */
                     mousemove( function(ev) {
                         var $this = $(this);
                         var slider = $this.children('.skybrush_slider_bar_slider');
@@ -1522,6 +1538,9 @@
         header.leftdown( function(ev) {
             _this.parent.startDrag( _this.startDrag(ev) );
         });
+        content.bind( 'vmousedown', function(ev) {
+            ev.stopPropagation();
+        } );
 
         if ( $.browser.msie ) {
             header.bind( 'selectstart', function() {return false;} );
@@ -6052,9 +6071,13 @@
         BRUSH_CURSOR_SMALL_RENDER_SIZE = 19;
 
     /**
+     * If 'isTouch' is set, then only 'showTouch' and 'hideTouch'
+     * will actually allow this to be seen or not.
      *
+     * The other 'show' and 'hide' will still look like they work,
+     * and will as far as they can, except nothing actually appeares.
      */
-    var BrushCursor = function( viewport ) {
+    var BrushCursor = function( viewport, isTouch ) {
         var _this = this;
 
         var dom = $('<div class="skybrush_brush"></div>');
@@ -6069,6 +6092,9 @@
 
         // initializes to no size
         _this.isHidden = false;
+        _this.isReallyHidden = false;
+        _this.isTouch = isTouch;
+
         _this.size = 0;
         _this.zoomSize = 0;
         _this.cssSetup = {};
@@ -6083,28 +6109,66 @@
         _this.update( 0, 0 );
         _this.setSquare();
         _this.setSize( 100, 1 );
+
+        if ( isTouch ) {
+            _this.hideTouch();
+        }
     };
 
     BrushCursor.prototype.onMove = function(ev) {
         return this.update( ev.pageX, ev.pageY );
     };
 
-    BrushCursor.prototype.hide = function() {
-        if ( ! this.isHidden ) {
-            this.isHidden = true;
+    BrushCursor.prototype.showTouch = function() {
+        // don't show if hidden!
+        if ( this.isTouch && !this.isHidden ) {
+            this.showInner(); 
+        }
 
-            this.dom.css({display: 'none'});
+        return this;
+    };
+    BrushCursor.prototype.hideTouch = function() {
+        if ( this.isTouch ) {
+            this.hideInner();
+        }
+
+        return this;
+    };
+    BrushCursor.prototype.show = function() {
+        this.isHidden = false;
+
+        if ( ! this.isTouch ) {
+            this.showInner();
+        }
+
+        return this;
+    };
+    BrushCursor.prototype.hide = function() {
+        this.isHidden = true;
+
+        if ( ! this.isTouch ) {
+            this.hideInner();
         }
 
         return this;
     };
 
-    BrushCursor.prototype.show = function() {
-        if ( this.isHidden ) {
-            this.isHidden = false;
+    BrushCursor.prototype.showInner = function() {
+        if ( this.isReallyHidden ) {
+            this.isReallyHidden = false;
 
             this.dom.css({display: 'block'});
             this.refreshShape();
+        }
+
+        return this;
+    };
+
+    BrushCursor.prototype.hideInner = function() {
+        if ( ! this.isReallyHidden ) {
+            this.isReallyHidden = true;
+
+            this.dom.css({display: 'none'});
         }
 
         return this;
@@ -6675,7 +6739,7 @@
 
         _this.infoBar = new InfoBar( dom );
 
-        _this.brushCursor = new BrushCursor( _this.viewport, _this );
+        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
@@ -6707,16 +6771,9 @@
 
         /* Handle GUI dragging. */
         $(document).
-                // these return false to stop chrome from changing the mouse cursor
-                vLeftDown(
-                        function(ev) { return _this.onMouseDown( ev );  }
-                ).
-                vMouseMove(
-                        function(ev) { return _this.onMove( ev );       }
-                ).
-                vLeftUp(
-                        function(ev) { return _this.onMouseUp( ev );    }
-                );
+                bind('vmousedown', function(ev) { return _this.onMouseDown(ev); }).
+                bind('vmousemove', function(ev) { return _this.onMove(ev); }).
+                bind('vmouseup'  , function(ev) { return _this.onMouseUp(ev); });
 
         var startingWidth  = options.width  || DEFAULT_WIDTH,
             startingHeight = options.height || DEFAULT_HEIGHT;
@@ -6988,6 +7045,8 @@
     var initializeColors = function( painter, pickerCommand ) {
         /* Colour Palette */
 
+        var currentColor = null;
+
         var colors = $('<div>').addClass( 'skybrush_colors_palette' );
         var newColor = function( painter, colors, strColor ) {
             var color = $a( '', 'skybrush_colors_palette_color' ).
@@ -6995,9 +7054,22 @@
 					append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
                     css({background: strColor}).
                     data( 'color', strColor ).
-                    click( function() {
-                        painter.setColor( $(this).data('color') );
+                    click( function(ev) {
+                        console.log('click');
+                        var $this = $(this);
+
+                        painter.setColor( $this.data('color') );
+
+                        currentColor = $this.children('.skybrush_colors_palette_color_border');
+                        currentColor.addClass('sb_show');
+
+                        //ev.preventDefault();
+                        //
                     } );
+
+            if ( ! $.supports.touch ) {
+                color.addClass('sb_hover_border');
+            }
 
             colors.append( color );
         };
@@ -7164,14 +7236,22 @@
                                 );
 
                                 updateHue( hue );
-                            // send the event somewhere else
+
+                                ev.preventDefault();
+
+                            /*
+                             * it's right on the edge of the colour mixer,
+                             * technically inside, but visually outside.
+                             * 
+                             * So we send the event somewhere else.
+                             */
                             } else {
                                 mixerFront.trigger( ev );
                             }
                         }
                 );
 
-		wheelLine.forwardEvents( colourWheel, 'mousemove', 'mousedown' );
+		wheelLine.forwardEvents( colourWheel, 'vmousemove', 'vmousedown' );
 
         /* Combine Colour Mixer */
 
@@ -7213,6 +7293,8 @@
 
                         painter.setColor( rgbToColor( rgb[0], rgb[1], rgb[2] ) );
                     }
+
+                    ev.preventDefault();
                 }
         );
 
@@ -7401,6 +7483,8 @@
 
                     var y = Math.limit( ev.pageY - pos.top, 0, h );
                     painter.setAlpha( y / h );
+
+                    ev.preventDefault();
                 } );
         alphaGradient.replaceWith( $alphaCanvas );
 
@@ -7423,6 +7507,11 @@
          */
 
         painter.onSetColor( function(strColor) {
+            if ( currentColor !== null ) {
+                currentColor.removeClass( 'sb_show' );
+                currentColor = null;
+            }
+
             // update the shown colour
             currentColorShow.css({background: strColor});
             alphaBar.css({background: strColor});
@@ -8226,6 +8315,9 @@
      * for deciding if they should/shouldn't act.
      */
 
+    /**
+     * Movement for when the button is down.
+     */
     /*
      * The || is because the process functions will return true if they are run.
      * This ensures if we get a true from one of them, it is then
@@ -8305,6 +8397,10 @@
     };
 
     SkyBrush.prototype.onMouseUp = function( ev ) {
+        if ( IS_TOUCH ) {
+            this.brushCursor.hideTouch();
+        }
+
         return ! (
                 this.endDraw( ev ) ||
                 this.endDrag( ev )
@@ -8312,6 +8408,10 @@
     };
 
     SkyBrush.prototype.onMouseDown = function( ev ) {
+        if ( IS_TOUCH ) {
+            this.brushCursor.showTouch();
+        }
+
         var infoBar = this.infoBar;
 
         if ( infoBar.isShown() ) {
@@ -8327,6 +8427,8 @@
         /*
          * If we are drawing from totally outside SkyBrush,
          * skip it.
+         *
+         * Also skip inputs, and the gui panes.
          *
          * This is so surrounding controls work ok.
          */
@@ -8344,6 +8446,8 @@
 		if ( ! this.isDragging() ) {
             this.processCommand( 'onDown', ev );
             this.isPainting = true;
+
+            ev.preventDefault();
         }
 
 		return false;
@@ -8352,6 +8456,7 @@
     SkyBrush.prototype.processOnDraw = function( ev ) {
         if ( this.isPainting ) {
             this.processCommand( 'onMove', ev );
+            ev.preventDefault();
 
             return true;
         }
@@ -8405,6 +8510,7 @@
     SkyBrush.prototype.processOnDrag = function( ev ) {
         if ( this.dragging !== nil ) {
             this.dragging.onDrag(ev);
+            ev.preventDefault();
 
             return true;
         }

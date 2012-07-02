@@ -244,7 +244,7 @@
 .skybrush {
     width : 100%;
     height: 100%;
-    min-height: 700px;
+    min-height: 500px;
     min-width: 944px;
     
     position: relative;
@@ -1008,19 +1008,27 @@
         }
 			.skybrush_colors_palette_color_border {
 				display: none;
-			}
-			.skybrush_colors_palette_color:hover > .skybrush_colors_palette_color_border {
-				display: block;
-				width:  24px;
-				height: 20px;
 
-				margin-left: 1px;
-				margin-top:  1px;
-				border: 1px solid rgba( 255, 255, 255, 0.7 );
-				border-radius: 1px;
+                width:  20px;
+                height: 16px;
 
-				box-shadow: 0 0 2px rgba( 0, 0, 0, 0.5 );
-			}
+                margin-left: 2px;
+                margin-top:  2px;
+                border: 2px solid #fff;
+
+                box-shadow: inset 0 0 3px rgba( 0, 0, 0, 0.65 );
+                opacity: 0.5;
+            }
+			.skybrush_colors_palette_color_border.sb_show {
+                opacity: 0.65;
+            }
+            /*
+             * This fucks up on the ipad, so remove it.
+             */
+            .skybrush_colors_palette_color_border.sb_show,
+            .skybrush_colors_palette_color.sb_hover_border:hover > .skybrush_colors_palette_color_border {
+                display: block;
+            }
     .skybrush_color_mixer {
         margin-left: 5px;
         float: left;
