@@ -265,6 +265,46 @@
 
             return x >= 0 && y >= 0 && x < dom.width() && y < dom.height() ;
         };
+
+        /**
+         * @param A DOM element to check within. If not provided, it will use the event target.
+         * @return True if this is within the scrollbar of the dom item given.
+         */
+        $.Event.prototype.isInScrollBar = function() {
+            var $dom = arguments.length > 0 ?
+                    $(arguments[0]) :
+                    $(this.target) ;
+
+            var pos = $dom.offset(),
+                x, y,
+                w, h,
+                scrollSize;
+            
+            if ( pos !== null ) {
+                x = this.pageX - pos.left;
+                y = this.pageY - pos.top ;
+                
+                w = $dom.width();
+                h = $dom.height();
+                
+                scrollSize = $dom.scrollBarSize();
+            // pos will be null if run on something like 'document',
+            // in which case we use the window
+            } else {
+                x = this.pageX - $dom.scrollLeft();
+                y = this.pageY - $dom.scrollTop();
+                
+                var $window = $(window);
+                
+                w = $window.width();
+                h = $window.height();
+                
+                scrollSize = $(document).scrollBarSize();
+            }
+
+            return ( scrollSize.right  > 0 && x >= w-scrollSize.right  ) ||
+                   ( scrollSize.bottom > 0 && y >= h-scrollSize.bottom ) ;
+        };
     })();
 
     /**
@@ -400,7 +440,7 @@
         $.fn.leftdown = function( fun ) {
             return wrapButtonEvent( this,
                     function(ev) {
-                        if ( ! isInScrollBar(ev) ) {
+                        if ( ! ev.isInScrollBar(this) ) {
                             return fun.call( this, ev );
                         }
                     },
@@ -441,39 +481,6 @@
          */
         $.fn.scrollup = function( fun ) {
             return scrollEvent( this, 'leftup', fun );
-        };
-        
-        var isInScrollBar = function( ev ) {
-            var $this = $(ev.target),
-                pos = $this.offset(),
-                x, y,
-                w, h,
-                scrollSize;
-            
-            if ( pos !== null ) {
-                x = ev.pageX - pos.left;
-                y = ev.pageY - pos.top ;
-                
-                w = $this.width();
-                h = $this.height();
-                
-                scrollSize = $this.scrollBarSize();
-            // pos will be null if run on something like 'document',
-            // in which case we use the window
-            } else {
-                x = ev.pageX - $this.scrollLeft();
-                y = ev.pageY - $this.scrollTop();
-                
-                var $window = $(window);
-                
-                w = $window.width();
-                h = $window.height();
-                
-                scrollSize = $(document).scrollBarSize();
-            }
-
-            return ( scrollSize.right  > 0 && x >= w-scrollSize.right  ) ||
-                   ( scrollSize.bottom > 0 && y >= h-scrollSize.bottom ) ;
         };
         
         /**
