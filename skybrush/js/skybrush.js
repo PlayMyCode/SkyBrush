@@ -6131,6 +6131,17 @@
         BRUSH_CURSOR_MINIMUM_SIZE = 6,
 
         /**
+         * The number of pixels to add onto the brush canvas,
+         * when it's being drawn.
+         *
+         * These are extra pixels around the edge, as a little padding.
+         *
+         * If the edge of the brush is too flat, because it's being cut off,
+         * then just increase this value and it should get fixed.
+         */
+        BRUSH_CURSOR_PADDING = 2,
+
+        /**
          * The size of the cursor when it is below the minimum size.
          *
          * @constant
@@ -6167,7 +6178,28 @@
         self.isTouch = isTouch;
 
         self.size = 0;
+
+        /**
+         * This is the brush size, at the current zoom level.
+         *
+         * So if the brush size is 10, and the zoom level is 3,
+         * then this value will be 30 (10 * 3).
+         *
+         * @type {number}
+         */
         self.zoomSize = 0;
+
+        /**
+         * This is the size of the canvas.
+         * It's essentially zoomSize + a couple of pixels.
+         *
+         * This is because just outside the brush, when it's rendered,
+         * you get some anti-aliasing. Without these extra couple of
+         * pixels, that gets cut off, and it's ugly.
+         *
+         * @type {number}
+         */
+        self.displaySize = 0;
         self.cssSetup = {};
         self.renderSmall = false;
 
@@ -6250,15 +6282,28 @@
     };
 
     BrushCursor.prototype.setCircle = function() {
-        this.setShape( function(ctx, canvas) {
+        this.setShape( function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
-            circlePath( ctx, 0.2, 0.2, canvas.width-0.4, canvas.height-0.4 );
+            circlePath( ctx,
+                    (middle-size2)+0.7,
+                    (middle-size2)+0.7,
+                    size-1.4,
+                    size-1.4
+            );
             ctx.stroke();
 
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
-            circlePath( ctx, 0, 0, canvas.width, canvas.height );
+            circlePath( ctx,
+                    middle - size2,
+                    middle - size2,
+                    size,
+                    size
+            );
             ctx.stroke();
         } );
         this.shape = CIRCLE;
@@ -6267,14 +6312,27 @@
     }
 
     BrushCursor.prototype.setSquare = function() {
-        this.setShape( function(ctx, canvas) {
+        this.setShape( function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
-            ctx.strokeRect( 0.2, 0.2, canvas.width-0.4, canvas.height-0.4 );
+            ctx.strokeRect(
+                    (middle-size2)+0.4,
+                    (middle-size2)+0.4,
+                    size-0.8,
+                    size-0.8
+            );
 
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
-            ctx.strokeRect( 0, 0, canvas.width, canvas.height );
+            ctx.strokeRect(
+                    middle-size2,
+                    middle-size2,
+                    size,
+                    size
+            );
         } );
         this.shape = SQUARE;
 
@@ -6299,10 +6357,11 @@
 
             self.show();
 
-            var canvasSize  = self.zoomSize,
+            var canvasSize  = self.zoomSize + BRUSH_CURSOR_PADDING,
                 renderSmall = self.renderSmall;
+            self.displaySize = canvasSize;
 
-            canvas.width = canvas.height = self.zoomSize;
+            canvas.width = canvas.height = canvasSize;
 
             ctx.beginPath();
             ctx.lineCap   = 'round';
@@ -6343,21 +6402,20 @@
                 ctx.translate( -0.4, -0.4 );
                 renderCrossHair( ctx );
             } else {
-                render.call( this, ctx, canvas );
+                render.call( this, ctx, canvas, self.zoomSize );
 
-                var middleX = canvas.width/2,
-                    middleY = canvas.height/2;
+                var middle = canvas.width;
 
                 // draw a dot in the centre
                 ctx.beginPath();
 
                 ctx.strokeStyle = '#fff';
                 ctx.globalAlpha = 0.9;
-                ctx.strokeRect( middleX-0.75, middleY-0.75, 1.5, 1.5 );
+                ctx.strokeRect( middle-0.75, middle-0.75, 1.5, 1.5 );
 
                 ctx.strokeStyle = '#000';
                 ctx.globalAlpha = 0.6;
-                ctx.strokeRect( middleX-0.5 , middleY-0.5 , 1  , 1   );
+                ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
             }
 
             self.cursorReplace.run( function() {
@@ -6398,7 +6456,7 @@
                 this.refreshShape();
             }
 
-            return this.update( this.lastX, this.lastY );
+            return this.update();
         }
 
         return this;
@@ -6408,9 +6466,20 @@
         return this.setSize( this.size, zoom );
     };
 
+    /**
+     * pageX and pageY are optional. If omitted, this will
+     * presume it is at the same location as the last time
+     * this was called.
+     */
     BrushCursor.prototype.update = function(pageX, pageY) {
-        var _this = this,
-            zoomSize = _this.zoomSize,
+        var _this = this;
+
+        if ( pageX === undefined || pageY === undefined ) {
+            pageX = _this.lastX;
+            pageY = _this.lastY;
+        }
+
+        var displaySize = _this.displaySize,
             pos = _this.viewport.offset(),
             scrollBars = _this.viewport.scrollBarSize();
 
@@ -6435,28 +6504,28 @@
             hideFromBottom = false,
             hideFromRight  = false;
 
-        if ( pageY-zoomSize/2 < pos.top ) {
+        if ( pageY-displaySize/2 < pos.top ) {
                top =  pos.top - scrollY;
-            height = (pageY+zoomSize/2) - pos.top;
-        } else if ( pageY+zoomSize/2 > pos.top + viewportHeight ) {
-            height =  (pos.top + viewportHeight) - (pageY-zoomSize/2);
+            height = (pageY+displaySize/2) - pos.top;
+        } else if ( pageY+displaySize/2 > pos.top + viewportHeight ) {
+            height =  (pos.top + viewportHeight) - (pageY-displaySize/2);
                top = ((pos.top + viewportHeight) - scrollY) - height;
             hideFromBottom = true;
         } else {
-            top = (pageY - scrollY) - zoomSize/2 + 1;
-            height = zoomSize;
+            top = (pageY - scrollY) - displaySize/2 + 1;
+            height = displaySize;
         }
 
-        if ( pageX-zoomSize/2 < pos.left ) {
+        if ( pageX-displaySize/2 < pos.left ) {
             left = pos.left - scrollX;
-            width = (pageX+zoomSize/2) - pos.left;
-        } else if ( (pageX+zoomSize/2) > (pos.left + viewportWidth) ) {
-            width =  ((pos.left + viewportWidth) - (pageX-zoomSize/2));
+            width = (pageX+displaySize/2) - pos.left;
+        } else if ( (pageX+displaySize/2) > (pos.left + viewportWidth) ) {
+            width =  ((pos.left + viewportWidth) - (pageX-displaySize/2));
              left = ((pos.left + viewportWidth) - scrollX) - width;
             hideFromRight = true;
         } else {
-            left = (pageX - scrollX) - zoomSize/2 + 1;
-            width = zoomSize;
+            left = (pageX - scrollX) - displaySize/2 + 1;
+            width = displaySize;
         }
 
         /*
@@ -6472,6 +6541,9 @@
             _this.lastTop  = top;
 
             _this.dom.translate( left, top );
+
+            _this.lastX = pageX;
+            _this.lastY = pageY;
         }
 
         width  = Math.max( width , 0 );
@@ -6479,11 +6551,11 @@
 
         if ( height !== cssSetup.height || width !== cssSetup.width ) {
             var positionY = hideFromBottom ?
-                         (zoomSize-height) :
-                        -(zoomSize-height) ,
+                         (displaySize-height) :
+                        -(displaySize-height) ,
                 positionX = hideFromRight ?
-                         (zoomSize-width)  :
-                        -(zoomSize-width)  ;
+                         (displaySize-width)  :
+                        -(displaySize-width)  ;
 
             changes['background-position'] = positionX + 'px ' + positionY + 'px' ;
 
@@ -6500,10 +6572,7 @@
 
         if ( changed ) {
             _this.dom.css( changes );
-
             _this.cssSetup = cssSetup;
-            _this.lastX = pageX;
-            _this.lastY = pageY;
         }
 
         return _this;
