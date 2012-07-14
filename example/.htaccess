@@ -1,0 +1,56 @@
+<IfModule mod_expires.c>
+  ExpiresActive on
+  
+# Perhaps better to whitelist expires rules? Perhaps.
+  ExpiresDefault                          "access plus 1 month"
+
+# cache.appcache needs re-requests in FF 3.6 (thx Remy ~Introducing HTML5)
+  ExpiresByType text/cache-manifest       "access plus 0 seconds"
+
+# your document html
+  ExpiresByType text/html                 "access plus 0 seconds"
+  
+# data
+  ExpiresByType text/xml                  "access plus 0 seconds"
+  ExpiresByType application/xml           "access plus 0 seconds"
+  ExpiresByType application/json          "access plus 0 seconds"
+
+# rss feed
+  ExpiresByType application/rss+xml       "access plus 0 seconds"
+
+# favicon (cannot be renamed)
+  ExpiresByType image/x-icon              "access plus 0 seconds"
+
+# media: images, video, audio
+  ExpiresByType image/gif                 "access plus 0 seconds"
+  ExpiresByType image/png                 "access plus 0 seconds"
+  ExpiresByType image/jpg                 "access plus 0 seconds"
+  ExpiresByType image/jpeg                "access plus 0 seconds"
+  ExpiresByType image/webp                "access plus 0 seconds"
+  ExpiresByType video/ogg                 "access plus 0 seconds"
+  ExpiresByType audio/ogg                 "access plus 0 seconds"
+  ExpiresByType audio/mp3                 "access plus 0 seconds"
+  ExpiresByType audio/wav                 "access plus 0 seconds"
+  ExpiresByType audio/x-wav               "access plus 0 seconds"
+  ExpiresByType video/mp4                 "access plus 0 seconds"
+  ExpiresByType video/webm                "access plus 0 seconds"
+  
+# htc files  (css3pie)
+  ExpiresByType text/x-component          "access plus 0 seconds"
+  
+# webfonts
+  ExpiresByType font/truetype             "access plus 0 seconds"
+  ExpiresByType font/opentype             "access plus 0 seconds"
+  ExpiresByType font/woff                 "access plus 0 seconds"
+  ExpiresByType image/svg+xml             "access plus 0 seconds"
+  ExpiresByType application/vnd.ms-fontobject "access plus 0 seconds"
+  
+# css and javascript
+  ExpiresByType text/css                  "access plus 0 seconds"
+  ExpiresByType application/javascript    "access plus 0 seconds"
+  ExpiresByType text/javascript           "access plus 0 seconds"
+  
+  <IfModule mod_headers.c>
+    Header append Cache-Control "public"
+  </IfModule>
+</IfModule>
