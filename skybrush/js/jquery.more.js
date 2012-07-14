@@ -76,6 +76,16 @@
  * can achieve that using the EventHandler constructor.
  */
 (function(window, document, $, jQuery, undefined){
+    var toCssPx = function( n ) {
+        if ( n === 0 ) {
+            return n;
+        } else if ( typeof n === 'number' || n instanceof Number ) {
+            return n + 'px';
+        } else {
+            return n;
+        }
+    };
+
     /**
      * Feature sniffing for various browsers.
      *
@@ -114,11 +124,8 @@
             input.setAttribute('type', 'text');
         }
 
-        $.supports = {
-                input: supportedInputs,
-
-                touch: (!! window.Touch)
-        };
+        $.support.input = supportedInputs;
+        $.support.touch = ( !! window.Touch );
 
         var ua = window['navigator']['userAgent'];
         var isIPhone = ua.indexOf( 'iPhone' ) > -1,
@@ -131,6 +138,133 @@
         $.browser.iPhone = isIPhone;
         $.browser.iPad = isIPad;
         $.browser.iPod = isIPod;
+
+        $.support.transform3d =
+                  $.browser.webkit  ||
+                  $.browser.opera   ||
+                  $.browser.mozilla ||
+                ( $.browser.msie && $.browser.version >= 10 );
+    })();
+
+    /**
+     * CSS extensions for browser transformations.
+     */
+    (function() {
+        /**
+         * Translates the object using webkit translate3d.
+         */
+        $.fn.translate = function( x, y, z ) {
+            if ( arguments.length === 0 ) {
+                var x = 0,
+                    y = 0,
+                    z = 0;
+  
+                var dom = this.get(0);
+                if ( dom ) {
+                    var style = dom.style;
+
+                    var transform = style['transform'] ||
+                            style['WebkitTransform'] ||
+                            style['MozTransform'] ||
+                            style['msTransform'] ||
+                            style['OTransform'] ;
+
+                    if ( transform ) {
+                        var parts = transform.split( ',' );
+                        var strX = parts[0];
+                        strX = strX.substring( strX.indexOf('(')+1 );
+
+                        x = parseInt( strX );
+                        y = parts.length > 1 ? parseInt(parts[1]) : x;
+                        z = parts.length > 2 ? parseInt(parts[2]) : 0;
+                    }
+                }
+
+                return {
+                        x: x,
+                        y: y,
+                        z: z
+                };
+            } else {
+                if ( z === undefined ) {
+                    z = 0;
+                } else { 
+                    z = toCssPx( z );
+                }
+
+                if ( y === undefined ) {
+                    y = 0;
+                } else {
+                    y = toCssPx( y );
+                }
+
+                if ( x === undefined ) {
+                    return;
+                } else {
+                    x = toCssPx( x );
+                }
+
+                var val = ( $.support.transform3d ) ?
+                        'translate3d(' + x + ', ' + y + ', ' + z + ')' :
+                        'translate(' + x + ', ' + y + ')' ;
+
+                this.css({
+                        WebkitTransform: val,
+                           MozTransform: val,
+                            msTransform: val,
+                             OTransform: val,
+                              transform: val
+                });
+            }
+
+            return this;
+        };
+    })();
+
+    /**
+     * Event Additions.
+     * 
+     * Extra methods for the event, such as for location translation.
+     */
+    (function() {
+        /**
+         * This will 'offset' teh location of the event
+         * by the dom's location in the document.
+         * 
+         * The result is then returned.
+         * 
+         * Essentially it turns the 'pageX' and 'pageY'
+         * co-ordinates into local ones within the dom.
+         */
+        $.Event.prototype.offset = function( dom ) {
+            if ( dom.jquery === undefined ) {
+                dom = $(dom);
+            }
+
+            var offset = dom.offset();
+
+            return {
+                    left: this.pageX - offset.left,
+                    top : this.pageY - offset.top
+            };
+        };
+
+        /**
+         * Returns true if the dom is located within this event,
+         * otherwise false.
+         */
+        $.Event.prototype.isWithin = function( dom ) {
+            if ( dom.jquery === undefined ) {
+                dom = $(dom);
+            }
+
+            var pos = this.offset( dom );
+
+            var x = pos.left,
+                y = pos.top ;
+
+            return x >= 0 && y >= 0 && x < dom.width() && y < dom.height() ;
+        };
     })();
 
     /**
@@ -138,7 +272,6 @@
      * Utility functions we need, and things we have found online.
      */
     (function() {
-
         /**
          * Serializes this object, but into a JS object with values stored
          * in key-value mappings.
@@ -1174,7 +1307,7 @@
 
         return oldRound( n/step )*step;
     };
-
+    
     /**
      * @param obj The object to check.
      * @return True if the given object is a function, false if not.
