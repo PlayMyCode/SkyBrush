@@ -7778,9 +7778,11 @@
                 button = $a.apply( null, args );
             }
 
+            /*
             button.vclick( function() {
                 painter.getInfoBar().hide();
             } );
+            */
 
             if ( fun !== null ) {
                 button.vclick( fun );
@@ -7789,9 +7791,15 @@
             return button.stopPropagation( 'click', 'leftdown' );
         }
 
+        var hideInfoBar = function() {
+            painter.getInfoBar().hide();
+        };
+
         var undoRedo = $('<div>').addClass('skybrush_topbar_button_group');
         var undoButton = topButton('Undo', 'undo', 'skybrush_button', 'sb_disabled',
                 function() {
+                    hideInfoBar();
+
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.undo();
                     }
@@ -7799,6 +7807,8 @@
             ),
             redoButton = topButton('Redo', 'redo', 'skybrush_button', 'sb_disabled',
                 function() {
+                    hideInfoBar();
+
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.redo();
                     }
@@ -7829,18 +7839,24 @@
 
         var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
                     function() {
+                        hideInfoBar();
+
                         if ( ! $(this).hasClass('sb_disabled') ) {
                             painter.copy();
                         }
                     } ),
             cut = topButton( 'Cut', 'skybrush_button', 'sb_disabled',
                     function() {
+                        hideInfoBar();
+
                         if ( ! $(this).hasClass('sb_disabled') ) {
                             painter.cut();
                         }
                     } ),
             paste = topButton('Paste', 'skybrush_button', 'sb_disabled',
                     function() {
+                        hideInfoBar();
+
                         if ( ! $(this).hasClass('sb_disabled') ) {
                             painter.paste();
                         }
@@ -8105,6 +8121,8 @@
         /* Clear Canvas */
         var crop = topButton('Crop', 'skybrush_button',
                 function() {
+                    hideInfoBar();
+
                     painter.getCanvas().crop();
                 }
         );
@@ -8112,6 +8130,8 @@
 
         var clear = topButton('Clear', 'skybrush_button',
                 function() {
+                    hideInfoBar();
+
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.getCanvas().clear();
                     }
@@ -8136,6 +8156,8 @@
         if (window.File && window.FileReader && window.FileList && window.Blob) {
             var load = topButton( 'Load', 'load', 'skybrush_button',
                     function() {
+                        hideInfoBar();
+
                         // TODO
                     }
             );
