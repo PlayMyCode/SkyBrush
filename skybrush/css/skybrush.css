@@ -426,25 +426,29 @@
                 top: 0;
             }
     .skybrush_info_bar {
-        display: none;
-        
         z-index: 12;
         position: absolute;
         top:  34px;
         
-        -webkit-transition: opacity 100ms linear 0s;
-           -moz-transition: opacity 100ms linear 0s;
-            -ms-transition: opacity 100ms linear 0s;
-             -o-transition: opacity 100ms linear 0s;
-                transition: opacity 100ms linear 0s;
-
-        opacity: 0;
-
+        -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+           -moz-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+            -ms-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+             -o-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+                transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+            
+        visibility:hidden;
+        opacity:0;
         height: 0;
     }
     .skybrush_info_bar.sb_show {
-        opacity: 1;
+        -webkit-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
+           -moz-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
+            -ms-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
+             -o-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
+                transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
 
+        visibility: visible;
+        opacity: 1;
         height: auto;
     }
         .skybrush_info_bar_wrap {

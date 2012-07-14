@@ -2268,14 +2268,14 @@
      * @return null if there is no selection, or an object describing it.
      */
     Marquee.prototype.getSelection = function() {
-        var _this = this;
+        var self = this;
 
-        if ( _this.dom.hasClass('sb_show') ) {
+        if ( self.dom.hasClass('sb_show') ) {
             return {
-                    x: _this.x,
-                    y: _this.y,
-                    w: _this.w,
-                    h: _this.h
+                    x: self.x,
+                    y: self.y,
+                    w: self.w,
+                    h: self.h
             };
         } else {
             return nil;
@@ -2288,25 +2288,25 @@
      * and if it is shown it will resize accordingly.
      */
     Marquee.prototype.update = function() {
-        var _this = this;
+        var self = this;
 
-        var x = _this.x,
-            y = _this.y,
-            w = _this.w,
-            h = _this.h,
-            zoom = _this.zoom,
-            canvas = _this.canvas,
-            dom = _this.dom;
+        var x = self.x,
+            y = self.y,
+            w = self.w,
+            h = self.h,
+            zoom   = self.zoom,
+            canvas = self.canvas,
+            dom    = self.dom;
 
         if ( dom.hasClass('sb_highlight' ) ) {
             dom.ensureClass('sb_show');
 
-            if ( _this.hasClipArea() ) {
+            if ( self.hasClipArea() ) {
                 dom.removeClass('sb_outside');
             } else {
                 dom.ensureClass('sb_outside');
             }
-        } else if ( _this.hasClipArea() ) {
+        } else if ( self.hasClipArea() ) {
             dom.removeClass('sb_outside');
             dom.ensureClass('sb_reposition');
         } else {
@@ -2320,11 +2320,11 @@
         * because it might be fading out when
         * this is called.
         */
-        if ( _this.hasClipArea() || dom.hasClass('sb_highlight') ) {
-            _this.setCanvasSize( x, y, w, h );
+        if ( self.hasClipArea() || dom.hasClass('sb_highlight') ) {
+            self.setCanvasSize( x, y, w, h );
         }
 
-        return _this;
+        return self;
     };
 
     /**
@@ -2459,6 +2459,7 @@
     CopyManager.prototype.clearPaste = function() {
         this.dom.removeClass( 'sb_show' );
         this.pasteX = this.pasteY = undefined;
+
         return this;
     };
 
@@ -2540,7 +2541,7 @@
             $overlay.bind( 'selectstart', function() { return false; } );
         }
 
-        _this.lazyUpscaleTimeout = null;
+        _this.lazyUpscaleTimeout = nil;
 
         _this.width  = _this.canvas.width,
         _this.height = _this.canvas.height,
@@ -2948,13 +2949,13 @@
     CanvasManager.prototype.lazyDisplayUpscale = function() {
         var self = this;
 
-        if ( self.lazyUpscaleTimeout !== null ) {
+        if ( self.lazyUpscaleTimeout !== nil ) {
             clearTimeout( self.lazyUpscaleTimeout );
         }
 
         self.lazyUpscaleTimeout = setTimeout( function() {
             self.displayUpscale();
-            self.lazyUpscaleTimeout = null;
+            self.lazyUpscaleTimeout = nil;
         }, CANVAS_UPDATE_SPEED );
     };
 
@@ -3836,18 +3837,18 @@
      * and marquee selection, for usability.
      */
     CanvasManager.prototype.crop = function() {
-        var _this = this;
+        var self = this;
 
-        _this.endPaste();
+        self.endPaste();
 
         // check for a marquee selection
         // and otherwise use the visible area
-        var selection = _this.marquee.getSelection();
+        var selection = self.marquee.getSelection();
         if ( selection === nil ) {
-            selection = _this.getDrawnArea();
+            selection = self.getDrawnArea();
         } else {
             // remove the marquee, since it is selecting everything
-            _this.marquee.clear();
+            self.marquee.clear();
         }
 
         if ( selection !== nil ) {
@@ -3857,18 +3858,18 @@
                 h2 = selection.h ;
 
             var temp = newCanvas( w2, h2 );
-            temp.ctx.drawImage( _this.canvas, -x, -y );
+            temp.ctx.drawImage( self.canvas, -x, -y );
 
-            _this.setSize( w2, h2, true );
+            self.setSize( w2, h2, true );
 
-            _this.drawSafe( function() {
-                    _this.canvas.ctx.drawImage( temp, 0, 0 );
+            self.drawSafe( function() {
+                    self.canvas.ctx.drawImage( temp, 0, 0 );
             } );
 
-            _this.endDraw( true );
+            self.endDraw( true );
         }
 
-        return _this;
+        return self;
     };
 
     /**
@@ -3999,17 +4000,17 @@
          * and adds the current content to the undo stack.
          */
     CanvasManager.prototype.clear = function() {
-        var _this = this,
-            w = _this.width,
-            h = _this.height;
+        var self = this,
+            w = self.width,
+            h = self.height;
 
-        _this.endPaste();
+        self.endPaste();
 
-        _this.canvas.ctx.clearRect( 0, 0, w, h );
+        self.canvas.ctx.clearRect( 0, 0, w, h );
 
         // push current context to the undo/redo
         // and update the whole screen
-        _this.endDraw({
+        self.endDraw({
                    x: 0,
                    y: 0,
                 endX: w,
@@ -4045,12 +4046,11 @@
      * @param viewport The SkyBrush viewport it is being attached to.
      */
     var InfoBar = function( viewport ) {
-        var _this = this;
+        var self = this;
 
-        _this.hiding  = new events.Runner( 200 );
-        _this.confirm = nil;
+        self.confirm = nil;
 
-        _this.content = $('<div>').addClass('skybrush_info_content');
+        self.content = $('<div>').addClass('skybrush_info_content');
 
         /* Finally, put it all together */
         var topArrow = $('<div>').
@@ -4059,30 +4059,30 @@
         var wrap = $('<div>').
                 addClass( 'skybrush_info_bar_wrap' ).
                 append( topArrow ).
-                append( _this.content );
+                append( self.content );
 
-                _this.dom = $('<div>').
+                self.dom = $('<div>').
                 addClass('skybrush_info_bar').
                 append( wrap );
 
-        viewport.append( _this.dom );
+        viewport.append( self.dom );
     };
 
     InfoBar.prototype.show = function( button ) {
-        var _this = this;
+        var self = this;
 
-        _this.hiding.clear();
-
-        var painterDom = _this.dom.parent( '.skybrush' );
+        var painterDom = self.dom.parent( '.skybrush' );
         var left = button.offset().left - painterDom.offset().left;
 
         // correct for width's
         left += button.outerWidth()/2;
-        left -= _this.dom.outerWidth()/2;
+        left -= self.dom.outerWidth()/2;
 
-        _this.dom.css({left: left + 'px', display: 'block'});
+        self.dom.translate( left, 0 );
 
-        _this.dom.ensureClass( 'sb_show' );
+        if ( ! this.isShown() ) {
+            self.dom.addClass( 'sb_show' );
+        }
     };
 
     InfoBar.prototype.isShown = function() {
@@ -4097,13 +4097,9 @@
     };
 
     InfoBar.prototype.hide = function() {
-        var _this = this;
-
-        _this.dom.removeClass( 'sb_show' );
-
-        _this.hiding.run( function() {
-            _this.dom.css({display: 'none'});
-        } );
+        if ( this.isShown() ) {
+            this.dom.removeClass( 'sb_show' );
+        }
     };
 
     InfoBar.prototype.setContent = function() {
@@ -4436,9 +4432,10 @@
 
         var onShift = setup.onShift;
         if ( onShift ) {
-            var _this = this;
-            this.shiftDown = function( isShiftDown ) {
-                onShift.call( _this, isShiftDown, this );
+            var self = this;
+
+            self.shiftDown = function( isShiftDown ) {
+                onShift.call( self, isShiftDown, this );
             };
         } else {
             this.shiftDown = nil;
@@ -5163,10 +5160,11 @@
      * @private
      */
     var PixelBrush = function( setup ) {
-        var _this = this;
-        this.brushCmd = setup.onDraw;
-        this.pencilCommand = function( canvas, x, y, size ) {
-            _this.brushCmd( canvas, x, y, size );
+        var self = this;
+
+        self.brushCmd = setup.onDraw;
+        self.pencilCommand = function( canvas, x, y, size ) {
+            self.brushCmd( canvas, x, y, size );
         };
 
         setup.onDown = function( canvas, x, y ) {
@@ -6148,43 +6146,43 @@
      * and will as far as they can, except nothing actually appeares.
      */
     var BrushCursor = function( viewport, isTouch ) {
-        var _this = this;
+        var self = this;
 
         var dom = $('<div class="skybrush_brush"></div>');
-        _this.dom = dom;
+        self.dom = dom;
 
-        _this.viewport = viewport;
+        self.viewport = viewport;
         viewport.append( dom );
 
         // sensible defaults, so they are never 'undefined'
-        _this.lastX = 0;
-        _this.lastY = 0;
+        self.lastX = 0;
+        self.lastY = 0;
 
-        _this.lastLeft = 0;
-        _this.lastTop  = 0;
+        self.lastLeft = 0;
+        self.lastTop  = 0;
 
         // initializes to no size
-        _this.isHidden = false;
-        _this.isReallyHidden = false;
-        _this.isTouch = isTouch;
+        self.isHidden = false;
+        self.isReallyHidden = false;
+        self.isTouch = isTouch;
 
-        _this.size = 0;
-        _this.zoomSize = 0;
-        _this.cssSetup = {};
-        _this.renderSmall = false;
+        self.size = 0;
+        self.zoomSize = 0;
+        self.cssSetup = {};
+        self.renderSmall = false;
 
-        _this.shape = undefined;
+        self.shape = undefined;
 
-        _this.canvas = newCanvas( 1, 1 );
-        _this.cursorReplace = new events.Runner();
+        self.canvas = newCanvas( 1, 1 );
+        self.cursorReplace = new events.Runner();
 
         // ensure it's all setup right!
-        _this.update( 0, 0 );
-        _this.setSquare();
-        _this.setSize( 100, 1 );
+        self.update( 0, 0 );
+        self.setSquare();
+        self.setSize( 100, 1 );
 
         if ( isTouch ) {
-            _this.hideTouch();
+            self.hideTouch();
         }
     };
 
@@ -6295,16 +6293,16 @@
 
     BrushCursor.prototype.setShape = function( render ) {
         if ( ! this.isHidden ) {
-            var _this = this,
-                canvas = _this.canvas,
+            var self = this,
+                canvas = self.canvas,
                 ctx = canvas.getContext( '2d' );
 
-            _this.show();
+            self.show();
 
-            var canvasSize  = _this.zoomSize,
-                renderSmall = _this.renderSmall;
+            var canvasSize  = self.zoomSize,
+                renderSmall = self.renderSmall;
 
-            canvas.width = canvas.height = _this.zoomSize;
+            canvas.width = canvas.height = self.zoomSize;
 
             ctx.beginPath();
             ctx.lineCap   = 'round';
@@ -6362,8 +6360,8 @@
                 ctx.strokeRect( middleX-0.5 , middleY-0.5 , 1  , 1   );
             }
 
-            _this.cursorReplace.run( function() {
-                _this.dom.css({
+            self.cursorReplace.run( function() {
+                self.dom.css({
                         'background-image': 'url(' + canvas.toDataURL() + ')'
                 });
             } );
@@ -6783,7 +6781,7 @@
          * Pull out the colour picker command,
          * as we treat is seperately.
          */
-        var pickerCommand = null;
+        var pickerCommand = nil;
         for ( var i = 0; i < commands.length; i++ ) {
             var command = commands[i];
 
@@ -7116,7 +7114,7 @@
     var initializeColors = function( painter, pickerCommand ) {
         /* Colour Palette */
 
-        var currentColor = null;
+        var currentColor = nil;
 
         var colors = $('<div>').addClass( 'skybrush_colors_palette' );
         var newColor = function( painter, colors, strColor ) {
@@ -7564,9 +7562,9 @@
          */
 
         painter.onSetColor( function(strColor) {
-            if ( currentColor !== null ) {
+            if ( currentColor !== nil ) {
                 currentColor.removeClass( 'sb_show' );
-                currentColor = null;
+                currentColor = nil;
             }
 
             // update the shown colour
@@ -7746,8 +7744,8 @@
         var topbar = painter.dom.children( '.skybrush_topbar' );
 
         var topButton = function() {
-            var fun = null,
-                args = null;
+            var fun = nil,
+                args = nil;
 
             for ( var i = arguments.length-1; i >= 0; i-- ) {
                 var arg = arguments[i];
@@ -7772,10 +7770,10 @@
             }
 
             var button;
-            if ( args === null ) {
-                button = $a.apply( null, arguments );
+            if ( args === nil ) {
+                button = $a.apply( nil, arguments );
             } else {
-                button = $a.apply( null, args );
+                button = $a.apply( nil, args );
             }
 
             /*
@@ -7784,7 +7782,7 @@
             } );
             */
 
-            if ( fun !== null ) {
+            if ( fun !== nil ) {
                 button.vclick( fun );
             }
 
