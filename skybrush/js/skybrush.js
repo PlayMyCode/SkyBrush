@@ -466,9 +466,9 @@
      * @private
      * @type {number}
      */
-    var LEFT   = 0,
-        RIGHT  = 1,
-        MIDDLE = 2 ;
+    var LEFT   = 1,
+        RIGHT  = 2,
+        MIDDLE = 3 ;
 
     /**
      * An array used for fast hex value lookup.
@@ -1897,14 +1897,14 @@
         var _this = this;
 
         _this.zoom = zoom;
-        _this.dom.css({
-                left: canvasX + 'px',
-                top : canvasY + 'px',
-                width: width + 'px',
-                height: height + 'px'
-        });
+        _this.dom.
+                css({
+                    width : width+1,
+                    height: height+1
+                }).
+                translate( canvasX, canvasY );
 
-        _this.update();
+        _this.update( width+1, height+1 );
     };
 
     /**
@@ -1916,11 +1916,11 @@
      * Calls such as 'setSize' and 'setOffset' already call
      * this automatically.
      */
-    GridManager.prototype.update = function() {
+    GridManager.prototype.update = function( w, h ) {
         this.dom.empty();
 
         if ( this.isShown() ) {
-            this.forceUpdate();
+            this.forceUpdate( w, h );
         } else {
             this.isDirty = true;
         }
@@ -1933,16 +1933,21 @@
      * that an update is performed, whilst the standard update might
      * skip it, for performance reasons.
      */
-    GridManager.prototype.forceUpdate = function() {
+    GridManager.prototype.forceUpdate = function( w, h ) {
         var zoom = this.zoom,
              dom = this.dom;
 
-        var w = dom.width(),
-            h = dom.height(),
-            xInc = Math.max( zoom * this.width , 1 ),
+        if ( w === undefined ) {
+            w = dom.width();
+        }
+        if ( h === undefined ) {
+            h = dom.height();
+        }
+
+        var xInc = Math.max( zoom * this.width , 1 ),
             yInc = Math.max( zoom * this.height, 1 );
 
-        var startX = ( this.offsetX % this.width ) * zoom,
+        var startX = ( this.offsetX % this.width  ) * zoom,
             startY = ( this.offsetY % this.height ) * zoom;
 
         for ( var x = startX; x <= w; x += xInc ) {
@@ -2495,47 +2500,47 @@
     var CanvasManager = function( viewport, painter ) {
         var _this = this;
 
-        _this.events = new events.Handler( _this );
-        _this.clipping = nil;
+        /*
+         * Canvas HTML Elements
+         *
+         * Create and add, the actual bits that make up the canvas.
+         * The canvas it's self, the overlay, and the upscale.
+         */
 
-        viewport.empty().append(
-                '<canvas class="skybrush_canvas_draw" width="1" height="1"></canvas>' +
-                '<canvas class="skybrush_canvas_overlay" width="1" height="1"></canvas>'
-        );
+        var canvas  = newCanvas(),
+            overlay = newCanvas(),
+            upscale = newCanvas();
 
-        var $canvas  = viewport.children( 'canvas.skybrush_canvas_draw'    ),
-            $overlay = viewport.children( 'canvas.skybrush_canvas_overlay' );
+        var $canvas  = $(canvas ).addClass( 'skybrush_canvas_draw'    ),
+            $overlay = $(overlay).addClass( 'skybrush_canvas_overlay' ),
+            $upscale = $(upscale).addClass( 'skybrush_canvas_upscale' );
 
-        var canvas  = $canvas.get(0),
-            overlay = $overlay.get(0);
-
-        if ( $.browser.msie ) {
-            viewport.bind( 'selectstart', function() {return false;} );
-             $canvas.bind( 'selectstart', function() {return false;} );
-            $overlay.bind( 'selectstart', function() {return false;} );
-        }
-
-        var upscale = newCanvas(),
-            $upscale = $(upscale);
-        $upscale.addClass( 'skybrush_canvas_upscale' );
-
-        viewport.append( $upscale );
-
-        _this.upscale = $upscale;
-
-        _this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
+        viewport.empty().append( $canvas, $overlay, $upscale );
 
         _this.viewport = viewport;
-        _this.$canvas = $canvas;
+        _this.$canvas  = $canvas;
+
         _this.canvas  = canvas;
-        if ( canvas.ctx === undefined ) {
-            canvas.ctx = canvas.getContext('2d');
+        _this.overlay = overlay;
+        _this.upscale  = $upscale;
+
+        _this.events = new events.Handler( _this );
+        _this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
+        _this.clipping = nil;
+
+        /*
+         * Events
+         *
+         * For when animation has ended,
+         * and disable selections for IE.
+         */
+        if ( $.browser.msie ) {
+            viewport.bind( 'selectstart', function() { return false; } );
+             $canvas.bind( 'selectstart', function() { return false; } );
+            $overlay.bind( 'selectstart', function() { return false; } );
         }
 
-        _this.overlay = overlay;
-        if ( overlay.ctx === undefined ) {
-            overlay.ctx = overlay.getContext('2d');
-        }
+        _this.lazyUpscaleTimeout = null;
 
         _this.width  = _this.canvas.width,
         _this.height = _this.canvas.height,
@@ -2810,11 +2815,11 @@
         var canvasX = ( moveX >= 0 ?  moveX : 0 ),
             canvasY = ( moveY >= 0 ?  moveY : 0 );
 
+        var left = (canvasX+0.5)|0,
+            top  = (canvasY+0.5)|0;
         var zoomSize = {
                  width: zoomWidth + 'px',
-                height: zoomHeight + 'px',
-                  left: canvasX + 'px',
-                   top: canvasY + 'px'
+                height: zoomHeight + 'px'
         };
 
         // Update the upscale when this has finished zooming in
@@ -2830,8 +2835,9 @@
             };
         }
 
-         $canvas.clearQueue().animate( zoomSize, CANVAS_UPDATE_SPEED, onComplete );
-        $overlay.clearQueue().animate( zoomSize, CANVAS_UPDATE_SPEED );
+        $canvas.css( zoomSize ).translate( left, top );
+        $overlay.css( zoomSize ).translate( left, top );
+        _this.lazyDisplayUpscale();
 
         /* Work out, and animate, the scroll change */
 
@@ -2885,7 +2891,7 @@
             widthChange  = newHeight / $canvas.height();
 
         var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
-                scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
+            scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
 
         viewport.clearQueue().animate(
                 {
@@ -2939,6 +2945,19 @@
                 }, 10 );
     };
 
+    CanvasManager.prototype.lazyDisplayUpscale = function() {
+        var self = this;
+
+        if ( self.lazyUpscaleTimeout !== null ) {
+            clearTimeout( self.lazyUpscaleTimeout );
+        }
+
+        self.lazyUpscaleTimeout = setTimeout( function() {
+            self.displayUpscale();
+            self.lazyUpscaleTimeout = null;
+        }, CANVAS_UPDATE_SPEED );
+    };
+
     /* This uses 'setTimeout' as scrolling/zooming wouldn't be fully finished
      * when it gets called. This allows us to have a delay for full reflow.
      *
@@ -2983,29 +3002,30 @@
                     var scrollTop  = viewport.scrollTop(),
                         scrollLeft = viewport.scrollLeft();
 
-                    var upscaleLocation = {};
+                    var top,
+                        left;
 
                     if ( scrollTop == 0 ) {
                         if ( viewport.scrollTopAvailable() > 0 ) {
-                            upscaleLocation.top = 0;
+                            top = 0;
                             $upscale.addClass( 'sb_offscreenY' );
                         } else {
-                            upscaleLocation.top = ( viewport.height() - upHeight )/2 ;
+                            top = ( viewport.height() - upHeight )/2 ;
                         }
                     } else {
-                        upscaleLocation.top = scrollTop;
+                        top = scrollTop;
                         $upscale.addClass( 'sb_offscreenY' );
                     }
                     if ( scrollLeft == 0 ) {
                         if ( viewport.scrollLeftAvailable() > 0 ) {
-                            upscaleLocation.left = 0;
+                            left = 0;
                             $upscale.addClass( 'sb_offscreenX' );
                         } else {
-                            upscaleLocation.left = ( viewport.width() - upWidth )/2 ;
+                            left = ( viewport.width() - upWidth )/2 ;
                             $upscale.removeClass( 'sb_offscreenX' );
                         }
                     } else {
-                        upscaleLocation.left = scrollLeft;
+                        left = scrollLeft;
                         $upscale.addClass( 'sb_offscreenX' );
                     }
 
@@ -3019,7 +3039,10 @@
                                     opacity: 0,
                                     'background-position': position
                             }).
-                            css( upscaleLocation );
+                            translate(
+                                    (left+0.5)|0,
+                                    (top+0.5)|0
+                            );
 
                     setTimeout( function() {
                         $upscale.css({opacity: 1});
@@ -6780,7 +6803,7 @@
 
         _this.infoBar = new InfoBar( dom );
 
-        _this.brushCursor = new BrushCursor( _this.dom, IS_TOUCH );
+        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
@@ -8410,6 +8433,7 @@
      * cursor to set.
      *
      * @param ev The event for the mouse movement.
+     * @return true if we are overlapping the scrollbar, false if not.
      */
     SkyBrush.prototype.handleScrollbarCursor = function( ev ) {
         var x = ev.pageX,
@@ -8447,6 +8471,8 @@
         } else if ( this.oldCursor !== nil ) {
             this.setCursorClass( this.oldCursor );
         }
+
+        return overlapsScrollbar;
     };
 
     SkyBrush.prototype.setCursorClass = function( cssClass ) {
@@ -8502,7 +8528,9 @@
          */
         if (
                 $target.parents('.skybrush').size() > 0 &&
-                !$target.is('input')
+                ( IS_TOUCH || ev.which === LEFT ) &&
+                !$target.is('input') &&
+                !ev.isInScrollBar( this.viewport )
         ) {
             this.dom.focus();
 
