@@ -543,7 +543,7 @@
     var $slider = function() {
         var sliderBar;
 
-        if ( $.supports.input.range ) {
+        if ( $.support.input.range ) {
             sliderBar = $('<input>').
 //                    stopPropagation( 'click', 'leftdown' ).
                     addClass( 'skybrush_slider_bar' ).
@@ -673,11 +673,10 @@
                         var slider = $this.children('.skybrush_slider_bar_slider');
 
                         if ( slider.data('is_sliding') ) {
-                            var pos = $this.offset(),
-                                thisWidth = $this.width();
+                            var thisWidth = $this.width();
                             
                             var x = Math.limit(
-                                    ev.pageX - pos.left,
+                                    ev.offset($this).left,
                                     0,
                                     thisWidth
                             );
@@ -1554,6 +1553,10 @@
         this.parent = nil;
     };
 
+    GUI.prototype.setParent = function( parent ) {
+        this.parent = parent;
+    };
+
     /**
      * Sets the content inside of this GUI.
      * This will replace anything currently inside.
@@ -1582,18 +1585,29 @@
     };
 
     GUI.prototype.startDrag = function(ev) {
-        var headerPos = this.header.offset(),
-            pos = this.dom.offset();
+        var mouseLoc = ev.offset( this.dom );
 
         // store the offset for when we are re-located later
-        this.dragOffsetX = ev.pageX - headerPos.left;
-        this.dragOffsetY = ev.pageY - headerPos.top ;
+        this.dragOffsetX = mouseLoc.left;
+        this.dragOffsetY = mouseLoc.top ;
 
-        this.dom.css({
-                position: 'fixed',
-                left: pos.left - window.pageXOffset,
-                top : pos.top  - window.pageYOffset
-        });
+        return this;
+    };
+
+    GUI.prototype.onDrag = function(ev) {
+        return this.xy( ev );
+        return this.xy( ev.pageX, ev.pageY );
+    };
+
+    /**
+     * Informs this GUI that dragging has ended.
+     */
+    GUI.prototype.onEndDrag = function( ev ) {
+        this.xy( ev );
+        //this.xy( ev.pageX, ev.pageY );
+
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
 
         return this;
     };
@@ -1604,40 +1618,32 @@
      * @param x The x location, in pixels.
      * @param y The y location, in pixels.
      */
-    GUI.prototype.xy = function( x, y ) {
-        this.dom.css({
-                left: x + 'px',
-                top : y + 'px'
-        });
+    GUI.prototype.xy = function( a, b, c ) {
+        var x, y;
+
+        if ( a instanceof $.Event ) {
+            var pos = a.offset( this.dom.parent() );
+
+            if ( b !== undefined ) {
+                x = pos.left + b;
+            } else {
+                x = pos.left;
+            }
+
+            if ( c !== undefined ) {
+                y = pos.top + c;
+            } else {
+                y = pos.top;
+            }
+        } else {
+            x = a;
+            y = b;
+        }
+
+        //this.dom.css({ left: x, top: y });
+        this.dom.translate( x-this.dragOffsetX, y-this.dragOffsetY );
 
         return this;
-    };
-
-    GUI.prototype.onDrag = function(ev) {
-        var left = (ev.pageX - window.pageXOffset) - this.dragOffsetX,
-            top  = (ev.pageY - window.pageYOffset) - this.dragOffsetY;
-
-        return this.xy( left, top );
-    };
-
-    /**
-     * Informs this GUI that dragging has ended.
-     */
-    GUI.prototype.onEndDrag = function() {
-        this.dragOffsetX = 0;
-        this.dragOffsetY = 0;
-
-        var pos = this.dom.offset(),
-            parentPos = this.dom.parent().offset();
-
-        var left = pos.left - parentPos.left,
-            top  = pos.top  - parentPos.top ;
-
-        this.dom.css({
-                position: 'absolute',
-                left: left,
-                top : top
-        })
     };
 
     /**
@@ -2050,6 +2056,10 @@
         return this;
     };
 
+    /**
+     * A generic resizable components,
+     * for the copy+paste and marquee overlays.
+     */
     var ViewOverlay = function( viewport, css ) {
         if ( viewport && css ) {
             var _this = this,
@@ -2066,6 +2076,9 @@
 
             _this.canvasX = 0;
             _this.canvasY = 0;
+
+            _this.lastLeft = 0;
+            _this.lastTop  = 0;
         }
     };
 
@@ -2076,13 +2089,31 @@
 
     ViewOverlay.prototype.setCanvasSize = function( x, y, w, h ) {
         var zoom = this.zoom;
-        this.dom.css({
-                left  : this.canvasX + x*zoom,
-                top   : this.canvasY + y*zoom,
-                /* -2 is to accommodate the 2-pixel border width in the CSS */
-                width : Math.max( 0, ((w*zoom)|0)-2 ),
-                height: Math.max( 0, ((h*zoom)|0)-2 )
-        });
+
+        var left = (this.canvasX + x*zoom + 0.5)|0,
+            top  = (this.canvasY + y*zoom + 0.5)|0,
+            /* -2 is to accommodate the 2-pixel border width in the CSS */
+            width = Math.max( 0, ((w*zoom)|0)-2 ),
+            height= Math.max( 0, ((h*zoom)|0)-2 );
+
+        /*
+         * Only update teh changes we have to.
+         */
+        if ( left !== this.lastLeft || top !== this.lastTop ) {
+            this.lastLeft = left;
+            this.lastTop  = top;
+
+            this.dom.translate( left, top );
+        }
+
+        if ( width !== this.lastWidth ) {
+            this.lastWidth = width;
+            this.dom.css('width', width);
+        }
+        if ( height !== this.lastHeight ) {
+            this.lastHeight = height;
+            this.dom.css('height', height);
+        }
     };
 
     /**
@@ -2605,11 +2636,11 @@
      * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
      */
     CanvasManager.prototype.translateLocation = function(ev) {
-        var pos = this.$canvas.offset(),
+        var pos = ev.offset( this.$canvas ),
             zoom = this.zoom ;
 
-        pos.left = (ev.pageX - pos.left) / zoom,
-         pos.top = (ev.pageY - pos.top ) / zoom ;
+        pos.left /= zoom;
+        pos.top  /= zoom;
 
         return pos;
     };
@@ -3252,10 +3283,10 @@
                  * and it's drawing to the whole canvas (full with/height).
                  */
                 var pos = this.viewport.offset();
-                var fakeEv = {
+                var fakeEv = $.Event( 'mousemove', {
                         pageX : pos.left,
                         pageY : pos.top
-                };
+                });
 
                 var location = this.translateLocation( fakeEv );
 
@@ -6099,6 +6130,9 @@
         _this.lastX = 0;
         _this.lastY = 0;
 
+        _this.lastLeft = 0;
+        _this.lastTop  = 0;
+
         // initializes to no size
         _this.isHidden = false;
         _this.isReallyHidden = false;
@@ -6405,13 +6439,11 @@
         var changes = {},
             changed = false,
             cssSetup = this.cssSetup;
-        if ( left !== cssSetup.left ) {
-            cssSetup['left'] = changes['left'] = left;
-            changed = true;
-        }
-        if ( top !== cssSetup.top ) {
-            cssSetup['top'] = changes['top'] = top;
-            changed = true;
+        if ( left !== this.lastLeft || top !== this.lastTop ) {
+            _this.lastLeft = left;
+            _this.lastTop  = top;
+
+            _this.dom.translate( left, top );
         }
 
         width  = Math.max( width , 0 );
@@ -7074,7 +7106,7 @@
                     } ).
                     data( 'color', strColor );
  
-            if ( ! $.supports.touch ) {
+            if ( ! $.support.touch ) {
                 color.addClass('sb_hover_border');
             }
 
@@ -7115,14 +7147,14 @@
 
             // update the back of the mixer
             colourBack.css({
-                    'border-top-color': strBackColor,
+                    'border-top-color' :strBackColor,
                     'border-left-color':strBackColor
             });
 
             /* Update the colour wheel */
 
-            var angleDeg = (hue*360) - 180;
-            var rotation = 'rotate(' + Math.round(angleDeg) + 'deg)';
+            var angleDeg = Math.round( (hue*360) - 180 );
+            var rotation = 'rotate(' + angleDeg + 'deg)';
 
             wheelLine.css({
                     '-webkit-transform': rotation,
@@ -7132,13 +7164,6 @@
                          '-o-transform': rotation,
                             'transform': rotation
             });
-
-            /* workaround for a known jQuery bug:
-             * see: http://bugs.jquery.com/ticket/9572
-             */
-            if ( $.browser.msie ) {
-                wheelLine.get(0).style['-ms-transform'] = rotation;
-            }
         };
 
         var mixerSize = COLOUR_MIXER_WIDTH;
@@ -7224,13 +7249,10 @@
                 addClass( 'skybrush_color_wheel_colour_wheel' ).
                 stopPropagation( 'click' ).
                 leftdrag( function(ev) {
-                        var pos = colourWheel.offset();
+                        var pos = ev.offset( colourWheel );
 
-                        var x = ev.pageX - pos.left,
-                            y = ev.pageY - pos.top;
-
-                        var distX = COLOUR_WHEEL_WIDTH/2 - x,
-                            distY = COLOUR_WHEEL_WIDTH/2 - y;
+                        var distX = COLOUR_WHEEL_WIDTH/2 - pos.left,
+                            distY = COLOUR_WHEEL_WIDTH/2 - pos.top;
                         var hypot = Math.sqrt( distX*distX + distY*distY );
 
                         // change the hue
@@ -7271,7 +7293,7 @@
                     addClass( 'skybrush_mixer_vertical_line' );
 
         $().add( mixerHorizontal ).add( mixerVertical ).
-                forwardEvents( mixerFront, 'mousedown', 'mousemove' );
+                forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
 
         mixer.
                 append( colourBack ).
@@ -7282,11 +7304,10 @@
 
         mixerFront.leftdrag(
                 function(ev) {
-                    var $this = $(this);
-                    var pos = $this.offset();
+                    var pos = ev.offset( this );
 
-                    var x = Math.max( ev.pageX - pos.left, 0 ),
-                        y = Math.max( ev.pageY - pos.top , 0 );
+                    var x = Math.max( pos.left, 0 ),
+                        y = Math.max( pos.top , 0 );
 
                     if (
                             x < mixerSize-y &&
@@ -7561,16 +7582,16 @@
             var colX = xVal * colXWidth,
                 colY = yVal * colYHeight ;
 
+            mixerVertical.translate( colX, 0 );
             mixerVertical.css({
-                    left: colX,
                     height: Math.limit(
                             (mixerSize - colX) + COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_WIDTH
                     )
             });
+            mixerHorizontal.translate( 0, colY );
             mixerHorizontal.css({
-                    top: colY,
                     width: Math.limit(
                             (mixerSize - colY) + COLOUR_MIXER_MIN_WIDTH,
                             COLOUR_MIXER_MIN_WIDTH,
@@ -7590,8 +7611,10 @@
 
         painter.onSetAlpha( function( alpha ) {
             var y = Math.floor( alpha*alphaBar.height() );
-            alphaBar.children( '.skybrush_color_alpha_line' ).css({top: y + 'px'});
-
+            alphaBar.
+                    children( '.skybrush_color_alpha_line' ).
+                    translate( 0, y );
+ 
             currentColorShow.css({opacity: alpha});
 
             var aInput = alphaInput.children('input');
@@ -8571,7 +8594,7 @@
         if ( this.isDragging() ) {
             var dragging = this.dragging;
             this.dragging = nil;
-            dragging.onEndDrag();
+            dragging.onEndDrag( ev );
 
             return true;
         }
@@ -8592,7 +8615,7 @@
      * @param gui The GUI component to display.
      */
     SkyBrush.prototype.addGUI = function( gui ) {
-        gui.parent = this;
+        gui.setParent( this );
         this.dom.append( gui.dom );
     };
 
@@ -9259,13 +9282,7 @@
      * @return True if the given event is located inside of the SkyBrush viewport, otherwise false.
      */
     SkyBrush.prototype.isInView = function( ev ) {
-        var view = this.viewport;
-        var pos = view.offset();
-
-        var x = ev.pageX - pos.left,
-            y = ev.pageY - pos.top ;
-
-        return x >= 0 && y >= 0 && x < view.width() && y < view.height() ;
+        return ev.isWithin( this.viewport );
     };
 
     /**

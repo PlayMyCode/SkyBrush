@@ -267,7 +267,10 @@
         
         background: white;
         z-index: 6;
-        position: relative;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
 
         -moz-box-sizing: border-box;
              box-sizing: border-box;
@@ -848,6 +851,7 @@
  * These are the floating windows on top of SkyBrush.
  */
 .skybrush_gui {
+    top: 0;
     border-radius:5px 5px 2px 2px;
 }
     .skybrush_gui_header {
@@ -1418,6 +1422,7 @@
  */
 .skybrush_brush {
     position: fixed;
+    top: 0;
 
     /* above the canvas and overlay */
     z-index: 3;
