@@ -4547,33 +4547,40 @@
      *
      * @return The HTML dom with all the control structures for this command.
      */
-    Command.prototype.getControlsDom = function( painter ) {
+    Command.prototype.createControlsDom = function( painter ) {
         /*
          * Controls dom is loaded in a lazy way so painter
          * starts up a tad faster,
-         * and because jQuery might not be available.
          */
         if ( this.dom === nil && this.controlsSetup ) {
             var dom = nil,
                 controlsSetup = this.controlsSetup;
 
-            if ( controlsSetup ) {
-                dom = $('<div>').
-                        addClass( 'skybrush_command_controls_inner' );
+            dom = $('<div>').
+                    addClass( 'skybrush_command_controls_inner' );
 
-                if ( controlsSetup instanceof Array ) {
-                    for ( var i = 0; i < controlsSetup.length; i++ ) {
-                        var cDom = newCommandControl( this, controlsSetup[i], painter );
-                        dom.append( cDom );
-                    }
-                } else {
-                    dom.append( newCommandControl( this, controlsSetup, painter ) );
+            if ( controlsSetup instanceof Array ) {
+                for ( var i = 0; i < controlsSetup.length; i++ ) {
+                    var cDom = newCommandControl( this, controlsSetup[i], painter );
+                    dom.append( cDom );
                 }
+            } else {
+                dom.append( newCommandControl( this, controlsSetup, painter ) );
             }
 
             this.dom = dom;
         }
 
+        return this.dom;
+    };
+
+    /**
+     * Returns the dom containing all of the command options
+     * for this Command, or null if there is no dom.
+     *
+     * There would be no dom if there are no options.
+     */
+    Command.prototype.getControlsDom = function() {
         return this.dom;
     };
 
@@ -7656,6 +7663,9 @@
     var initializeCommands = function( painter ) {
         var commands = $('<div>').addClass('skybrush_commands_pane');
 
+        var controlsWrap = $('<div>').
+                addClass( 'skybrush_command_controls' );
+
         for ( var i = 0; i < painter.commands.length; i++ ) {
             var c = painter.commands[i];
 
@@ -7676,6 +7686,11 @@
 
             command.data( 'command', c );
             commands.append( command );
+
+            var cControls = c.createControlsDom( painter );
+            if ( cControls ) {
+                controlsWrap.append( cControls );
+            }
         }
 
         var controlsHeader = $('<div>').
@@ -7688,16 +7703,13 @@
                 append( controlsHeaderText ).
                 append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
 
-        var controlsWrap = $('<div>').
-                addClass( 'skybrush_command_controls' );
-
         var commandsGUI = new GUI( 'Tools', 'commands' );
         commandsGUI.add( commands, controlsHeader, controlsWrap );
         painter.addGUI( commandsGUI );
         commandsGUI.xy( GUI_DEFAULT_X, GUI_DEFAULT_Y+60 );
 
         // hook up the selection changes directly into the SkyBrush it's self
-        painter.onSetCommand( function(command) {
+        painter.onSetCommand( function(command, lastCommand) {
             commands.find( '.skybrush_gui_command' ).each( function() {
                 var _this = $(this);
 
@@ -7708,13 +7720,16 @@
                 }
             } );
 
-            var controls = command.getControlsDom( painter );
-
-            // must be detach, to avoid losing the events that are hooked up
-            controlsWrap.children().detach();
-
+            var controls;
+            if ( lastCommand !== nil ) {
+                controls = lastCommand.getControlsDom();
+                if ( controls !== nil ) {
+                    controls.removeClass('sb_show')
+                }
+            }
+            controls = command.getControlsDom();
             if ( controls !== nil ) {
-                controlsWrap.append( controls );
+                controls.addClass('sb_show')
             }
 
             painter.refreshCursor();
@@ -9221,10 +9236,11 @@
                 this.command.onDetach( this );
             }
 
+            var lastCommand = this.command;
             this.command = command;
             command.onAttach( this );
 
-            this.events.run( 'onsetcommand', command );
+            this.events.run( 'onsetcommand', command, lastCommand );
         }
 
         return this;

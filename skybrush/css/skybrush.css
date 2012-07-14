@@ -1383,6 +1383,11 @@
             clear: both;
             width:  100%;
             height: 100%;
+
+            display: none;
+        }
+        .skybrush_command_controls_inner.sb_show {
+            display: block;
         }
             .skybrush_command_controls_inner > .skybrush_control {
                 float: left;
