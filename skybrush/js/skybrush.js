@@ -5608,7 +5608,12 @@
                                 ctx.lineJoin = 'round';
                                 ctx.beginPath();
 
-                                ctx.moveTo( x, y );
+                                /*
+                                 * This is to trick it into starting a line,
+                                 * when the mouse goes down.
+                                 */
+                                ctx.moveTo( x-0.1, y-0.1 );
+                                ctx.lineTo( x, y );
                                 this.updateLine( canvas, x, y );
 
                                 if ( canvas.hasUpscale() ) {
@@ -6404,7 +6409,7 @@
             } else {
                 render.call( this, ctx, canvas, self.zoomSize );
 
-                var middle = canvas.width;
+                var middle = canvas.width/2;
 
                 // draw a dot in the centre
                 ctx.beginPath();
@@ -6479,19 +6484,16 @@
             pageY = _this.lastY;
         }
 
-        var displaySize = _this.displaySize,
-            pos = _this.viewport.offset(),
-            scrollBars = _this.viewport.scrollBarSize();
+        var displaySize  = _this.displaySize,
+            displaySize2 = displaySize/2,
+            pos          = _this.viewport.offset(),
+            scrollBars   = _this.viewport.scrollBarSize();
 
-        var left,
-            top,
-            width,
-            height;
-
-        var scrollX = window.pageXOffset,
-            scrollY = window.pageYOffset,
+        var scrollX = _this.viewport.scrollLeft(),
+            scrollY = _this.viewport.scrollTop(),
             viewportHeight = _this.viewport.height() - scrollBars.bottom,
-             viewportWidth = _this.viewport.width()  - scrollBars.right,
+            viewportWidth  = _this.viewport.width()  - scrollBars.right;
+
             /*
              * If the cursor is near the top or bottom edge,
              * then the cursor is obscured using 'background-position'.
@@ -6501,41 +6503,61 @@
              *
              * hideFromRight does the same, but on the x axis.
              */
-            hideFromBottom = false,
+        var hideFromBottom = false,
             hideFromRight  = false;
 
-        if ( pageY-displaySize/2 < pos.top ) {
-               top =  pos.top - scrollY;
-            height = (pageY+displaySize/2) - pos.top;
-        } else if ( pageY+displaySize/2 > pos.top + viewportHeight ) {
-            height =  (pos.top + viewportHeight) - (pageY-displaySize/2);
-               top = ((pos.top + viewportHeight) - scrollY) - height;
+        /*
+         * We have the location, in the middle, of the cursor on the screen.
+         * This is the 'fixed' position, where no scrolling taken into account.
+         *
+         * We then convert this into the top/left position,
+         * and then add on the scrolling.
+         */
+
+        var middleX = (pageX - pos.left),
+            middleY = (pageY - pos.top );
+
+        var left,
+            top,
+            width,
+            height;
+
+        /*
+         * Now translate from middle to top/left, for:
+         *  - if over the top edge
+         *  - if over the bottom edge
+         *  - if between those edges
+         */
+
+        if ( middleY-displaySize2 < 0 ) {
+            top    = 0;
+            height = displaySize + (middleY-displaySize2);
+        } else if ( middleY+displaySize2 > viewportHeight ) {
+            top = middleY-displaySize2;
+            height = viewportHeight - (middleY-displaySize2);
+
             hideFromBottom = true;
         } else {
-            top = (pageY - scrollY) - displaySize/2 + 1;
+            top    = middleY - (displaySize2-1);
             height = displaySize;
         }
 
-        if ( pageX-displaySize/2 < pos.left ) {
-            left = pos.left - scrollX;
-            width = (pageX+displaySize/2) - pos.left;
-        } else if ( (pageX+displaySize/2) > (pos.left + viewportWidth) ) {
-            width =  ((pos.left + viewportWidth) - (pageX-displaySize/2));
-             left = ((pos.left + viewportWidth) - scrollX) - width;
+        if ( middleX-displaySize2 < 0 ) {
+            left  = 0;
+            width = displaySize + (middleX-displaySize2);
+        } else if ( middleX+displaySize2 > viewportWidth ) {
+            left  = middleX-displaySize2;
+            width = viewportWidth - (middleX-displaySize2);
+
             hideFromRight = true;
         } else {
-            left = (pageX - scrollX) - displaySize/2 + 1;
+            left  = middleX - (displaySize2-1);
             width = displaySize;
         }
 
-        /*
-         * Apply the CSS changes,
-         * it's done in this overly complex way to avoid
-         * making CSS changes to all elements, every time the mouse moves
-         */
-        var changes = {},
-            changed = false,
-            cssSetup = this.cssSetup;
+        top  += scrollY;
+        left += scrollX;
+
         if ( left !== this.lastLeft || top !== this.lastTop ) {
             _this.lastLeft = left;
             _this.lastTop  = top;
@@ -6546,33 +6568,41 @@
             _this.lastY = pageY;
         }
 
+        /*
+         * Now alter the width/height,
+         * and the background position.
+         */
+
         width  = Math.max( width , 0 );
         height = Math.max( height, 0 );
 
-        if ( height !== cssSetup.height || width !== cssSetup.width ) {
-            var positionY = hideFromBottom ?
-                         (displaySize-height) :
-                        -(displaySize-height) ,
-                positionX = hideFromRight ?
-                         (displaySize-width)  :
-                        -(displaySize-width)  ;
+        var cssSetup = this.cssSetup;
+        if (
+                height !== cssSetup.height ||
+                width  !== cssSetup.width
+        ) {
+            var positionY = ! hideFromBottom ?
+                        -(displaySize-height) + 'px' :
+                         0 ;
+            var positionX = ! hideFromRight ?
+                        -(displaySize-width ) + 'px' :
+                         0 ;
 
-            changes['background-position'] = positionX + 'px ' + positionY + 'px' ;
+            var newBackPosition = positionX + ' ' + positionY;
+            if ( newBackPosition !== cssSetup['background-position'] ) {
+                cssSetup['background-position'] = newBackPosition;
+                _this.dom.css( 'background-position', newBackPosition );
+            }
 
             if ( width !== cssSetup.width ) {
-                cssSetup['width'] = changes['width'] = width;
+                cssSetup['width'] = width;
+                _this.dom.css( 'width', width );
             }
 
             if ( height !== cssSetup.height ) {
-                cssSetup['height'] = changes['height'] = height;
+                cssSetup['height'] = height;
+                _this.dom.css( 'height', height );
             }
-
-            changed = true;
-        }
-
-        if ( changed ) {
-            _this.dom.css( changes );
-            _this.cssSetup = cssSetup;
         }
 
         return _this;
@@ -6910,7 +6940,7 @@
         /* Handle GUI dragging. */
         $(document).
                 bind('vmousedown', function(ev) { return _this.onMouseDown(ev); }).
-                bind('vmousemove', function(ev) { return _this.onMove(ev); }).
+                bind('vmousemove', function(ev) { return _this.onMouseMove(ev); }).
                 bind('vmouseup'  , function(ev) { return _this.onMouseUp(ev); });
 
         var startingWidth  = options.width  || DEFAULT_WIDTH,
@@ -8518,7 +8548,7 @@
      * This ensures if we get a true from one of them, it is then
      * not'd into a false, and so disables the mouse cursor change in Chrome.
      */
-    SkyBrush.prototype.onMove = function( ev ) {
+    SkyBrush.prototype.onMouseMove = function( ev ) {
         this.brushCursor.onMove( ev );
         this.handleScrollbarCursor( ev );
 
@@ -8608,6 +8638,7 @@
     SkyBrush.prototype.onMouseDown = function( ev ) {
         if ( IS_TOUCH ) {
             this.brushCursor.showTouch();
+            this.brushCursor.onMove( ev );
         }
 
         var infoBar = this.infoBar;
