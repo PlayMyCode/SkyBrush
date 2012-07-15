@@ -2519,14 +2519,16 @@
         viewport.empty().append( $canvas, $overlay, $upscale );
 
         _this.viewport = viewport;
-        _this.$canvas  = $canvas;
 
-        _this.canvas  = canvas;
-        _this.overlay = overlay;
-        _this.upscale  = $upscale;
+        _this.$canvas  = $canvas;
+        _this.$upscale = $upscale;
+
+        _this.canvas   = canvas;
+        _this.overlay  = overlay;
+        _this.upscale  = upscale;
 
         _this.events = new events.Handler( _this );
-        _this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY, this );
+        _this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY );
         _this.clipping = nil;
 
         /*
@@ -2552,14 +2554,11 @@
         _this.upscaleWorkersLength = 0;
 
         /* Must be added at the end! */
-        if ( this.hasUpscale() ) {
-            viewport.
-                    scroll( function() {
-                        _this.hideUpscale();
-
-                        _this.showUpscale();
-                    });
-        }
+        viewport.
+                scroll( function() {
+                    _this.hideUpscale();
+                    _this.showUpscale();
+                });
 
         /* Prevent Scrolling if we're scrolling using the viewport. */
         var scrollTop = nil;
@@ -2624,13 +2623,6 @@
 
     CanvasManager.prototype.hideOverlay = function() {
         $(this.overlay).hide();
-    };
-
-        /**
-         * @return true if this is using the upscale layer, and false if not.
-         */
-    CanvasManager.prototype.hasUpscale = function() {
-        return !! this.upscale;
     };
 
     /**
@@ -2799,7 +2791,7 @@
             $canvas = this.$canvas,
             $overlay = $(this.overlay),
             viewport = this.viewport,
-            $upscale = this.upscale,
+            $upscale = this.$upscale,
             _this = this;
 
         var newWidth  = Math.round( this.width  * zoom ),
@@ -2824,17 +2816,14 @@
         };
 
         // Update the upscale when this has finished zooming in
-        var onComplete;
-        if ( $upscale ) {
-            this.hideUpscale();
+        this.hideUpscale();
 
-            $upscale.width  = Math.min( newWidth , viewport.width()  );
-            $upscale.height = Math.min( newHeight, viewport.height() );
+        $upscale.width  = Math.min( newWidth , viewport.width()  );
+        $upscale.height = Math.min( newHeight, viewport.height() );
 
-            onComplete = function() {
-                _this.showUpscale();
-            };
-        }
+        var onComplete = function() {
+            _this.showUpscale();
+        };
 
         $canvas.css( zoomSize ).translate( left, top );
         $overlay.css( zoomSize ).translate( left, top );
@@ -2913,12 +2902,8 @@
      * Hides the upscale, and stops any events planning to show it.
      */
     CanvasManager.prototype.hideUpscale = function() {
-        this.upscale.hide().css({opacity: 0});
-
-        if ( this.hasUpscale() ) {
-            this.showUpscaleEvent.clear();
-        }
-
+        this.$upscale.hide().css({opacity: 0});
+        this.showUpscaleEvent.clear();
         this.clearUpscaleWorkers();
     };
 
@@ -2963,89 +2948,88 @@
      * cancelled since this will get called twice.
      */
     CanvasManager.prototype.showUpscale = function() {
-        var _this = this,
-            zoom  = _this.zoom;
+        var self = this;
 
-        if ( _this.hasUpscale() ) {
-            _this.hideUpscale();
+        self.hideUpscale();
 
-            _this.showUpscaleEvent.run( function() {
-                    var viewport = _this.viewport,
-                        $upscale = $(_this.upscale);
+        self.showUpscaleEvent.run( function() {
+            var zoom = self.zoom;
 
+            var viewport = self.viewport,
+                $upscale = self.$upscale;
+
+            $upscale.removeClass( 'sb_offscreenX' );
+            $upscale.removeClass( 'sb_offscreenY' );
+
+            var newWidth  = Math.round( self.width  * zoom ),
+                newHeight = Math.round( self.height * zoom );
+
+            // show the upscale when using positive zoom
+            var scrollSize = viewport.scrollBarSize();
+
+            // Resize the upscale to the canvas size, or to fill teh viewport.
+            // Don't bother being bigger then the view.
+            // The -2 is to take off the border height, as otherwise it adds to the scroll height.
+            var upWidth  = Math.min( newWidth , (viewport.width()  - scrollSize.right ) - 2  ),
+                upHeight = Math.min( newHeight, (viewport.height() - scrollSize.bottom) - 2 );
+
+            var upscale = self.upscale;
+            upscale.width  = upWidth;
+            upscale.height = upHeight;
+
+            var scrollTop  = viewport.scrollTop(),
+                scrollLeft = viewport.scrollLeft();
+
+            var top,
+                left;
+
+            if ( scrollTop === 0 ) {
+                if ( viewport.scrollTopAvailable() > 0 ) {
+                    top = 0;
+                    $upscale.addClass( 'sb_offscreenY' );
+                } else {
+                    top = ( viewport.height() - upHeight )/2 ;
+                }
+            } else {
+                top = scrollTop;
+                $upscale.addClass( 'sb_offscreenY' );
+            }
+            if ( scrollLeft === 0 ) {
+                if ( viewport.scrollLeftAvailable() > 0 ) {
+                    left = 0;
+                    $upscale.addClass( 'sb_offscreenX' );
+                } else {
+                    left = ( viewport.width() - upWidth )/2 ;
                     $upscale.removeClass( 'sb_offscreenX' );
-                    $upscale.removeClass( 'sb_offscreenY' );
+                }
+            } else {
+                left = scrollLeft;
+                $upscale.addClass( 'sb_offscreenX' );
+            }
 
-                    var newWidth  = Math.round( _this.width  * zoom ),
-                        newHeight = Math.round( _this.height * zoom );
+            // Fade in the upscale change.
+            // The double opacity setting is needed to trigger the CSS animation.
+            var position = (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
+                    (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
 
-                    // show the upscale when using positive zoom
-                    var scrollSize = viewport.scrollBarSize();
+            $upscale.
+                    css({
+                            display: 'inline',
+                            opacity: 0,
+                            'background-position': position
+                    }).
+                    translate(
+                            (left+0.5)|0,
+                            (top+0.5)|0
+                    );
 
-                    // Resize the upscale to the canvas size, or to fill teh viewport.
-                    // Don't bother being bigger then the view.
-                    // The -2 is to take off the border height, as otherwise it adds to the scroll height.
-                    var upWidth  = Math.min( newWidth , (viewport.width()  - scrollSize.right ) - 2  ),
-                        upHeight = Math.min( newHeight, (viewport.height() - scrollSize.bottom) - 2 );
+            setTimeout( function() {
+                $upscale.css({opacity: 1});
+            }, 0 );
 
-                    var upObj = $upscale.get(0);
-                    upObj.width  = upWidth;
-                    upObj.height = upHeight;
-
-                    var scrollTop  = viewport.scrollTop(),
-                        scrollLeft = viewport.scrollLeft();
-
-                    var top,
-                        left;
-
-                    if ( scrollTop === 0 ) {
-                        if ( viewport.scrollTopAvailable() > 0 ) {
-                            top = 0;
-                            $upscale.addClass( 'sb_offscreenY' );
-                        } else {
-                            top = ( viewport.height() - upHeight )/2 ;
-                        }
-                    } else {
-                        top = scrollTop;
-                        $upscale.addClass( 'sb_offscreenY' );
-                    }
-                    if ( scrollLeft === 0 ) {
-                        if ( viewport.scrollLeftAvailable() > 0 ) {
-                            left = 0;
-                            $upscale.addClass( 'sb_offscreenX' );
-                        } else {
-                            left = ( viewport.width() - upWidth )/2 ;
-                            $upscale.removeClass( 'sb_offscreenX' );
-                        }
-                    } else {
-                        left = scrollLeft;
-                        $upscale.addClass( 'sb_offscreenX' );
-                    }
-
-                    // Fade in the upscale change.
-                    // The double opacity setting is needed to trigger the CSS animation.
-                    var position = (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
-                            (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
-
-                    $upscale.
-                            css({
-                                    display: 'inline',
-                                    opacity: 0,
-                                    'background-position': position
-                            }).
-                            translate(
-                                    (left+0.5)|0,
-                                    (top+0.5)|0
-                            );
-
-                    setTimeout( function() {
-                        $upscale.css({opacity: 1});
-                    }, 0 );
-
-                    // upscale _after_ making it visible
-                    _this.refreshUpscale();
-            } );
-        }
+            // upscale _after_ making it visible
+            self.refreshUpscale();
+        } );
     };
 
     CanvasManager.prototype.isPasting = function() {
@@ -3236,235 +3220,233 @@
      * @param Optional, extra pixels to add on to the x, y, w and h.
      */
     CanvasManager.prototype.refreshUpscale = function( x, y, w, h, includeOverlay, buffer ) {
-        var $upscale = this.upscale,
-            zoom = this.zoom;
-
-        if ( $upscale ) {
-            if ( Math.abs(w) < 1 ) {
-                if ( w < 1 ) {
-                    w = w;
-                } else {
-                    w = -1;
-                }
-            }
-
-            if ( Math.abs(h) < 1 ) {
-                if ( h < 1 ) {
-                    h = 1;
-                } else {
-                    h = -1;
-                }
-            }
-
-            /*
-             * This is to allow easier usage.
-             * So you can update in the negative direction.
-             */
-            if ( w < 0 ) {
-                w = -w;
-                x -= w;
-            }
-
-            if ( h < 0 ) {
-                h = -h;
-                y -= h;
-            }
-
-            if ( buffer !== undefined ) {
-                x -= buffer;
-                y -= buffer;
-                h += buffer*2;
-                w += buffer*2;
-            }
-
-            /*
-             * After handling the buffer, and other possible values,
-             * if the width/height are empty, then quit early.
-             */
-            if ( w === 0 || h === 0 ) {
-                return false;
-            }
-
-            var canvas = this.canvas,
-                upscale = $upscale.get(0),
-                viewport = this.viewport,
-                $canvas = this.$canvas;
-
-            // 1) handle the no-args version (update whole screen)
-            if ( x === undefined ) {
-                /*
-                 * The maths for this bit proved to be really difficult to work out.
-                 * It would be out by just a couple of sub-pixels (no idea why).
-                 *
-                 * So we just fake a draw event (drawing to top left corner),
-                 * and it's drawing to the whole canvas (full with/height).
-                 */
-                var pos = this.viewport.offset();
-                var fakeEv = $.Event( 'mousemove', {
-                        pageX : pos.left,
-                        pageY : pos.top
-                });
-
-                var location = this.translateLocation( fakeEv );
-
-                x = location.left;
-                y = location.top;
-                w = this.width;
-                h = this.height;
-            }
-
-            // take off 1 to account for the canvas border
-            var scrollTop  = this.viewport.scrollTop(),
-                scrollLeft = this.viewport.scrollLeft();
-
-            // 2) work out how much of the drawing canvas is actually visible
-            x = Math.max( x,
-                    scrollLeft / zoom
-            );
-            y = Math.max( y,
-                    scrollTop / zoom
-            );
-            w = Math.min( w,
-                    Math.min(canvas.width , this.viewport.width()/zoom )
-            );
-            h = Math.min( h,
-                    Math.min(canvas.height, this.viewport.height()/zoom )
-            );
-
-            /* Check for updating outside of the canvas,
-             * and if so, we leave early (no refresh needed).
-             */
-            if ( x+w < 0 || y+h < 0 || x > this.canvas.width || y > this.canvas.height ) {
-                return false;
-            }
-
-            /* Need to be rounded for the canvas data we access later. */
-            x = Math.round(x);
-            y = Math.round(y);
-
-            w = Math.round(w);
-            h = Math.round(h);
-
-            /*
-             * Widen the draw area by a pixel to encompas the outer edge,
-             * this is to prevent slight 1px gaps along the edges of the upscale canvas.
-             */
-
-            if ( x > 0 ) {
-                x--;
-            }
-
-            if ( y > 0 ) {
-                y--;
-            }
-
-            var wDiff = Math.min( 1, canvas.width  - w ),
-                hDiff = Math.min( 1, canvas.height - h );
-
-            w += wDiff;
-            h += hDiff;
-
-            // 3) work out the same locations, on the upscale canvas
-            var ux, uy, uw, uh ;
-
-            ux = x*zoom - scrollLeft;
-            uy = y*zoom - scrollTop;
-            uw = w*zoom;
-            uh = h*zoom;
-
-            // clear our refresh area
-            var ctx = canvas.ctx,
-                destAlpha = ( ctx.globalCompositeOperation == 'source-atop' ),
-                uCtx = upscale.ctx;
-
-            /*
-             * This can go one of three ways:
-             *  = draw using downscaling (zoom is 100%, or lower)
-             *  = draw cheap (using canvas scaling) and sub-divide work
-             *  = manually upscale pixels
-             */
-
-            var divideWork = (w*h) > ((UPSCALE_DIVIDE_AREA+6)*(UPSCALE_DIVIDE_AREA+6));
-
-            if ( divideWork || zoom <= 1 ) {
-                var xDiff = Math.max( 0, (x+w) - canvas.width  ),
-                    yDiff = Math.max( 0, (y+h) - canvas.height );
-
-                var ux2 = Math.round(ux),
-                    uy2 = Math.round(uy),
-                    uw2 = Math.round(uw - xDiff*zoom),
-                    uh2 = Math.round(uh - yDiff*zoom);
-
-                // if we clip the edge,
-                // then clamp the max width/height onto the edges
-                // (otherwise Chrome crashes)
-                if ( x+w > canvas.width ) {
-                    w -= (x+w) - canvas.width;
-                    uw2 = upscale.width - ux2;
-                }
-                if ( y+h > canvas.height ) {
-                    h -= (y+h) - canvas.height;
-                    uh2 = upscale.height - uy2;
-                }
-
-                /*
-                 * Note that the zoom _must_ be first,
-                 * so it takes precendence over dividing work
-                 * (as it's much cheaper).
-                 */
-                /*
-                 * If zoom is at 1, then there is no change in scaing.
-                 * So we just draw normally, and quit.
-                 */
-                if ( zoom <= 1 ) {
-                    uCtx.clearRect( ux2, uy2, uw2, uh2 );
-
-                    uCtx.globalAlpha = 1.0;
-                    uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-                    if ( includeOverlay ) {
-                        if ( destAlpha ) {
-                            uCtx.globalCompositeOperation = 'source-atop';
-                        }
-
-                        uCtx.drawImage( this.overlay, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-                        if ( destAlpha ) {
-                            uCtx.globalCompositeOperation = 'source-over';
-                        }
-                    }
-
-                /*
-                 * Sub divide up work if we'll be doing loads of it.
-                 * Instead the work is done over multiple calls.
-                 */
-                } else if ( divideWork ) {
-                    // cheap draw, so we don't get huge empty areas
-                    uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-                    for ( var i = x; i < (w+x); i += UPSCALE_DIVIDE_AREA ) {
-                        for ( var j = y; j < (h+y); j += UPSCALE_DIVIDE_AREA ) {
-                            var updateW = Math.min( (w+x)-i, UPSCALE_DIVIDE_AREA ),
-                                updateH = Math.min( (h+y)-j, UPSCALE_DIVIDE_AREA );
-
-                            this.futureRefreshUpscale( i, j, updateW, updateH, includeOverlay );
-                        }
-                    }
-                }
+        if ( Math.abs(w) < 1 ) {
+            if ( w < 1 ) {
+                w = w;
             } else {
-                // 5) draw!
-                copyNearestNeighbour(
-                        upscale,                        // dest
-                        ux, uy, uw, uh,                 // dest x, y, w, h
-                        zoom, zoom,                     // dest pixel size
-
-                        ctx.getImageData(x, y, w, h),   // src
-                        x, y, w, h,                     // src  x, y, w, h
-                        includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : nil,
-
-                        ( ctx.globalCompositeOperation == 'source-atop' ) // bitmask pixels
-                );
+                w = -1;
             }
+        }
+
+        if ( Math.abs(h) < 1 ) {
+            if ( h < 1 ) {
+                h = 1;
+            } else {
+                h = -1;
+            }
+        }
+
+        /*
+         * This is to allow easier usage.
+         * So you can update in the negative direction.
+         */
+        if ( w < 0 ) {
+            w = -w;
+            x -= w;
+        }
+
+        if ( h < 0 ) {
+            h = -h;
+            y -= h;
+        }
+
+        if ( buffer !== undefined ) {
+            x -= buffer;
+            y -= buffer;
+            h += buffer*2;
+            w += buffer*2;
+        }
+
+        /*
+         * After handling the buffer, and other possible values,
+         * if the width/height are empty, then quit early.
+         */
+        if ( w === 0 || h === 0 ) {
+            return false;
+        }
+
+        var $canvas  = this.$canvas,
+            canvas   = this.canvas,
+            $upscale = this.$upscale,
+            upscale  = this.upscale,
+            viewport = this.viewport;
+
+        var zoom = this.zoom;
+
+        // 1) handle the no-args version (update whole screen)
+        if ( x === undefined ) {
+            /*
+             * The maths for this bit proved to be really difficult to work out.
+             * It would be out by just a couple of sub-pixels (no idea why).
+             *
+             * So we just fake a draw event (drawing to top left corner),
+             * and it's drawing to the whole canvas (full with/height).
+             */
+            var pos = this.viewport.offset();
+            var fakeEv = $.Event( 'mousemove', {
+                    pageX : pos.left,
+                    pageY : pos.top
+            });
+
+            var location = this.translateLocation( fakeEv );
+
+            x = location.left;
+            y = location.top;
+            w = this.width;
+            h = this.height;
+        }
+
+        // take off 1 to account for the canvas border
+        var scrollTop  = this.viewport.scrollTop(),
+            scrollLeft = this.viewport.scrollLeft();
+
+        // 2) work out how much of the drawing canvas is actually visible
+        x = Math.max( x,
+                scrollLeft / zoom
+        );
+        y = Math.max( y,
+                scrollTop / zoom
+        );
+        w = Math.min( w,
+                Math.min(canvas.width , this.viewport.width()/zoom )
+        );
+        h = Math.min( h,
+                Math.min(canvas.height, this.viewport.height()/zoom )
+        );
+
+        /* Check for updating outside of the canvas,
+         * and if so, we leave early (no refresh needed).
+         */
+        if ( x+w < 0 || y+h < 0 || x > this.canvas.width || y > this.canvas.height ) {
+            return false;
+        }
+
+        /* Need to be rounded for the canvas data we access later. */
+        x = Math.round(x);
+        y = Math.round(y);
+
+        w = Math.round(w);
+        h = Math.round(h);
+
+        /*
+         * Widen the draw area by a pixel to encompas the outer edge,
+         * this is to prevent slight 1px gaps along the edges of the upscale canvas.
+         */
+
+        if ( x > 0 ) {
+            x--;
+        }
+
+        if ( y > 0 ) {
+            y--;
+        }
+
+        var wDiff = Math.min( 1, canvas.width  - w ),
+            hDiff = Math.min( 1, canvas.height - h );
+
+        w += wDiff;
+        h += hDiff;
+
+        // 3) work out the same locations, on the upscale canvas
+        var ux, uy, uw, uh ;
+
+        ux = x*zoom - scrollLeft;
+        uy = y*zoom - scrollTop;
+        uw = w*zoom;
+        uh = h*zoom;
+
+        // clear our refresh area
+        var ctx = canvas.ctx,
+            destAlpha = ( ctx.globalCompositeOperation == 'source-atop' ),
+            uCtx = upscale.ctx;
+
+        /*
+         * This can go one of three ways:
+         *  = draw using downscaling (zoom is 100%, or lower)
+         *  = draw cheap (using canvas scaling) and sub-divide work
+         *  = manually upscale pixels
+         */
+
+        var divideWork = (w*h) > ((UPSCALE_DIVIDE_AREA+6)*(UPSCALE_DIVIDE_AREA+6));
+
+        if ( divideWork || zoom <= 1 ) {
+            var xDiff = Math.max( 0, (x+w) - canvas.width  ),
+                yDiff = Math.max( 0, (y+h) - canvas.height );
+
+            var ux2 = Math.round(ux),
+                uy2 = Math.round(uy),
+                uw2 = Math.round(uw - xDiff*zoom),
+                uh2 = Math.round(uh - yDiff*zoom);
+
+            // if we clip the edge,
+            // then clamp the max width/height onto the edges
+            // (otherwise Chrome crashes)
+            if ( x+w > canvas.width ) {
+                w -= (x+w) - canvas.width;
+                uw2 = upscale.width - ux2;
+            }
+            if ( y+h > canvas.height ) {
+                h -= (y+h) - canvas.height;
+                uh2 = upscale.height - uy2;
+            }
+
+            /*
+             * Note that the zoom _must_ be first,
+             * so it takes precendence over dividing work
+             * (as it's much cheaper).
+             */
+            /*
+             * If zoom is at 1, then there is no change in scaing.
+             * So we just draw normally, and quit.
+             */
+            if ( zoom <= 1 ) {
+                uCtx.clearRect( ux2, uy2, uw2, uh2 );
+
+                uCtx.globalAlpha = 1.0;
+                uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+                if ( includeOverlay ) {
+                    if ( destAlpha ) {
+                        uCtx.globalCompositeOperation = 'source-atop';
+                    }
+
+                    uCtx.drawImage( this.overlay, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+                    if ( destAlpha ) {
+                        uCtx.globalCompositeOperation = 'source-over';
+                    }
+                }
+
+            /*
+             * Sub divide up work if we'll be doing loads of it.
+             * Instead the work is done over multiple calls.
+             */
+            } else if ( divideWork ) {
+                // cheap draw, so we don't get huge empty areas
+                uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+                for ( var i = x; i < (w+x); i += UPSCALE_DIVIDE_AREA ) {
+                    for ( var j = y; j < (h+y); j += UPSCALE_DIVIDE_AREA ) {
+                        var updateW = Math.min( (w+x)-i, UPSCALE_DIVIDE_AREA ),
+                            updateH = Math.min( (h+y)-j, UPSCALE_DIVIDE_AREA );
+
+                        this.futureRefreshUpscale( i, j, updateW, updateH, includeOverlay );
+                    }
+                }
+            }
+        } else {
+            // 5) draw!
+            copyNearestNeighbour(
+                    upscale,                        // dest
+                    ux, uy, uw, uh,                 // dest x, y, w, h
+                    zoom, zoom,                     // dest pixel size
+
+                    ctx.getImageData(x, y, w, h),   // src
+                    x, y, w, h,                     // src  x, y, w, h
+                    includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : nil,
+
+                    ( ctx.globalCompositeOperation == 'source-atop' ) // bitmask pixels
+            );
         }
 
         return true;
@@ -5609,18 +5591,14 @@
                                 ctx.lineTo( x, y );
                                 this.updateLine( canvas, x, y );
 
-                                if ( canvas.hasUpscale() ) {
-                                    canvas.hideOverlay();
-                                    canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
-                                }
+                                canvas.hideOverlay();
+                                canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
                             },
                             onMove: function( canvas, x, y ) {
                                 this.updateLine( canvas, x, y );
 
-                                if ( canvas.hasUpscale() ) {
-                                    canvas.hideOverlay();
-                                    canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
-                                }
+                                canvas.hideOverlay();
+                                canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
                             },
                             onUp: function( canvas, x, y ) {
                                 this.updateLine( canvas, x, y );
