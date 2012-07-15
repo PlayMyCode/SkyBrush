@@ -2526,7 +2526,7 @@
         _this.upscale  = $upscale;
 
         _this.events = new events.Handler( _this );
-        _this.showUpscale = new events.Runner( UPSCALE_SCROLL_DELAY );
+        _this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY, this );
         _this.clipping = nil;
 
         /*
@@ -2557,7 +2557,7 @@
                     scroll( function() {
                         _this.hideUpscale();
 
-                        _this.displayUpscale();
+                        _this.showUpscale();
                     });
         }
 
@@ -2832,13 +2832,13 @@
             $upscale.height = Math.min( newHeight, viewport.height() );
 
             onComplete = function() {
-                _this.displayUpscale();
+                _this.showUpscale();
             };
         }
 
         $canvas.css( zoomSize ).translate( left, top );
         $overlay.css( zoomSize ).translate( left, top );
-        _this.lazyDisplayUpscale();
+        _this.showUpscale();
 
         /* Work out, and animate, the scroll change */
 
@@ -2916,7 +2916,7 @@
         this.upscale.hide().css({opacity: 0});
 
         if ( this.hasUpscale() ) {
-            this.showUpscale.clear();
+            this.showUpscaleEvent.clear();
         }
 
         this.clearUpscaleWorkers();
@@ -2937,8 +2937,7 @@
     /**
      * Adds refreshUpscale jobs to be performed in the future.
      */
-    CanvasManager.prototype.futureRefreshUpscale = function( x, y, w, h, includeOverlay )
-    {
+    CanvasManager.prototype.futureRefreshUpscale = function( x, y, w, h, includeOverlay ) {
         var _this = this;
         _this.upscaleWorkers[ _this.upscaleWorkersLength++ ] =
                 setTimeout( function() {
@@ -2946,19 +2945,12 @@
                 }, 10 );
     };
 
-    CanvasManager.prototype.lazyDisplayUpscale = function() {
-        var self = this;
-
-        if ( self.lazyUpscaleTimeout !== nil ) {
-            clearTimeout( self.lazyUpscaleTimeout );
-        }
-
-        self.lazyUpscaleTimeout = setTimeout( function() {
-            self.displayUpscale();
-            self.lazyUpscaleTimeout = nil;
-        }, CANVAS_UPDATE_SPEED );
-    };
-
+    /**
+     * Displays the upscale, but in a *lazy* way.
+     * It will not display right now, but sometime in the future.
+     * 
+     * If it is currently shown, then it will be hidden.
+     */
     /* This uses 'setTimeout' as scrolling/zooming wouldn't be fully finished
      * when it gets called. This allows us to have a delay for full reflow.
      *
@@ -2970,14 +2962,14 @@
      * position the upscale canvas. One of these will automatically be
      * cancelled since this will get called twice.
      */
-    CanvasManager.prototype.displayUpscale = function() {
+    CanvasManager.prototype.showUpscale = function() {
         var _this = this,
-            zoom = _this.zoom;
+            zoom  = _this.zoom;
 
         if ( _this.hasUpscale() ) {
             _this.hideUpscale();
 
-            _this.showUpscale.run( function() {
+            _this.showUpscaleEvent.run( function() {
                     var viewport = _this.viewport,
                         $upscale = $(_this.upscale);
 
@@ -3006,7 +2998,7 @@
                     var top,
                         left;
 
-                    if ( scrollTop == 0 ) {
+                    if ( scrollTop === 0 ) {
                         if ( viewport.scrollTopAvailable() > 0 ) {
                             top = 0;
                             $upscale.addClass( 'sb_offscreenY' );
@@ -3017,7 +3009,7 @@
                         top = scrollTop;
                         $upscale.addClass( 'sb_offscreenY' );
                     }
-                    if ( scrollLeft == 0 ) {
+                    if ( scrollLeft === 0 ) {
                         if ( viewport.scrollLeftAvailable() > 0 ) {
                             left = 0;
                             $upscale.addClass( 'sb_offscreenX' );
@@ -3034,6 +3026,7 @@
                     // The double opacity setting is needed to trigger the CSS animation.
                     var position = (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
                             (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
+
                     $upscale.
                             css({
                                     display: 'inline',

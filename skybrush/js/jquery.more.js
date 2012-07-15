@@ -76,6 +76,59 @@
  * can achieve that using the EventHandler constructor.
  */
 (function(window, document, $, jQuery, undefined){
+    /*
+     * Extra functions.
+     * 
+     * These are generic functions, used here, but also
+     * available for outside use.
+     */
+
+    /**
+     * Given a condition, if the condition is false,
+     * an error is raised. The error contains the message given.
+     * 
+     * msg can also be a function, which is run when condition
+     * is false, and it's returned value is thrown.
+     * 
+     * Extra arguments can also be passed in, which will be
+     * outputted onto the console before the error is thrown.
+     * This allows you to do something like:
+     * 
+     *     assert( x !== undefined && y !== undefined, "invalid x or y", x, y );
+     * 
+     * If x or y is undefined in the example, they are each
+     * outputted to the console. and then the error is thrown.
+     */
+    var assert = window['assert'] = function( condition, msg ) {
+        if ( ! condition ) {
+            if ( isFunction(msg) ) {
+                msg = msg();
+            }
+
+            // output any console items
+            for ( var i = 2; i < arguments.length; i++ ) {
+                console.log( arguments[i] );
+            }
+
+            throw new Error( "assertion error, " + msg );
+        }
+    };
+ 
+    /**
+     * @param obj The object to check.
+     * @return True if the given object is a function, false if not.
+     */
+    var isFunction = window['isFunction'] = function(obj) {
+        return (obj instanceof Function) || ((typeof obj) == 'function') ;
+    }
+
+    /*
+     * jQuery Additions.
+     */
+
+    /**
+     * 
+     */
     var toCssPx = function( n ) {
         if ( n === 0 ) {
             return n;
@@ -1122,41 +1175,23 @@
              * on the next JS cycle).
              * 
              * @constructor
-             * @param timeout Optional, the length of time for functions to wait when passed into 'run'.
+             * @param timeout Optional, the length of time for functions to wait when passed into 'run'. Defaults to 0.
+             * @param context Optional, the context which is used when calling the event. 'null' is used by default.
              */
-            var EventRunner = function( timeout ) {
-                this.timeout = ( timeout !== undefined ) ?
-                        Math.max( timeout, 0 ) :
-                        0 ;
-                
+            var EventRunner = function( timeout, context ) {
                 this.event = null;
+                this.contextObj = null;
+                this.timeoutVal = 0;
+                
+                if ( arguments.length > 0 ) {
+                    this.timeout( timeout );
+                }
+
+                if ( arguments.length > 1 ) {
+                    this.context( context );
+                }
             };
             
-            /**
-             * A helper function, that sets the function given,
-             * on the runner given.
-             * 
-             * Note that this does no clearing, and no safety checks.
-             * It's just a blob of code to be re-used by 'run' and 'maybeRun',
-             * end of.
-             * 
-             * @private
-             * @param runner The EventRunner to setup a timeout with.
-             * @param f The function to setup in a timeout.
-             * @return The given 'runner' object.
-             */
-            var setEvent = function( runner, f ) {
-                runner.event = setTimeout(
-                        function() {
-                            runner.event = null;
-                            f();
-                        },
-                        runner.timeout
-                );
-                
-                return runner;
-            };
-
             EventRunner.prototype = {
                 /**
                  * This can run in one of two ways.
@@ -1175,15 +1210,36 @@
                  *      var oldTimeout = event.timeout( newTimeout );
                  * 
                  * @param newTimeout Optional, a new timeout in milliseconds for functions to use when scheduled.
-                 * @return The current timeout, if no paramter, the old timeout, if a parameter is given.
+                 * @return The current timeout, if no paramter, the old timeout. If a value is provided, then this object is returned.
                  */
                 timeout: function( newTimeout ) {
-                    if ( newTimeout !== undefined ) {
-                        var time = this.timeout
-                        this.timeout = Math.max( newTimeout, 0 );
-                        return time;
+                    if ( arguments.length > 0 ) {
+                        assert(
+                                typeof newTimeout === 'number' || newTimeout instanceof Number,
+                                "non number given as timeout"
+                        );
+                        assert( isFinite( newTimeout ), "illegal number given (NaN or infinity)" )
+                        assert( newTimeout >= 0, "negative timeout given" );
+
+                        var time = this.timeoutVal;
+
+                        this.timeoutVal = Math.max( newTimeout, 0 );
+
+                        return this;
                     } else {
-                        return this.timeout;
+                        return this.timeoutVal;
+                    }
+                },
+
+                context: function( newContext ) {
+                    if ( arguments.length > 0 ) {
+                        assert( newContext !== undefined, "undefined context given" );
+
+                        this.contextObj = newContext || null;
+
+                        return this;
+                    } else {
+                        return this.contextObj;
                     }
                 },
 
@@ -1226,7 +1282,23 @@
                  * @return This object, for method chaining.
                  */
                 run: function( f ) {
-                    return setEvent( this.clear(), f );
+                    var self = this;
+
+                    if ( self.event !== null ) {
+                        clearTimeout( self.event );
+                    }
+
+                    self.event = setTimeout( function() {
+                        self.event = null;
+
+                        if ( self.contextObj !== null ) {
+                            f.call( self.contextObj );
+                        } else {
+                            f();
+                        }
+                    }, self.timeoutVal );
+
+                    return self;
                 },
 
                 /**
@@ -1244,9 +1316,11 @@
                  * @return This object, for method chaining.
                  */
                 maybeRun: function( f ) {
-                    return ( !this.isPending() ) ?
-                            setEvent( this, f ) :
-                            this;
+                    if ( ! this.isPending() ) {
+                        return this.run( f );
+                    } else {
+                        return this;
+                    }
                 }
             };
             
@@ -1314,15 +1388,7 @@
 
         return oldRound( n/step )*step;
     };
-    
-    /**
-     * @param obj The object to check.
-     * @return True if the given object is a function, false if not.
-     */
-    window['isFunction'] = function(obj) {
-        return (obj instanceof Function) || ((typeof obj) == 'function') ;
-    }
-
+   
     if ( Function.prototype.implementing === undefined ) {
         /**
          * For extending a prototype, or for adding methods.
