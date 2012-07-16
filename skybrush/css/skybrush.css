@@ -582,7 +582,6 @@
             image-rendering: optimize-contrast;
             image-rendering: -moz-crisp-edges;
             image-rendering: -webkit-optimize-contrast;
-
         }
         .skybrush_canvas_draw,
         .skybrush_canvas_upscale {

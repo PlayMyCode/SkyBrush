@@ -142,8 +142,8 @@
     /**
      * @const
      */
-    var DEFAULT_WIDTH  = 480, // pixels
-        DEFAULT_HEIGHT = 360, // pixels
+    var DEFAULT_WIDTH  = 540, // pixels
+        DEFAULT_HEIGHT = 460, // pixels
         DEFAULT_ZOOM   =   1, // from 1/MAX_ZOOM to MAX_ZOOM
 
         DEFAULT_GRID_WIDTH  = 5, // pixels
@@ -165,6 +165,14 @@
          * @type {string}
          */
         DEFAULT_COMMAND = 'brush',
+
+        /**
+         * The default size for brushes.
+         * 
+         * @const
+         * @type {number}
+         */
+        DEFAULT_BRUSH_SIZE = 2,
 
         /**
          * @const
@@ -395,7 +403,7 @@
          * The default colour to set as the current colour,
          * when Painter starts.
          */
-        DEFAULT_COLOR = '#000000', // black
+        DEFAULT_COLOR = '#104662', // black
 
         /**
          * The colours present in the colour palette.
@@ -1518,7 +1526,8 @@
                     $this.siblings( '.skybrush_gui.sb_focus' ).removeClass( 'sb_focus' );
                     $this.addClass( 'sb_focus' );
 
-                    if ( ! $(ev.target).is('input') ) {
+                    var $target = $(ev.target);
+                    if ( ! $target.is('input') && ! $target.is('a') ) {
                         ev.stopPropagation();
                         return false;
                     }
@@ -4196,7 +4205,7 @@
          */
         if ( type == 'checkbox' ) {
             if ( defaultField === undefined ) {
-                    defaultField = false;
+                defaultField = false;
             }
 
             var checkbox = $('<input>').
@@ -4707,14 +4716,14 @@
                 },
 
                 min: 1,
-                max: MAX_BRUSH_SIZE
+                max: MAX_BRUSH_SIZE,
         });
         setup.controls = controls;
 
         Command.call( this, setup );
 
         this.size = 0;
-        this.setSize( 1 );
+        this.setSize( DEFAULT_BRUSH_SIZE );
     };
 
     Brush.prototype = new Command( '', '', {} );
@@ -7778,7 +7787,7 @@
                     append( $('<div>').addClass( 'skybrush_command_back' ) ).
                     append(
                             $a( '' ).
-                                    click( function(ev) {
+                                    vclick( function(ev) {
                                         ev.preventDefault();
                                         ev.stopPropagation();
 
@@ -8630,11 +8639,6 @@
     };
 
     SkyBrush.prototype.onMouseDown = function( ev ) {
-        if ( IS_TOUCH ) {
-            this.brushCursor.showTouch();
-            this.brushCursor.onMove( ev );
-        }
-
         var infoBar = this.infoBar;
 
         if ( infoBar.isShown() ) {
@@ -8646,7 +8650,7 @@
         }
 
         var $target = $(ev.target);
-
+                
         /*
          * If we are drawing from totally outside SkyBrush,
          * skip it.
@@ -8659,8 +8663,14 @@
                 $target.parents('.skybrush').size() > 0 &&
                 ( IS_TOUCH || ev.which === LEFT ) &&
                 !$target.is('input') &&
+                !$target.is('a') &&
                 !ev.isInScrollBar( this.viewport )
         ) {
+            if ( IS_TOUCH ) {
+                this.brushCursor.showTouch();
+                this.brushCursor.onMove( ev );
+            }
+
             this.dom.focus();
 
             return this.startDraw( ev );
