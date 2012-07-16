@@ -545,7 +545,6 @@
 
         if ( $.support.input.range ) {
             sliderBar = $('<input>').
-//                    stopPropagation( 'click', 'leftdown' ).
                     addClass( 'skybrush_slider_bar' ).
                     attr( 'type', 'range' ).
 
@@ -553,7 +552,6 @@
                     attr( 'min', 0 ).
                     attr( 'max', 1 ).
                     attr( 'step', 1/NUM_SLIDE_INCREMENTS ).
-
                     change( function() {
                         sliderBar.runOnSlide();
                     });
@@ -587,7 +585,7 @@
             };
         } else {
             var slider = $a('', 'skybrush_slider_bar_slider').
-                    stopPropagation( 'click', 'leftdown' ).
+                    killEvent( 'click', 'leftdown' ).
                     leftdown( function(ev) {
                         var $this = $(this);
 
@@ -645,7 +643,7 @@
 
             sliderBar = $a('', 'skybrush_slider_bar').
                     addClass( 'sb_fake' ).
-                    stopPropagation( 'click', 'leftdown' ).
+                    killEvent( 'click', 'leftdown' ).
                                 append( $('<div>').addClass('skybrush_slider_bar_inner') ).
                     append( slider ).
 
@@ -1520,7 +1518,7 @@
                     $this.siblings( '.skybrush_gui.sb_focus' ).removeClass( 'sb_focus' );
                     $this.addClass( 'sb_focus' );
 
-                    if ( ! $(ev.target).is(':input') ) {
+                    if ( ! $(ev.target).is('input') ) {
                         ev.stopPropagation();
                         return false;
                     }
@@ -3516,12 +3514,6 @@
                             0, 0, oldW, oldH
                     );
                 } );
-
-                // if we are using a browser with broken canvas rendering,
-                // force it to flush changes by asking for pixels
-//                if ( $.browser.mozilla ) {
-//                    ctx.getImageData( 0, 0, 1, 1 );
-//                }
             }
 
             _this.endDraw( true );
@@ -7211,7 +7203,7 @@
         var colors = $('<div>').addClass( 'skybrush_colors_palette' );
         var newColor = function( painter, colors, strColor ) {
             var color = $a( '', 'skybrush_colors_palette_color' ).
-                    stopPropagation( 'click', 'mousedown' ).
+                    killEvent( 'click', 'mousedown' ).
                     append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
                     css({background: strColor}).
                     vclick( function(ev) {
@@ -7367,7 +7359,7 @@
 
         var colourWheel = $( colourWheelCanvas ).
                 addClass( 'skybrush_color_wheel_colour_wheel' ).
-                stopPropagation( 'click' ).
+                killEvent( 'click' ).
                 leftdrag( function(ev) {
                         var pos = ev.offset( colourWheel );
 
@@ -7561,7 +7553,7 @@
                 addClass('skybrush_color_alpha_bar').
                 append( alphaGradient ).
                 append( alphaBar ).
-                stopPropagation( 'click' );
+                killEvent( 'click' );
         var alphaWrap = $('<div>').
                 addClass('skybrush_color_alpha_wrap').
                 append( alphaBar );
@@ -7881,7 +7873,7 @@
                 button.vclick( fun );
             }
 
-            return button.stopPropagation( 'click', 'leftdown' );
+            return button.killEvent( 'click', 'leftdown' );
         }
 
         var hideInfoBar = function() {
@@ -8080,7 +8072,7 @@
 
                         var okButton = $('<input>').
                                 attr( 'type', 'submit' ).
-                                stopPropagation( 'click', 'mousedown' ).
+                                killEvent( 'click', 'mousedown' ).
                                 val( 'ok' ).
                                 click( function() {
                                     form.submit();
@@ -8753,6 +8745,7 @@
         if ( this.isDragging() ) {
             var dragging = this.dragging;
             this.dragging = nil;
+
             dragging.onEndDrag( ev );
 
             return true;
