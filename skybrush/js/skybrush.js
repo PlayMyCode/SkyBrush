@@ -697,7 +697,9 @@
                 this.percentVal = p;
 
                 var x = this.width() * p ;
-                this.children('.skybrush_slider_bar_slider').offset( x, 0 );
+                this.
+                        children('.skybrush_slider_bar_slider').
+                        translate( x, 0 );
 
                 return this;
             };
@@ -1617,6 +1619,24 @@
 
     /**
      * Sets the X and Y location of this GUI within the SkyBrush app.
+     * 
+     * This can take x/y location, or an event. If an event is given,
+     * additional x/y co-ordinates can be given and added on top.
+     * 
+     * Example usage:
+     * 
+     *  // set it to the location 20x30
+     *  gui.xy( 10, 30 );
+     *  
+     *  // set it to the location of the cursor
+     *  dom.mousedown( function(ev) {
+     *     gui.xy( ev );
+     *  } );
+     * 
+     *  // set it to the cursor location + 20x30
+     *  dom.mousedown( function(ev) {
+     *     gui.xy( ev, 20, 30 );
+     *  } );
      *
      * @param x The x location, in pixels.
      * @param y The y location, in pixels.
@@ -1624,6 +1644,9 @@
     GUI.prototype.xy = function( a, b, c ) {
         var x, y;
 
+        /*
+         * handle: gui.xy( ev );
+         */
         if ( a instanceof $.Event ) {
             var pos = a.offset( this.dom.parent() );
 
@@ -1638,6 +1661,10 @@
             } else {
                 y = pos.top;
             }
+
+        /*
+         * handle: gui.xy( x, y );
+         */
         } else {
             x = a;
             y = b;
