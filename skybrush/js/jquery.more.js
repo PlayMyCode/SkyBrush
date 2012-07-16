@@ -130,7 +130,9 @@
      * 
      */
     var toCssPx = function( n ) {
-        if ( n === 0 ) {
+        if ( n === NaN ) {
+            throw new Error("NaN given as CSS value");
+        } else if ( n === 0 ) {
             return n;
         } else if ( typeof n === 'number' || n instanceof Number ) {
             return n + 'px';
@@ -261,13 +263,17 @@
                         'translate3d(' + x + ', ' + y + ', ' + z + ')' :
                         'translate(' + x + ', ' + y + ')' ;
 
-                this.css({
-                        WebkitTransform: val,
-                           MozTransform: val,
-                            msTransform: val,
-                             OTransform: val,
-                              transform: val
-                });
+                for ( var i = this.length-1; i >= 0; i-- ) {
+                    var style = this[i].style;
+
+                    if ( style !== undefined ) {
+                        style.WebkitTransform = val;
+                        style.MozTransform = val;
+                        style.msTransform = val;
+                        style.OTransform = val;
+                        style.transform = val;
+                    }
+                }
             }
 
             return this;
