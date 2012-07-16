@@ -707,6 +707,38 @@
             }
         };
         
+        var onEventsFun = function( callback ) {
+            return function() {
+                for ( var i = 0; i < arguments.length; i++ ) {
+                    // must use the event name as 'bind' seems to propogate anyway
+                    var event = arguments[i];
+
+                    if ( dom[event] ) {
+                        this[ event ]( callback );
+                    } else {
+                        this.bind( event, callback );
+                    }
+                }
+                
+                return this;
+            };
+        };
+
+        /**
+         * Stops events from propagating, but does not prevent default
+         * behaviour, on the events given.
+         */
+        $.fn.stopPropagation = onEventsFun( function(ev) {
+            ev.stopPropagation();
+        } );
+
+        /**
+         * Prevents the default behaviour on the events given.
+         */
+        $.fn.preventDefault = onEventsFun( function(ev) {
+            ev.preventDefault();
+        } );
+
         /**
          * For the events given, this will append events that will stop propogation.
          * These have to be actual jQuery events, accessible through methods,
@@ -719,19 +751,11 @@
          * 
          * @return This jQuery object is returned.
          */
-        $.fn.stopPropagation = function() {
-            for ( var i = 0; i < arguments.length; i++ ) {
-                // must use the event name as 'bind' seems to propogate anyway
-                var event = arguments[i];
-                this[ event ]( function(ev) {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    return false;
-                } );
-            }
-            
-            return this;
-        };
+        $.fn.killEvent = onEventsFun( function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            return false;
+        } );
 
         /**
          * Allows you to setup this component to forward it's events on to
