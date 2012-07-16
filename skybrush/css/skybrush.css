@@ -748,7 +748,7 @@
 .skybrush_marquee {
     z-index: 5;
 
-    width: 0;
+    width : 0;
     height: 0;
 
     -webkit-transition: opacity 200ms linear 0s;
@@ -1227,27 +1227,30 @@
                     font-size: 10px;
                     font-weight: bold;
                 }
+                .skybrush_rgb_input::-webkit-inner-spin-button,
+                .skybrush_rgb_input::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
                 .skybrush_rgb_input {
                     float: right;
                 }
     .skybrush_destination_alpha {
-        margin: 0 5px 5px 5px;
         float: left;
         clear: both;
+
         text-align: center;
-        position: relative;
-        left: 50%;
+
+        width: 100%;
+
+        margin: 0 0 5px 0;
     }
         .skybrush_destination_alpha > .skybrush_command_control_label {
             margin-top: 5px;
-            position: relative;
-            left: -50%;
-            height: 100%;
+            float: none;
+            display: inline;
         }
         .skybrush_destination_alpha > input {
-            float: right;
-            position: relative;
-            left: -50%;
         }
 
 .skybrush_gui.sb_gui_commands {
@@ -1424,6 +1427,11 @@
                     .skybrush_control.sb_control_slider > .skybrush_slider_bar_inner {
                         height: 1px;
                     }
+                .skybrush_control.sb_control_slider > .skybrush_input::-webkit-inner-spin-button,
+                .skybrush_control.sb_control_slider > .skybrush_input::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
                 .skybrush_control.sb_control_slider > .skybrush_input {
                     float: right;
                     clear: right;

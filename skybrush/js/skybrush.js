@@ -1521,6 +1521,7 @@
                     $this.addClass( 'sb_focus' );
 
                     if ( ! $(ev.target).is(':input') ) {
+                        ev.stopPropagation();
                         return false;
                     }
                 } );
@@ -1538,9 +1539,6 @@
         header.leftdown( function(ev) {
             _this.parent.startDrag( _this.startDrag(ev) );
         });
-        content.bind( 'vmousedown', function(ev) {
-            ev.stopPropagation();
-        } );
 
         if ( $.browser.msie ) {
             header.bind( 'selectstart', function() {return false;} );
@@ -1596,7 +1594,6 @@
 
     GUI.prototype.onDrag = function(ev) {
         return this.xy( ev );
-        return this.xy( ev.pageX, ev.pageY );
     };
 
     /**
@@ -1604,7 +1601,6 @@
      */
     GUI.prototype.onEndDrag = function( ev ) {
         this.xy( ev );
-        //this.xy( ev.pageX, ev.pageY );
 
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
@@ -1640,7 +1636,6 @@
             y = b;
         }
 
-        //this.dom.css({ left: x, top: y });
         this.dom.translate( x-this.dragOffsetX, y-this.dragOffsetY );
 
         return this;
@@ -2113,11 +2108,11 @@
 
         if ( width !== this.lastWidth ) {
             this.lastWidth = width;
-            this.dom.css('width', width);
+            this.dom.width( width );
         }
         if ( height !== this.lastHeight ) {
             this.lastHeight = height;
-            this.dom.css('height', height);
+            this.dom.height( height );
         }
     };
 
@@ -4272,6 +4267,10 @@
 
             var val = $('<input>').
                     addClass( 'skybrush_input' ).
+                    attr( 'type', 'number' ).
+                    attr( 'step', 1 ).
+                    attr( 'min', min ).
+                    attr( 'max', max ).
                     forceNumeric( false ).
                     keydown( function() {
                         var $this = $(this);
@@ -7523,8 +7522,11 @@
             var input = $('<input>').
                     addClass( css ).
                     addClass('skybrush_rgb_input').
+                    attr( 'type', 'number' ).
                     attr( 'maxLength', 3 ).
-                    attr( 'type', 'text' ).
+                    attr( 'min', 0 ).
+                    attr( 'max', max ).
+                    attr( 'step', isDecimal ? 0.01 : 1 ).
                     forceNumeric( isDecimal ).
                     keyup( event ).
                     blur( function(ev) {
