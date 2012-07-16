@@ -689,7 +689,7 @@
                 this.percentVal = p;
 
                 var x = this.width() * p ;
-                this.children('.skybrush_slider_bar_slider').css({left: x + 'px'});
+                this.children('.skybrush_slider_bar_slider').offset( x, 0 );
 
                 return this;
             };
@@ -1891,10 +1891,8 @@
 
         _this.zoom = zoom;
         _this.dom.
-                css({
-                    width : width+1,
-                    height: height+1
-                }).
+                width( width+1 ).
+                height( height+1 ).
                 translate( canvasX, canvasY );
 
         _this.update( width+1, height+1 );
@@ -1948,7 +1946,8 @@
                     $('<div>').
                             addClass('skybrush_grid_line').
                             addClass('skybrush_grid_line_vertical').
-                            css({left: x + 'px', height: h+'px'})
+                            translate( x, 0 ).
+                            height( h )
             );
         }
         for ( var y = startY; y <= h; y += yInc ) {
@@ -1956,7 +1955,8 @@
                     $('<div>').
                             addClass('skybrush_grid_line').
                             addClass('skybrush_grid_line_horizontal').
-                            css({top: y + 'px', width: w+'px'})
+                            translate( 0, y ).
+                            width( w )
             );
         }
 
@@ -2514,6 +2514,7 @@
         _this.viewport = viewport;
 
         _this.$canvas  = $canvas;
+        _this.$overlay = $overlay;
         _this.$upscale = $upscale;
 
         _this.canvas   = canvas;
@@ -2616,7 +2617,7 @@
     };
 
     CanvasManager.prototype.hideOverlay = function() {
-        $(this.overlay).hide();
+        this.$overlay.hide();
     };
 
     /**
@@ -2628,7 +2629,7 @@
      * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
      */
     CanvasManager.prototype.translateLocation = function(ev) {
-        var pos = ev.offset( this.$canvas ),
+        var pos  = ev.offset( this.$canvas ),
             zoom = this.zoom ;
 
         pos.left /= zoom;
@@ -2727,7 +2728,7 @@
             }
 
             // reshow the overlay, in case a command hid it
-            $(_this.overlay).show();
+            _this.$overlay.show();
 
             _this.undos.add( _this.canvas );
 
@@ -2781,18 +2782,14 @@
      * @param zoomY Optional, a y location to zoom in/out of.
      */
     CanvasManager.prototype.updateCanvasSize = function( zoomX, zoomY ) {
-        var zoom = this.zoom,
-            $canvas = this.$canvas,
-            $overlay = $(this.overlay),
+        var zoom     = this.zoom,
+            $canvas  = this.$canvas,
+            $overlay = this.$overlay,
             viewport = this.viewport,
-            upscale = this.upscale,
-            _this = this;
+            upscale  = this.upscale;
 
-        var newWidth  = Math.round( this.width  * zoom ),
-            newHeight = Math.round( this.height * zoom );
-
-        var zoomWidth  = Math.round( this.width  * zoom ),
-            zoomHeight = Math.round( this.height * zoom ) ;
+        var newWidth   = Math.round( this.width  * zoom ),
+            newHeight  = Math.round( this.height * zoom );
 
         var parent = $canvas.parent();
 
@@ -2805,45 +2802,34 @@
         var left = (canvasX+0.5)|0,
             top  = (canvasY+0.5)|0;
 
-        // Update the upscale when this has finished zooming in
-        _this.refreshUpscale();
-
-        upscale.width  = Math.min( newWidth , viewport.width()  );
-        upscale.height = Math.min( newHeight, viewport.height() );
-
-        $canvas.
-                width( zoomWidth ).
-                height( zoomHeight ).
-                translate( left, top );
-        $overlay.
-                width( zoomWidth ).
-                height( zoomHeight ).
-                translate( left, top );
-
         /* Work out, and animate, the scroll change */
+
+        var hasScrollLeft = viewport.scrollLeftAvailable(),
+            hasScrollTop  = viewport.scrollTopAvailable();
 
         var zoomOffsetX = 0,
             zoomOffsetY = 0;
 
-        if ( zoomX !== undefined && zoomY !== undefined ) {
-            var oldWidth  = $canvas.width(),
-                oldHeight = $canvas.height();
+        if (
+                zoomX !== undefined &&
+                zoomX !== false &&
+                hasScrollLeft
+        ) {
+            /*
+             * A value from 0.0 to 1.0, representing the zoom location.
+             */
+            var zoomXP;
 
-            // Convert from a location on teh canvas, to a location in our viewport...
-            zoomX = (zoomX / this.width ) * oldWidth;
-            zoomY = (zoomY / this.height) * oldHeight;
-
-            // now take off any scrolling
-            zoomX -= viewport.scrollLeft();
-            zoomY -= viewport.scrollTop();
-
-            // next we work out percentage in the viewport
-            var zoomXP = zoomX / viewport.width(),
-                zoomYP = zoomY / viewport.height();
+            /*
+             * zoom based on a canvas pixel location,
+             * or just use the center of the canvas.
+             */
+            var zoomXP = ( zoomX !== true ) ?
+                    zoomX / this.width :
+                    0.5 ;
 
             // and then convert from: [0.0, 1.0] to [-1.0, 1.0]
             zoomXP = zoomXP*2 - 1;
-            zoomYP = zoomYP*2 - 1;
 
             /*
              * Divide newWidth by half, so that when it's multiplied against zoomXP,
@@ -2855,24 +2841,50 @@
              * newWidth is divided again, making it newWidth/4, as the scrolling is
              * too extreme.
              */
-            if ( viewport.scrollLeftAvailable() ) {
-                zoomOffsetX = (newWidth/4) * zoomXP;
-            }
+            zoomOffsetX = (newWidth/4) * zoomXP;
+        }
 
-            if ( viewport.scrollTopAvailable() ) {
-                zoomOffsetY = (newHeight/4) * zoomYP;
-            }
+        // and now for the zoom Y
+        if (
+                zoomY !== undefined &&
+                zoomY !== false &&
+                hasScrollTop
+        ) {
+            var zoomYP = ( zoomY !== true ) ?
+                    zoomY / this.height :
+                    0.5 ;
+
+            zoomYP = zoomYP*2 - 1;
+
+            zoomOffsetY = (newHeight/4) * zoomYP;
         }
 
         // If no scroll bar right now, try to scroll to the middle (doesn't matter if it fails).
-        var scrollTopP  = ( viewport.scrollTopAvailable()  === 0 ) ? 0.5 : viewport.scrollTopPercent(),
-            scrollLeftP = ( viewport.scrollLeftAvailable() === 0 ) ? 0.5 : viewport.scrollLeftPercent();
+        var scrollTopP  = ( hasScrollTop  === 0 ) ? 0.5 : viewport.scrollTopPercent(),
+            scrollLeftP = ( hasScrollLeft === 0 ) ? 0.5 : viewport.scrollLeftPercent();
 
         var heightChange = newHeight / $canvas.height(),
             widthChange  = newHeight / $canvas.height();
 
         var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
             scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
+
+        /*
+         * Now apply the changes.
+         *
+         * We do it here, so it doesn't affect the calculations above.
+         */
+
+        $canvas.
+                width( newWidth ).
+                height( newHeight ).
+                translate( left, top );
+        $overlay.
+                width( newWidth ).
+                height( newHeight ).
+                translate( left, top );
+
+        this.refreshUpscale();
 
         viewport.clearQueue().animate(
                 {
@@ -2884,9 +2896,9 @@
 
         var viewWidth  = Math.min( newWidth , viewport.width()  ),
             viewHeight = Math.min( newHeight, viewport.height() );
-        this.grid.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
-        this.marquee.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
-        this.copyObj.updateViewport( canvasX, canvasY, zoomWidth, zoomHeight, zoom );
+        this.grid.   updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
+        this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
+        this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
     };
 
     /**
@@ -6250,7 +6262,7 @@
         if ( this.isReallyHidden ) {
             this.isReallyHidden = false;
 
-            this.dom.css({display: 'block'});
+            this.dom.show();
             this.refreshShape();
         }
 
@@ -6261,7 +6273,7 @@
         if ( ! this.isReallyHidden ) {
             this.isReallyHidden = true;
 
-            this.dom.css({display: 'none'});
+            this.dom.hide();
         }
 
         return this;
@@ -6409,9 +6421,10 @@
             }
 
             self.cursorReplace.run( function() {
-                self.dom.css({
-                        'background-image': 'url(' + canvas.toDataURL() + ')'
-                });
+                self.dom.css(
+                        'background-image',
+                        'url(' + canvas.toDataURL() + ')'
+                );
             } );
         }
     };
@@ -6581,12 +6594,12 @@
 
             if ( width !== cssSetup.width ) {
                 cssSetup['width'] = width;
-                _this.dom.css( 'width', width );
+                _this.dom.width( width );
             }
 
             if ( height !== cssSetup.height ) {
                 cssSetup['height'] = height;
-                _this.dom.css( 'height', height );
+                _this.dom.height( height );
             }
         }
 
@@ -6979,11 +6992,15 @@
         var windowWidth = $(window).width();
 
         this.dom.children( '.skybrush_gui' ).each( function() {
-            var gui = $(this);
-            var wx = gui.position().left + gui.width();
+            var gui = $(this),
+                pos = gui.offset();
+            var wx = pos.left + gui.width();
 
             if ( wx > windowWidth ) {
-                gui.css({left : '-=' + (wx-windowWidth)})
+                gui.translate(
+                        pos.x - (wx-windowWidth),
+                        pos.y
+                );
             }
         } );
     };
@@ -7205,7 +7222,7 @@
             var color = $a( '', 'skybrush_colors_palette_color' ).
                     killEvent( 'click', 'mousedown' ).
                     append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
-                    css({background: strColor}).
+                    css( 'background', strColor ).
                     vclick( function(ev) {
                         var $this = $(this);
 
@@ -7655,8 +7672,8 @@
             }
 
             // update the shown colour
-            currentColorShow.css({background: strColor});
-            alphaBar.css({background: strColor});
+            currentColorShow.css('background', strColor);
+            alphaBar.css('background', strColor);
 
             // convert #ff9933 colour into r, g, b values
             var hexStr = strColor.substring(1,7);
@@ -7697,22 +7714,25 @@
             var colX = xVal * colXWidth,
                 colY = yVal * colYHeight ;
 
-            mixerVertical.translate( colX, 0 );
-            mixerVertical.css({
-                    height: Math.limit(
-                            (mixerSize - colX) + COLOUR_MIXER_MIN_WIDTH,
-                            COLOUR_MIXER_MIN_WIDTH,
-                            COLOUR_MIXER_WIDTH
-                    )
-            });
-            mixerHorizontal.translate( 0, colY );
-            mixerHorizontal.css({
-                    width: Math.limit(
-                            (mixerSize - colY) + COLOUR_MIXER_MIN_WIDTH,
-                            COLOUR_MIXER_MIN_WIDTH,
-                            COLOUR_MIXER_WIDTH
-                    )
-            });
+            mixerVertical.
+                    translate( colX, 0 ).
+                    height(
+                            Math.limit(
+                                    (mixerSize - colX) + COLOUR_MIXER_MIN_WIDTH,
+                                    COLOUR_MIXER_MIN_WIDTH,
+                                    COLOUR_MIXER_WIDTH
+                            )
+                    );
+
+            mixerHorizontal.
+                    translate( 0, colY ).
+                    width(
+                            Math.limit(
+                                    (mixerSize - colY) + COLOUR_MIXER_MIN_WIDTH,
+                                    COLOUR_MIXER_MIN_WIDTH,
+                                    COLOUR_MIXER_WIDTH
+                            )
+                    );
 
             /* Update Hue
              *
@@ -7730,7 +7750,7 @@
                     children( '.skybrush_color_alpha_line' ).
                     translate( 0, y );
  
-            currentColorShow.css({opacity: alpha});
+            currentColorShow.css('opacity', alpha);
 
             var aInput = alphaInput.children('input');
             if ( ! aInput.is(':focus') ) {
@@ -8256,10 +8276,12 @@
                 val( MAX_ZOOM/2 ).
                 step( 1 ).
                 slide( function(ev, n, p) {
-                    painter.setZoomPercent( p );
+                    painter.setZoomPercent( p, true, true );
+                    hideInfoBar();
                 } );
 
-        var zoomLabel = $('<div>').addClass( 'skybrush_zoom_label' );
+        var zoomLabel = $('<div>').
+                addClass( 'skybrush_zoom_label' );
 
         painter.onZoom( function( zoom ) {
             var zoomI = zoom * 100 ;
@@ -8488,22 +8510,6 @@
 
         // convert from [-1.0 to 1.0] => [0.0 to 1.0]
         return slide/2 + 0.5;
-    };
-
-    /**
-     * Centers the object given using absolute positioning.
-     *
-     * @param dom The JQuery dom object to centre.
-     */
-    var centerObj = function( dom ) {
-        var parent = dom.parent(),
-            w = dom.width(),
-            h = dom.height();
-
-        dom.css({
-                left: ( parent.width() - w)/2 + 'px',
-                top : (parent.height() - h)/2 + 'px'
-        });
     };
 
     SkyBrush.prototype.onEndDraw = function( fun ) {
@@ -8820,13 +8826,13 @@
         if ( $.browser.msie && $.browser.version <= 9 ) {
             // CSS Transitions are not supported, so use jQuery
             guis.animate({opacity: 0}, 200, function() {
-                $(this).css({display: 'none'});
+                $(this).hide();
             });
         } else {
             setTimeout( function() {
                 // ensure we are still hiding them
                 if ( guis.hasClass('sb_hide') ) {
-                    guis.css({display: 'none'});
+                    $(this).hide();
                 }
             }, 200 );
         }
@@ -8844,7 +8850,8 @@
      */
     SkyBrush.prototype.showGUIs = function() {
         var guis = this.dom.children( '.skybrush_gui' );
-        guis.css({display: 'block'}).
+        guis.
+            show().
             removeClass( 'sb_hide' );
 
         if ( $.browser.msie && $.browser.version <= 9 ) {
@@ -8983,10 +8990,15 @@
      * with this method. 0.0 represents the minimum zoom (whatever that
      * value may be), whilst 1.0 is the maximum zoom.
      *
+     * zoomX and zoomY may be 'true' to zoom into the center of the
+     * canvas.
+     *
      * @param The percentage, from 0.0 to 1.0, for this to be zoomed.
+     * @param zoomX the location, in canvas pixels, of where to zoom. Optional, pass in undefined for no value.
+     * @param zoomY the location, in canvas pixels, of where to zoom. Optional, pass in undefined for no value.
      */
-    SkyBrush.prototype.setZoomPercent = function(p) {
-        this.setZoom( percentToZoom(p) );
+    SkyBrush.prototype.setZoomPercent = function(p, zoomX, zoomY) {
+        this.setZoom( percentToZoom(p), zoomX, zoomY );
         return this;
     };
 
@@ -9045,6 +9057,9 @@
      * Namely when setting the default zoom, so all events get
      * fired on startup.
      *
+     * x and y may also be 'true', which denotes that you wish
+     * to zoom in relation to the center of the canvas.
+     *
      * @param zoom The zoom factor.
      * @param x optional, the centre of the zoom in canvas pixels.
      * @param y optional, the centre of the zoom in canvas pixels.
@@ -9056,7 +9071,9 @@
             zoom = Math.round( zoom );
         }
 
-        if ( zoom !== this.getZoom() || force ) {
+        var oldZoom = this.getZoom();
+
+        if ( zoom !== oldZoom || force ) {
             this.canvas.setZoom( zoom, x, y );
             this.events.run( 'onZoom', zoom, x, y );
         }

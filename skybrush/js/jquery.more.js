@@ -287,7 +287,7 @@
      */
     (function() {
         /**
-         * This will 'offset' teh location of the event
+         * This will 'offset' the location of the event
          * by the dom's location in the document.
          * 
          * The result is then returned.

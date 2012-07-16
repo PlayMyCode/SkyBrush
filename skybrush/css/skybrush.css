@@ -1448,6 +1448,7 @@
  * which looks like the current brush.
  */
 .skybrush_brush {
+    display: block;
     position: absolute;
     top: 0;
 
