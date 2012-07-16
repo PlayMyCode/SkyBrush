@@ -588,16 +588,16 @@
         .skybrush_canvas_upscale {
             border: 1px solid #aaa;
             background: url(./../images/canvas_back.png) repeat;
+        }
+        .skybrush_canvas_draw {
+            border-radius: 3px;
+            z-index: 0;
 
             -webkit-transition: width 200ms linear 0s, height 200ms linear 0s, -webkit-transform 200ms linear 0s;
                -moz-transition: width 200ms linear 0s, height 200ms linear 0s,    -moz-transform 200ms linear 0s;
                 -ms-transition: width 200ms linear 0s, height 200ms linear 0s,     -ms-transform 200ms linear 0s;
                  -o-transition: width 200ms linear 0s, height 200ms linear 0s,      -o-transform 200ms linear 0s;
                     transition: width 200ms linear 0s, height 200ms linear 0s,         transform 200ms linear 0s;
-        }
-        .skybrush_canvas_draw {
-            border-radius: 3px;
-            z-index: 0;
         }
         .skybrush_canvas_overlay {
             border: 1px solid transparent;

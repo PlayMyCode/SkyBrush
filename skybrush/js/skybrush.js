@@ -2531,6 +2531,8 @@
         _this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY );
         _this.clipping = nil;
 
+        _this.isUpscaleShown = false;
+
         /*
          * Events
          *
@@ -2556,8 +2558,7 @@
         /* Must be added at the end! */
         viewport.
                 scroll( function() {
-                    _this.hideUpscale();
-                    _this.showUpscale();
+                    _this.refreshUpscale();
                 });
 
         /* Prevent Scrolling if we're scrolling using the viewport. */
@@ -2729,7 +2730,7 @@
 
             _this.overlay.ctx.clearRect( 0, 0, _this.overlay.width, _this.overlay.height );
             if ( refresh ) {
-                _this.refreshUpscale( ux, uy, uw, uh );
+                _this.redrawUpscale( ux, uy, uw, uh );
             }
 
             // reshow the overlay, in case a command hid it
@@ -2791,7 +2792,7 @@
             $canvas = this.$canvas,
             $overlay = $(this.overlay),
             viewport = this.viewport,
-            $upscale = this.$upscale,
+            upscale = this.upscale,
             _this = this;
 
         var newWidth  = Math.round( this.width  * zoom ),
@@ -2810,24 +2811,21 @@
 
         var left = (canvasX+0.5)|0,
             top  = (canvasY+0.5)|0;
-        var zoomSize = {
-                 width: zoomWidth + 'px',
-                height: zoomHeight + 'px'
-        };
 
         // Update the upscale when this has finished zooming in
-        this.hideUpscale();
+        _this.refreshUpscale();
 
-        $upscale.width  = Math.min( newWidth , viewport.width()  );
-        $upscale.height = Math.min( newHeight, viewport.height() );
+        upscale.width  = Math.min( newWidth , viewport.width()  );
+        upscale.height = Math.min( newHeight, viewport.height() );
 
-        var onComplete = function() {
-            _this.showUpscale();
-        };
-
-        $canvas.css( zoomSize ).translate( left, top );
-        $overlay.css( zoomSize ).translate( left, top );
-        _this.showUpscale();
+        $canvas.
+                width( zoomWidth ).
+                height( zoomHeight ).
+                translate( left, top );
+        $overlay.
+                width( zoomWidth ).
+                height( zoomHeight ).
+                translate( left, top );
 
         /* Work out, and animate, the scroll change */
 
@@ -2835,7 +2833,7 @@
             zoomOffsetY = 0;
 
         if ( zoomX !== undefined && zoomY !== undefined ) {
-            var oldWidth = $canvas.width(),
+            var oldWidth  = $canvas.width(),
                 oldHeight = $canvas.height();
 
             // Convert from a location on teh canvas, to a location in our viewport...
@@ -2902,9 +2900,6 @@
      * Hides the upscale, and stops any events planning to show it.
      */
     CanvasManager.prototype.hideUpscale = function() {
-        this.$upscale.hide().css({opacity: 0});
-        this.showUpscaleEvent.clear();
-        this.clearUpscaleWorkers();
     };
 
     /**
@@ -2920,21 +2915,25 @@
     };
 
     /**
-     * Adds refreshUpscale jobs to be performed in the future.
+     * Adds redrawUpscale jobs to be performed in the future.
      */
-    CanvasManager.prototype.futureRefreshUpscale = function( x, y, w, h, includeOverlay ) {
+    CanvasManager.prototype.futureRedrawUpscale = function( x, y, w, h, includeOverlay ) {
         var _this = this;
         _this.upscaleWorkers[ _this.upscaleWorkersLength++ ] =
                 setTimeout( function() {
-                    _this.refreshUpscale( x, y, w, h, includeOverlay );
+                    _this.redrawUpscale( x, y, w, h, includeOverlay );
                 }, 10 );
     };
 
     /**
-     * Displays the upscale, but in a *lazy* way.
-     * It will not display right now, but sometime in the future.
-     * 
-     * If it is currently shown, then it will be hidden.
+     * Hides the upscale, and then redisplays it in the future.
+     *
+     * The idea is pretty simple, redrawing the upscale takes a
+     * lot of time. So if we are zooming or scrolling, you don't
+     * want to do this constantly. This aims to solve that problem
+     * by updating in the future, once the scrolling has stopped.
+     *
+     * Repeat calls will cause previous ones to be cancelled.
      */
     /* This uses 'setTimeout' as scrolling/zooming wouldn't be fully finished
      * when it gets called. This allows us to have a delay for full reflow.
@@ -2947,74 +2946,99 @@
      * position the upscale canvas. One of these will automatically be
      * cancelled since this will get called twice.
      */
-    CanvasManager.prototype.showUpscale = function() {
+    CanvasManager.prototype.refreshUpscale = function() {
         var self = this;
 
-        self.hideUpscale();
+        /*
+         * Hide the current upscale.
+         */
+        if ( this.isUpscaleShown ) {
+            this.$upscale.hide();
+            this.clearUpscaleWorkers();
 
+            this.isUpscaleShown = false;
+        }
+
+        /*
+         * The algorithm is to just match the viewarea,
+         * or the canvas, which ever is smaller.
+         */
         self.showUpscaleEvent.run( function() {
+            self.isUpscaleShown = true;
+
             var zoom = self.zoom;
 
             var viewport = self.viewport,
+                $canvas  = self.$canvas,
+                upscale  = self.upscale,
                 $upscale = self.$upscale;
 
             $upscale.removeClass( 'sb_offscreenX' );
             $upscale.removeClass( 'sb_offscreenY' );
 
-            var newWidth  = Math.round( self.width  * zoom ),
-                newHeight = Math.round( self.height * zoom );
+            /*
+             * First the size.
+             */
 
             // show the upscale when using positive zoom
             var scrollSize = viewport.scrollBarSize();
 
-            // Resize the upscale to the canvas size, or to fill teh viewport.
-            // Don't bother being bigger then the view.
-            // The -2 is to take off the border height, as otherwise it adds to the scroll height.
-            var upWidth  = Math.min( newWidth , (viewport.width()  - scrollSize.right ) - 2  ),
-                upHeight = Math.min( newHeight, (viewport.height() - scrollSize.bottom) - 2 );
+            var viewWidth  = viewport.width()   - scrollSize.right,
+                viewHeight = viewport.height() - scrollSize.bottom;
+            var canvasWidth  = $canvas.width(),
+                canvasHeight = $canvas.height();
 
-            var upscale = self.upscale;
+            var upWidth;
+            if ( canvasWidth < viewWidth ) {
+                upWidth = canvasWidth;
+            } else {
+                upWidth = viewWidth;
+            }
+
+            var upHeight;
+            if ( canvasHeight < viewHeight ) {
+                upHeight = canvasHeight;
+            } else {
+                upHeight = viewHeight;
+            }
+
             upscale.width  = upWidth;
             upscale.height = upHeight;
 
-            var scrollTop  = viewport.scrollTop(),
-                scrollLeft = viewport.scrollLeft();
+            /*
+             * Now the position.
+             */
 
             var top,
                 left;
 
-            if ( scrollTop === 0 ) {
-                if ( viewport.scrollTopAvailable() > 0 ) {
-                    top = 0;
-                    $upscale.addClass( 'sb_offscreenY' );
-                } else {
-                    top = ( viewport.height() - upHeight )/2 ;
-                }
-            } else {
-                top = scrollTop;
-                $upscale.addClass( 'sb_offscreenY' );
-            }
-            if ( scrollLeft === 0 ) {
-                if ( viewport.scrollLeftAvailable() > 0 ) {
-                    left = 0;
-                    $upscale.addClass( 'sb_offscreenX' );
-                } else {
-                    left = ( viewport.width() - upWidth )/2 ;
-                    $upscale.removeClass( 'sb_offscreenX' );
-                }
+            var scrollTop  = viewport.scrollTop(),
+                scrollLeft = viewport.scrollLeft();
+
+            var canvasPos = $canvas.translate();
+            if ( canvasWidth < viewWidth ) {
+                left = canvasPos.x;
             } else {
                 left = scrollLeft;
                 $upscale.addClass( 'sb_offscreenX' );
             }
 
+            if ( canvasHeight < viewHeight ) {
+                top = canvasPos.y;
+            } else {
+                top = scrollTop;
+                $upscale.addClass( 'sb_offscreenY' );
+            }
+
             // Fade in the upscale change.
             // The double opacity setting is needed to trigger the CSS animation.
-            var position = (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
+            var position =
+                    (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
                     (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
 
             $upscale.
+                    show().
                     css({
-                            display: 'inline',
                             opacity: 0,
                             'background-position': position
                     }).
@@ -3024,11 +3048,11 @@
                     );
 
             setTimeout( function() {
-                $upscale.css({opacity: 1});
-            }, 0 );
+                // upscale _after_ making it visible
+                self.redrawUpscale();
 
-            // upscale _after_ making it visible
-            self.refreshUpscale();
+                $upscale.css('opacity', 1);
+            }, 0 );
         } );
     };
 
@@ -3200,15 +3224,14 @@
     };
 
     /**
-     * Refreshes the contents of the upscaled canvas.
-     * By 'refresh' I mean 'redraw'.
+     * Redraws the contents of the upscaled canvas.
      *
      * Usagae:
-     *     // refresh all of the viewport
-     *     canvasManager.refreshUpscale();
+     *     // redraw all of the viewport
+     *     canvasManager.redrawUpscale();
      *
-     *     // refreshes a dirty rectangle, the area specified, in teh upscale
-     *     canvasManager.refreshUpscale( x, y, w, h );
+     *     // redraws a dirty rectangle, the area specified, in teh upscale
+     *     canvasManager.redrawUpscale( x, y, w, h );
      *
      * Note: the location is the area on the target drawing canvas,
      * where items are drawn to. Not the area on the upscale canvas.
@@ -3219,7 +3242,7 @@
      * @param h
      * @param Optional, extra pixels to add on to the x, y, w and h.
      */
-    CanvasManager.prototype.refreshUpscale = function( x, y, w, h, includeOverlay, buffer ) {
+    CanvasManager.prototype.redrawUpscale = function( x, y, w, h, includeOverlay, buffer ) {
         if ( Math.abs(w) < 1 ) {
             if ( w < 1 ) {
                 w = w;
@@ -3430,7 +3453,7 @@
                         var updateW = Math.min( (w+x)-i, UPSCALE_DIVIDE_AREA ),
                             updateH = Math.min( (h+y)-j, UPSCALE_DIVIDE_AREA );
 
-                        this.futureRefreshUpscale( i, j, updateW, updateH, includeOverlay );
+                        this.futureRedrawUpscale( i, j, updateW, updateH, includeOverlay );
                     }
                 }
             }
@@ -3733,7 +3756,7 @@
                 } else {
                     this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height );
                     this.canvas.ctx.drawImage( canvas, 0, 0 );
-                    this.refreshUpscale();
+                    this.redrawUpscale();
                 }
             } );
 
@@ -5153,7 +5176,7 @@
             y -= (size/2) | 0;
 
             this.pencilCommand( canvas, x, y, size );
-            canvas.refreshUpscale( x|0, y|0, 0, 0, undefined, size );
+            canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size );
 
             this.addDrawArea( x|0, y|0, size );
         };
@@ -5188,7 +5211,7 @@
 
             renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size);
 
-            canvas.refreshUpscale( x|0, y|0, diffX, diffY, undefined, size );
+            canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size );
             this.addDrawArea( x|0, y|0, diffX, diffY, size );
 
             this.lastX = x;
@@ -5430,7 +5453,7 @@
                                     diffY = this.lastY - y;
 
                                 this.drawLine( canvas.getDirectContext(), x, y );
-                                canvas.refreshUpscale( this.lastX, this.lastY, diffX, diffY, undefined, this.size*2 );
+                                canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, undefined, this.size*2 );
 
                                 this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 );
                             }
@@ -5592,13 +5615,13 @@
                                 this.updateLine( canvas, x, y );
 
                                 canvas.hideOverlay();
-                                canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
+                                canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
                             },
                             onMove: function( canvas, x, y ) {
                                 this.updateLine( canvas, x, y );
 
                                 canvas.hideOverlay();
-                                canvas.refreshUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
+                                canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 );
                             },
                             onUp: function( canvas, x, y ) {
                                 this.updateLine( canvas, x, y );
