@@ -84,6 +84,49 @@
      */
 
     /**
+     * Creates a new prototype, which copies all of the properties from
+     * the given Function prototypes and objects.
+     * 
+     * Note that if you give a function, it will copy from it's prototype.
+     * If you give an object, it will copy each of it's properties.
+     * 
+     * The new prototype is then returned.
+     * 
+     * You can pass in as many Functions and objects as you wish.
+     * 
+     * @return new object for use as a prototype.
+     */
+    function proto() {
+        var proto = {};
+
+        for ( var i = 0; i < arguments.length; i++ ) {
+            var obj = arguments[i];
+
+            // extend a prototype
+            if ( isFunction(obj) ) {
+                var superProto = obj.prototype;
+
+                for ( var k in superProto ) {
+                    if ( superProto.hasOwnProperty(k) ) {
+                        proto[k] = superProto[k];
+                    }
+                }
+            // adding methods
+            } else if ( (typeof obj) == 'object' ) {
+                for ( var k in obj ) {
+                    if ( obj.hasOwnProperty(k) ) {
+                        proto[k] = obj[k];
+                    }
+                }
+            } else {
+                throw new Error( "Invalid value given to impelment" );
+            }
+        }
+
+        return proto;
+    }
+
+    /**
      * Given a condition, if the condition is false,
      * an error is raised. The error contains the message given.
      * 

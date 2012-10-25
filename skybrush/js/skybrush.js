@@ -128,12 +128,11 @@
  * does.
  */
 (function(window, document, nil, undefined) {
-    // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
-    var $ = window['jquery'] || window['$'];
-    if ( ! $ ) {
-        throw Error("jQuery is required, and it cannot be found!");
-    }
-    
+    /**
+     * We create this, to reference jQuery later.
+     */
+    var $;
+
     /*
      * Default Values for SkyBrush.
      * This is for the initial setup.
@@ -6793,6 +6792,14 @@
      * or even ignoring input.
      */
     var SkyBrush = function( dom, options ) {
+        if ( ! $ ) {
+            $ = window['jquery'] || window['$'];
+            // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
+            if ( ! $ ) {
+                throw Error("jQuery is required, and it cannot be found!");
+            }
+        }
+
         if ( ! dom ) {
             if ( arguments.length === 0 ) {
                 throw new Error( 'no dom value provided' );
