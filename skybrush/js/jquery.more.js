@@ -115,6 +115,46 @@
     };
  
     /**
+     * Given an Arguments object, this will copy the elements
+     * into an array, and return that array.
+     * 
+     * The startIndex is optional, and is there to state where
+     * to copying. If start is outside of the arguments array,
+     * then an empty array is returned.
+     * 
+     * 'num' is optional, and states how many to copy from
+     * startIndex, until the end. If there are not enough
+     * elements to copy, then the extra values are skipped.
+     * The returned array will not be padded with undefined
+     * or null, or anything like that.
+     * 
+     * This can also be used on arrays.
+     * 
+     * @param args The Arguments object to copy.
+     * @param startIndex Optional, the index to start copying from.
+     * @param num Optional, the number of elements to copy.
+     * @return A new Array, containing the elements copied from 'args'.
+     */
+    function argumentsToArray( args, startIndex, num ) {
+        if ( startIndex === undefined ) {
+            startIndex = 0;
+        }
+
+        if ( num === undefined ) {
+            num = args.length;
+        } else {
+            num = Math.min( args.length, startIndex+num );
+        }
+
+        var returnArgs = [];
+        for ( var i = startIndex; i < num; i++ ) {
+            returnArgs.push( args[i] );
+        }
+
+        return returnArgs;
+    }
+
+    /**
      * @param obj The object to check.
      * @return True if the given object is a function, false if not.
      */
@@ -140,6 +180,19 @@
             return n;
         }
     };
+
+    // catch all document.write() calls
+    (function(document){
+        var write = document.write;
+        
+        document.write = function(q) {
+            log('document.write(): ',arguments); 
+        
+            if (/docwriteregexwhitelist/.test(q)) {
+                write.apply(document,arguments);
+            }
+        };
+    })(document);
 
     /**
      * Feature sniffing for various browsers.
@@ -547,7 +600,7 @@
          */
         var scrollEvent = function( $this, action, fun ) {
             return $this[action]( function(ev) {
-                if ( ev.button === 0 && isInScrollBar(ev) ) {
+                if ( ev.button === 0 && ev.isInScrollBar() ) {
                     return fun.call( this, ev );
                 }
             } );
@@ -754,6 +807,7 @@
         $.fn.killEvent = onEventsFun( function(ev) {
             ev.preventDefault();
             ev.stopPropagation();
+
             return false;
         } );
 
@@ -789,10 +843,15 @@
          * addClass will allow duplicate classes.
          *
          * @param klass The CSS class to append to this object.
+         * @param callback An option callback to be called, if the class was not present.
          */
-        $.fn.ensureClass = function( klass ) {
+        $.fn.ensureClass = function( klass, callback ) {
             if ( ! this.hasClass(klass) ) {
                 this.addClass(klass);
+
+                if ( callback !== undefined ) {
+                    callback.call( this );
+                }
             }
 
             return this;
@@ -1001,24 +1060,167 @@
         })();
     })();
 
-    function argumentsToArray( args, startIndex, num ) {
-        if ( startIndex === undefined ) {
-            startIndex = 0;
+    window['anim'] = (function() {
+        /**
+         * A hint to use the MozBeforePaint event,
+         * as it can be slightly faster than passing in
+         * a function each time.
+         * 
+         * From FF 5 onwards, this gives a massive speed down.
+         */
+        var USE_MOZ_BEFORE_PAINT = ( $.browser.mozilla && $.browser.version < 5 );
+
+        /**
+         * Used only by setTimeout and setInterval.
+         * 
+         * When they are used, their id value is set here.
+         */
+        var NO_ID = 0;
+
+        /**
+         * A common interface for timeouts and intervals.
+         * This will attempt to use the 'requestAnimationFrame' where available.
+         * 
+         * If it is not available, then it will use set timeout or set interval.
+         */
+        var anim = {
+                /**
+                 * Returns the 'requestAnimationFrame' function for this
+                 * browser, by normalizing the various types based on
+                 * vendor prefix.
+                 * 
+                 * @nosideeffects
+                 * @return {?function(...*)}
+                 */
+                getAnimFrame: function() {
+                    return  window.requestAnimationFrame       ||
+                            window.webkitRequestAnimationFrame ||
+                            window.mozRequestAnimationFrame    ||
+                            window.oRequestAnimationFrame      ||
+                            window.msRequestAnimationFrame     ||
+                            null ;
+                },
+        
+                /**
+                 * @param callback A callback function to perform on each frame.
+                 * @param interval optional, and is how long the 'setInterval' version should take between frames.
+                 * @param canvas optional, the HTMLElement which is being redrawn (used as a hint by some browsers).
+                 */
+                interval: function( callback, interval, canvas ) {
+                    /**
+                     * Default to (approximate) 60fps.
+                     */
+                    if ( interval === undefined ) {
+                        interval = 16;
+                    }
+
+                    var callObj = {
+                            id          : NO_ID,
+                            callback    : null,
+                            isInterval  : true,
+                            isRunning   : true
+                    };
+
+                    var animFrame = anim.getAnimFrame();
+
+                    if ( animFrame ) {
+                        var recursiveCallback;
+
+                        if ( USE_MOZ_BEFORE_PAINT ) {
+                            recursiveCallback = function() {
+                                callback();
+                                animFrame();
+                            };
+
+                            window.addEventListener("MozBeforePaint", recursiveCallback, false);
+                            animFrame();
+                        } else {
+                            recursiveCallback = function() {
+                                if ( callObj.isRunning ) {
+                                    callback();
+                                    animFrame( recursiveCallback, canvas );
+                                }
+                            };
+
+                            setTimeout( recursiveCallback, interval );
+                        }
+
+                        callObj.callback = recursiveCallback;
+                    // everything else ...
+                    } else {
+                        callObj.id = setInterval( callback, interval );
+                    }
+
+                    return callObj;
+                },
+
+                /**
+                 * If you want a repeating animation frame,
+                 * use 'anim.interval'.
+                 * It aims to be the best solution.
+                 * 
+                 * If you disagree, use a bespoke solution.
+                 * 
+                 * Do not use this for set interval, as it's
+                 * just not designed with it in mind.
+                 * 
+                 * @param callback The callback function to call on each frame.
+                 * @param canvas optional, a HTMLElement used for requestAnimationFrame, as a hint of where to redraw (used by some browsers).
+                 */
+                timeout: function( callback, canvas ) {
+                    var callObj = {
+                            id          : NO_ID,
+                            callback    : null,
+                            isInterval  : false,
+                            isRunning   : true
+                    };
+
+                    var animFrame = anim.getAnimFrame();
+
+                    if ( animFrame ) {
+                        animFrame(
+                                function() {
+                                    if ( callObj.isRunning === true ) {
+                                        callback();
+                                    }
+                                },
+                                canvas
+                        )
+                    // everything else ...
+                    } else {
+                        callObj.id = setTimeout( callback, 0 );
+                    }
+
+                    return callObj;
+                },
+
+                /**
+                 * @param The interval, or timeout, callback to clear.
+                 * @return True if the callback was cleared, false if not.
+                 */
+                clear: function( callback ) {
+                    if ( callback.isRunning ) {
+                        callback.isRunning = false;
+
+                        if ( callback.isInterval ) {
+                            if ( callback.id !== NO_ID ) {
+                                clearInterval( callback.id );
+                            } else if ( USE_MOZ_BEFORE_PAINT ) {
+                                window.removeEventListener( "MozBeforePaint", callback.callback );
+                            }
+                        } else if ( callback.id !== NO_ID ) {
+                            clearTimeout( callback.id );
+                        }
+
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
         }
 
-        if ( num === undefined ) {
-            num = args.length;
-        } else {
-            num = Math.min( args.length, startIndex+num );
-        }
-
-        var returnArgs = [];
-        for ( var i = startIndex; i < num; i++ ) {
-            returnArgs.push( args[i] );
-        }
-
-        return returnArgs;
-    }
+        return anim;
+    })();
 
     window['events'] = {
         /**
@@ -1391,7 +1593,6 @@
         };
     };
 
-
     var oldRound = Math.round;
 
     /**
@@ -1418,50 +1619,9 @@
 
         return oldRound( n/step )*step;
     };
-   
-    if ( Function.prototype.implementing === undefined ) {
-        /**
-         * For extending a prototype, or for adding methods.
-         * Pass in either another function object to be extended,
-         * or an object containing the methods to use.
-         * 
-         * @return This function object.
-         */
-        Function.prototype.implementing = function() {
-            var proto = this.prototype;
-
-            for ( var i = 0; i < arguments.length; i++ ) {
-                var obj = arguments[i];
-
-                // extend a prototype
-                if ( isFunction(obj) ) {
-                    var superProto = obj.prototype;
-
-                    for ( var k in superProto ) {
-                        if ( superProto.hasOwnProperty(k) ) {
-                            proto[k] = superProto[k];
-                        }
-                    }
-                // adding methods
-                } else if ( (typeof obj) == 'object' ) {
-                    for ( var k in obj ) {
-                        if ( obj.hasOwnProperty(k) ) {
-                            proto[k] = obj[k];
-                        }
-                    }
-                } else {
-                    throw new Error( "Invalid value given to impelment" );
-                }
-            }
-
-            // for chaining
-            return this;
-        };
-    }
 
     /**
      * Virtual Mouse taken from jQuery.mobile
-     *
      */
     (function( $, window, document, undefined ) {
         var dataPropertyName = "virtualMouseBindings",
