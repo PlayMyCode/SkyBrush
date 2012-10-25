@@ -2173,7 +2173,7 @@
         ViewOverlay.call( this, viewport, 'skybrush_marquee' );
     };
 
-    Marquee.prototype = new ViewOverlay();
+    Marquee.prototype = proto( ViewOverlay );
 
     /**
      * Puts this into highlighting mode.
@@ -2387,7 +2387,7 @@
         this.pasteX = undefined;
         this.pasteY = undefined;
     };
-    CopyManager.prototype = new ViewOverlay();
+    CopyManager.prototype = proto( ViewOverlay );
 
     CopyManager.prototype.update = function() {
         if ( this.hasPaste() ) {
@@ -4752,7 +4752,7 @@
         this.setSize( DEFAULT_BRUSH_SIZE );
     };
 
-    Brush.prototype = new Command( '', '', {} );
+    Brush.prototype = proto( Command );
 
     /**
      * Sets the size for this brush.
@@ -4845,7 +4845,7 @@
         Command.call( this, setup );
     };
 
-    Geometry.prototype = new Command( '', '', {} );
+    Geometry.prototype = proto( Command );
 
     Geometry.prototype.round = function( n, isOutline, size ) {
         if ( (!isOutline) || size % 2 == 0 ) {
@@ -4974,7 +4974,7 @@
         Geometry.call( this, setup );
     };
 
-    ShapeGeometry.prototype = new Geometry( '', '', function() {}, undefined );
+    ShapeGeometry.prototype = proto( Geometry );
 
     /* Helper Drawing Function */
 
@@ -5258,7 +5258,7 @@
 
         Brush.call( this, setup  );
     };
-    PixelBrush.prototype = new Brush( '', '', {} );
+    PixelBrush.prototype = proto( Brush );
 
     /**
      * @const
