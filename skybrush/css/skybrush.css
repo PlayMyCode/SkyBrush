@@ -199,7 +199,7 @@
             margin-top: -1px;
         }
         .skybrush_slider_bar_slider {
-            background: url(./../images/slider_arrow.png) no-repeat 0 0;
+            background: url(./../images/skybrush/slider_arrow.png) no-repeat 0 0;
             height: 13px;
             width: 8px;
 
@@ -585,7 +585,7 @@
         .skybrush_canvas_draw,
         .skybrush_canvas_upscale {
             border: 1px solid #aaa;
-            background: url(./../images/canvas_back.png) repeat;
+            background: url(./../images/skybrush/canvas_back.png) repeat;
         }
         .skybrush_canvas_draw {
             border-radius: 3px;
@@ -634,31 +634,31 @@
 .sb_cursor_default {
     /* needs to be set twice for IE, as the second cursor doesn't work */
     cursor: crosshair;
-    cursor: url('./../images/cursors/crosshair.png') 7 7, crosshair;
+    cursor: url('./../images/skybrush/cursors/crosshair.png') 7 7, crosshair;
 }
 .sb_cursor_picker {
-    cursor: url('./../images/cursors/picker.png') 0 9, auto;
+    cursor: url('./../images/skybrush/cursors/picker.png') 0 9, auto;
 }
 .sb_cursor_fill {
-    cursor: url('./../images/cursors/fill.png') 5 13, auto;
+    cursor: url('./../images/skybrush/cursors/fill.png') 5 13, auto;
 }
 .sb_cursor_fill {
-    cursor: url('./../images/cursors/fill.png') 5 13, auto;
+    cursor: url('./../images/skybrush/cursors/fill.png') 5 13, auto;
 }
 .sb_cursor_zoom_blank {
-    cursor: url('./../images/cursors/zoom_blank.png') 5 5, auto;
+    cursor: url('./../images/skybrush/cursors/zoom_blank.png') 5 5, auto;
 }
 .sb_cursor_zoom_in {
-    cursor: url('./../images/cursors/zoom_in.png') 5 5, auto;
+    cursor: url('./../images/skybrush/cursors/zoom_in.png') 5 5, auto;
 }
 .sb_cursor_zoom_out {
-    cursor: url('./../images/cursors/zoom_out.png') 5 5, auto;
+    cursor: url('./../images/skybrush/cursors/zoom_out.png') 5 5, auto;
 }
 .sb_cursor_cursor {
-    cursor: url('./../images/cursors/cursor.png'), auto;
+    cursor: url('./../images/skybrush/cursors/cursor.png'), auto;
 }
 .sb_cursor_select {
-    cursor: url('./../images/cursors/marquee.png'), auto;
+    cursor: url('./../images/skybrush/cursors/marquee.png'), auto;
 }
 
 /*
@@ -1128,7 +1128,7 @@
                     margin-top: -8px;
                     margin-left: 4px;
 
-                    background: url(./../images/colour_wheel_line.png) no-repeat 0 0;
+                    background: url(./../images/skybrush/colour_wheel_line.png) no-repeat 0 0;
                     font-family: "kdkdkdkdlfsjfdj";
 
                     position: absolute;
@@ -1167,7 +1167,7 @@
                 margin-top: -5px;
                 margin-left: -4px;
 
-                background: url(./../images/alpha_slider.png) no-repeat 0 0;
+                background: url(./../images/skybrush/alpha_slider.png) no-repeat 0 0;
 
                 position: absolute;
                 left: 0;
@@ -1202,7 +1202,7 @@
             bottom: 43px;
         }
         .skybrush_color_picker_current_color_back {
-            background: url(./../images/canvas_back.png) repeat;
+            background: url(./../images/skybrush/canvas_back.png) repeat;
         }
         .skybrush_color_picker_current_color {
             background: white;
@@ -1296,7 +1296,7 @@
                 left: -1px;
                 top: -1px;
 
-                background: url(./../images/tool_back.png) no-repeat 0 0;
+                background: url(./../images/skybrush/tool_back.png) no-repeat 0 0;
 
                 opacity: 0;
 
@@ -1324,7 +1324,7 @@
 
                 top: 0;
                 left: 0;
-                background: url(./../images/tool_command_buttons.png) 0 0;
+                background: url(./../images/skybrush/tool_command_buttons.png) 0 0;
             }
             .sb_command_pencil > a {
                 background-position: 0 0;
@@ -1365,7 +1365,7 @@
             height: 35px;
         }
             .sb_command_picker > .skybrush_command_back {
-                background: url(./../images/eyedropper_back.png) no-repeat 0 0;
+                background: url(./../images/skybrush/eyedropper_back.png) no-repeat 0 0;
 
                 width: 56px;
                 height: 35px;
