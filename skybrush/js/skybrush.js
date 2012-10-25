@@ -2173,7 +2173,7 @@
         ViewOverlay.call( this, viewport, 'skybrush_marquee' );
     };
 
-    Marquee.prototype = proto( ViewOverlay );
+    Marquee.prototype = new ViewOverlay();
 
     /**
      * Puts this into highlighting mode.
@@ -2387,7 +2387,7 @@
         this.pasteX = undefined;
         this.pasteY = undefined;
     };
-    CopyManager.prototype = proto( ViewOverlay );
+    CopyManager.prototype = new ViewOverlay();
 
     CopyManager.prototype.update = function() {
         if ( this.hasPaste() ) {
@@ -4150,1272 +4150,6 @@
     };
 
     /**
-     * Used for turning a control name into a CSS class, for
-     * id purposes.
-     *
-     * Essentially it's so if I have a control called 'zoom'
-     * then this is turned into a CSS class, and attached to
-     * the control. This is for internal use, and shouldn't
-     * clash with anything else.
-     *
-     * This class can then be used again later, for finding
-     * the control.
-     *
-     * @const
-     * @nosideeffects
-     * @param name The name to translate
-     * @return The CSS identifier for the given name.
-     */
-    var controlNameToCSSID = function( name ) {
-        return CONTROL_ID_CSS_PREFIX + name.toLowerCase();
-    };
-
-    /**
-     * Creates a new DOM element, for the control given,
-     * all hooked up.
-     *
-     * Control info should provide:
-     *  = name - the name of this control
-     *  = type - checkbox, toggle, slider or another supported type.
-     *  = field - the field that is updated by this control in the command.
-     *
-     * Extra properties include:
-     *  = css - a CSS class added to the final control.
-     *  = default - The default value to set for the field, and it's control.
-     *
-     * Extra properties are also required on a type by type basis.
-     *
-     * @param command The Command that the control info will place their info into.
-     * @param control The control to create a DOM control for, this is the setup info.
-     * @return The HTML control once built.
-     */
-    var newCommandControl = function( command, control, painter ) {
-        var name = control.name,
-            type = control.type.toLowerCase(),
-             css = control.css,
-        callback = control.callback,
-           field = control.field;
-
-        if (
-                name === undefined ||
-                type === undefined ||
-                field === undefined
-        ) {
-            throw new Error( "Invalid Control Given" );
-        }
-
-        var defaultField = command[ field ];
-        if ( defaultField === undefined ) {
-            defaultField = control.value;
-            command[ field ] = defaultField;
-        }
-
-        var cDom = $('<div>').
-                addClass( 'skybrush_control' ).
-                addClass( CONTROL_CSS_PREFIX + type );
-
-        // Add CSS class if we have it
-        if ( css !== undefined ) {
-            cDom.addClass( 'sb_' + css );
-        }
-
-        var label = $('<div>').
-                addClass('skybrush_command_control_label');
-        label.text( name );
-
-        var cssID = controlNameToCSSID( name );
-
-        /*
-         * Create the Dom Element based on it's type.
-         * All supported types are listed here.
-         */
-        if ( type == 'checkbox' ) {
-            if ( defaultField === undefined ) {
-                defaultField = false;
-            }
-
-            var checkbox = $('<input>').
-                    attr( 'type', 'checkbox' ).
-                    addClass( cssID ).
-                    change( function() {
-                        var isChecked = $(this).is(':checked')
-
-                        command[ field ] = isChecked;
-                        if ( callback ) {
-                            callback.call( command, isChecked, painter );
-                        }
-                    } );
-
-            if ( command[field] ) {
-                checkbox.attr( 'checked', 'checked' );
-            }
-
-            cDom.
-                    append( label ).
-                    append( checkbox );
-        } else if ( type == 'toggle' ) {
-            cDom.append( label );
-            var cssStates = control.css_options,
-                    names = control.name_options;
-
-            var numOptions =
-                    ( cssStates ? cssStates.length :
-                    ( names     ? names.length     :
-                                  0 ) );
-
-            var option = -1;
-            var toggle = $('<input>').
-                    addClass( 'skybrush_input_button' ).
-                    addClass( cssID ).
-                    attr( 'type', 'button' );
-            var switchOption = function() {
-                if ( cssStates && cssStates[option] ) {
-                    toggle.removeClass( cssStates[option] );
-                }
-
-                option = (option+1) % numOptions;
-                if ( names ) {
-                    toggle.val( names[option] );
-                }
-                if ( cssStates && cssStates[option] ) {
-                    toggle.addClass( cssStates[option] );
-                }
-            };
-
-            switchOption();
-
-            toggle.click( function(ev) {
-                    ev.stopPropagation();
-                    ev.preventDefault();
-                    switchOption();
-
-                    command[ field ] = option;
-                    if ( callback ) {
-                        callback.call( command, option, painter );
-                    }
-            } );
-
-            cDom.append( toggle );
-        } else if ( type == 'slider' ) {
-            if ( defaultField === undefined ) {
-                defaultField = 1;
-            }
-
-            var min = control.min,
-                max = control.max;
-
-            var val = $('<input>').
-                    addClass( 'skybrush_input' ).
-                    attr( 'type', 'number' ).
-                    attr( 'step', 1 ).
-                    attr( 'min', min ).
-                    attr( 'max', max ).
-                    forceNumeric( false ).
-                    keydown( function() {
-                        var $this = $(this);
-
-                        setTimeout( function() {
-                            var n = $this.val();
-
-                            if ( n && n >= 1 ) {
-                                n = Math.round( n );
-                                slider.setSlide( n / max );
-
-                                command[ field ] = n;
-
-                                if ( callback ) {
-                                    callback.call( command, n, painter );
-                                }
-                            }
-                        }, 0 );
-                    } );
-
-            var slider = $slider().
-                    addClass( cssID ).
-                    limit( min, max ).
-                    step( 1 ).
-                    slide( function(ev, n, p) {
-                        command[ field ] = n;
-                        val.val( n );
-
-                        if ( callback ) {
-                            callback.call( command, n, painter );
-                        }
-                    } );
-
-            // initialize
-            val.val( defaultField );
-
-            cDom.
-                    append( label ).
-                    append( val ).
-                    append( slider );
-
-            // Slider must be updated in the future,
-            // after the reflow.
-            setTimeout( function() {
-                slider.setSlide( defaultField / max );
-            }, 0 );
-        } else {
-            throw new Error( "Unknown control setup given" );
-        }
-
-        return cDom;
-    };
-
-    /**
-     * Commands are setup through a JSON object.
-     *
-     * This is used so other functions can change those
-     * properties on the fly, and require new items.
-     *
-     * The other advantage is that it allows many to be
-     * optional.
-     *
-     * Before they were all passed in for each constructor,
-     * but given that many are optional, this list was
-     * becomming unmanageable.
-     *
-     * Basic properties include:
-     *  = name
-     *  = css
-     *  = cursor
-     *  = caption - the tooltip caption to be used
-     *
-     * All events are called in the context of this command.
-     *
-     * Drawing Events:
-     *  = onDown - called when mouse goes down,
-     *  = onMove - then this is called as it's moved,
-     *  = onUp - finally this is called when it goes up.
-     *
-     *  = onDownOnMove - event used for both onDown and onMove
-     *  = onMoveOnUp - event used for both onMove and onUp
-     *
-     * Some sub-versions of Command add their own 'onDraw'
-     * event. This is a general purpose draw event used for
-     * onDown, onMove and onUp; but is normally wrapped in
-     * custom logic.
-     *
-     * However the Command prototype ignores onDraw.
-     *
-     * Other Events:
-     *  = onAttach - called when the Command is set.
-     *  = onDetach - called when the Command is unset.
-     *
-     *  = onShift - called when the shift button is pressed
-     *    down or up. The state and SkyBrush are passed in,
-     *    in that order.
-     *
-     *    This is also called when the command is attached to
-     *    SkyBrush, but only if the shift is down. This is so
-     *    if you update the controls it'll be setup correctly
-     *    on attach, and undone on detach.
-     *
-     *    But to clarify, if shift is not pressed, this will
-     *    never be called.
-     *
-     * Special logic is also added to ensure onAttach and
-     * onDetach cannot be called recursively, as sometimes
-     * this can happen.
-     *
-     * @constructor
-     * @private
-     *
-     * @param setup The information needed for this command.
-     * @param controlsSetup An array listing all of the commands for this control.
-     */
-    var Command = function( setup ) {
-        this.name    = setup.name     || '' ;
-        this.css = setup.css ?
-                COMMAND_CSS_PREFIX + setup.css :
-                '' ;
-        this.caption = setup.caption  || '' ;
-
-        this.cursor = setup.cursor;
-
-        this.drawArea = nil;
-
-        this.dom = nil;
-        this.controlsSetup = setup.controls;
-
-        if ( setup.onDown ) {
-            this.onDown = setup.onDown;
-        }
-
-        if ( setup.onDownOnMove ) {
-            this.onDown =
-            this.onMove =
-                   setup.onDownOnMove;
-        }
-
-        if ( setup.onMoveOnUp ) {
-            this.onUp =
-            this.onMove =
-                    setup.onMoveOnUp;
-        }
-
-        if ( setup.onMove ) {
-            this.onMove = setup.onMove;
-        }
-
-        if ( setup.onUp ) {
-            this.onUp = setup.onUp;
-        }
-
-        this.whenAttached = setup.onAttach || nil;
-        this.whenDetached = setup.onDetach || nil;
-
-        var onShift = setup.onShift;
-        if ( onShift ) {
-            var self = this;
-
-            self.shiftDown = function( isShiftDown ) {
-                onShift.call( self, isShiftDown, this );
-            };
-        } else {
-            this.shiftDown = nil;
-        }
-
-        this.isInAttach = false;
-        this.isInDetach = false;
-    };
-
-    Command.prototype.getCSS = function() {
-        return this.css;
-    };
-
-    /**
-     * Called when a Command object is set as the current
-     * command.
-     *
-     * @param painter The parent SkyBrush instance this is being attached to.
-     */
-    Command.prototype.onAttach = function( painter ) {
-        if ( ! this.isInAttach ) {
-            this.isInAttach = true;
-
-            if ( this.whenAttached ) {
-                this.whenAttached.call( this, painter );
-            }
-
-            if ( this.shiftDown ) {
-                painter.onShift( this.shiftDown );
-
-                // call if shift is down,
-                // so control is properly setup
-                if ( painter.isShiftDown() ) {
-                    this.shiftDown.call( painter, true );
-                }
-            }
-
-            this.isInAttach = false;
-        }
-    };
-
-    /**
-     * For when a Command object is detached from SkyBrush,
-     * and it is no longer set as the current command.
-     *
-     * @param painter The parent SkyBrush instance this is being detached from.
-     */
-    Command.prototype.onDetach = function( painter ) {
-        if ( ! this.isInDetach ) {
-            this.isInDetach = true;
-
-            if ( this.shiftDown ) {
-                painter.removeOnShift( this.shiftDown );
-
-                // if changing whilst shift is down,
-                // we call as though it was lifte,
-                // so it's like it was released
-                if ( painter.isShiftDown() ) {
-                    this.shiftDown.call( painter, false );
-                }
-            }
-
-            if ( this.whenDetached ) {
-                this.whenDetached.call( this, painter );
-            }
-
-            this.isInDetach = false;
-        }
-    };
-
-    Command.prototype.getCSSCursor = function( painter ) {
-        var cursor = this.cursor;
-
-        if ( cursor === undefined ) {
-            return nil;
-        } else if ( (typeof cursor) === 'string' ) {
-            return cursor;
-        } else {
-            return cursor.call( this, painter );
-        }
-    };
-
-    Command.prototype.getCaption = function() {
-        return this.caption;
-    };
-
-    Command.prototype.getName = function() {
-        return this.name;
-    };
-
-    /**
-     * Finds the control stated, based on it's 'name'.
-     *
-     * If the control is not found, then an empty jQuery
-     * object will be returned.
-     *
-     * @param A jQuery object for the control.
-     */
-    Command.prototype.getControl = function( name ) {
-        return this.getControlsDom().find( '.' + controlNameToCSSID(name) );
-    };
-
-    /**
-     * This returns null if there are no controls
-     * for this command.
-     *
-     * @return The HTML dom with all the control structures for this command.
-     */
-    Command.prototype.createControlsDom = function( painter ) {
-        /*
-         * Controls dom is loaded in a lazy way so painter
-         * starts up a tad faster,
-         */
-        if ( this.dom === nil && this.controlsSetup ) {
-            var dom = nil,
-                controlsSetup = this.controlsSetup;
-
-            dom = $('<div>').
-                    addClass( 'skybrush_command_controls_inner' );
-
-            if ( controlsSetup instanceof Array ) {
-                for ( var i = 0; i < controlsSetup.length; i++ ) {
-                    var cDom = newCommandControl( this, controlsSetup[i], painter );
-                    dom.append( cDom );
-                }
-            } else {
-                dom.append( newCommandControl( this, controlsSetup, painter ) );
-            }
-
-            this.dom = dom;
-        }
-
-        return this.dom;
-    };
-
-    /**
-     * Returns the dom containing all of the command options
-     * for this Command, or null if there is no dom.
-     *
-     * There would be no dom if there are no options.
-     */
-    Command.prototype.getControlsDom = function() {
-        return this.dom;
-    };
-
-    Command.prototype.popDrawArea = function() {
-        var t = this.drawArea;
-        this.drawArea = nil;
-
-        return t;
-    };
-
-    Command.prototype.addDrawArea = function( x, y, w, h, buffer ) {
-        var da = this.drawArea;
-
-        if ( da !== nil ) {
-            buffer = buffer || 1;
-
-            if ( h === undefined ) {
-                x -= w/2,
-                y -= w/2;
-                h = w;
-            }
-
-            if ( w < 0 ) {
-                x -= w;
-                w = -w;
-            }
-
-            if ( h < 0 ) {
-                y -= h;
-                h = -h;
-            }
-
-            da.x    = Math.min( da.x   , x - buffer );
-            da.y    = Math.min( da.y   , y - buffer );
-            da.endX = Math.max( da.endX, x+w+buffer );
-            da.endY = Math.max( da.endY, y+h+buffer );
-        } else {
-            this.setDrawArea( x, y, w, h, buffer );
-        }
-
-        return this;
-    };
-
-    /**
-     * This can be used in a single args version, to allow passing
-     * the Draw Area object from one command to another.
-     *
-     * Usage:
-     *      brush.setDrawArea( otherBrush.popDrawArea() )
-     *
-     * You can also use it in a multi-args version to setup a drawing/refresh area.
-     *
-     * @param x
-     * @param y
-     * @param w or size, w when h is provided and size when it's omitted.
-     * @param h Optional,
-     * @param buffer Optional, a buffer around the area to be updated. This must be at least 1.
-     */
-    Command.prototype.setDrawArea = function( x, y, w, h, buffer ) {
-        // If used in single args version,
-        // this allows setting 'null' as the draw area (no draw)
-        if ( y === undefined && x !== undefined ) {
-            this.drawArea = x;
-        } else {
-            buffer = buffer || 1;
-
-            if ( h === undefined ) {
-                x -= w,
-                y -= w;
-                h  = w;
-            }
-
-            if ( w < 0 ) {
-                w  = -w;
-                x -=  w;
-            }
-
-            if ( h < 0 ) {
-                h  = -h;
-                y -=  h;
-            }
-
-            this.drawArea = {
-                    x: x-buffer,
-                    y: y-buffer,
-                    endX: x+w+buffer,
-                    endY: y+h+buffer
-            }
-        }
-
-        return this;
-    };
-
-    /**
-     * The standard minimum and maximum brush sizes,
-     * and a way to limit them.
-     */
-    var BRUSH_SIZE = {
-        min: 1,
-        max: MAX_BRUSH_SIZE,
-
-        limit: function( size ) {
-            return Math.limit( size, this.min, this.max );
-        }
-    };
-
-    /**
-     * Creates a new Brush, with the name, css class and events given.
-     * Some extras are added on top, which the standard Command does
-     * not have, like brush size.
-     *
-     * @constructor
-     * @private
-     */
-    var Brush = function( setup ) {
-        var controls = setup.controls || [];
-        controls.unshift( {
-                name: 'Size',
-                field: 'size',
-
-                type: 'slider',
-                css : 'size',
-
-                callback: function(size, painter) {
-                    painter.setBrushCursorSize( size );
-                },
-
-                min: 1,
-                max: MAX_BRUSH_SIZE,
-        });
-        setup.controls = controls;
-
-        Command.call( this, setup );
-
-        this.size = 0;
-        this.setSize( DEFAULT_BRUSH_SIZE );
-    };
-
-    Brush.prototype = proto( Command );
-
-    /**
-     * Sets the size for this brush.
-     * This is automtically limited to default min/max values.
-     *
-     * @param size The new size for this brush.
-     */
-    Brush.prototype.setSize = function(size) {
-        this.size = BRUSH_SIZE.limit( size );
-    };
-
-    /**
-     * Increments the size by the amount given.
-     *
-     * @param inc The amount to increment the size.
-     */
-    Brush.prototype.incrementSize = function( inc ) {
-        this.setSize( this.size + inc );
-    };
-
-    /**
-     * Commands for drawing geometry.
-     *
-     * For the setup, it adds the properties:
-     *
-     *  = onDraw - called for drawing geometry
-     *  = onDown - already exists, but is wrapped in it's own onDown
-     *
-         * @constructor
-         * @private
-         *
-     * @param setup The controls information for this command.
-     */
-    var Geometry = function( setup ) {
-        this.startX = 0;
-        this.startY = 0;
-
-        this.isFilled = true;
-        this.size = 1;
-
-        this.isAliased = false;
-
-        this.drawGeom = setup.onDraw;
-
-        var oldOnDown = setup.onDown;
-        setup.onDown = function( canvas, x, y ) {
-            if ( ! this.isAliased ) {
-                x |= 0;
-                y |= 0;
-            }
-
-            this.startX = x,
-            this.startY = y;
-            this.lastX = x;
-            this.lastY = y;
-
-            canvas.getContext().lineJoin = 'miter';
-
-            if ( oldOnDown ) {
-                oldOnDown.call( this, canvas, x, y );
-            }
-        };
-        setup.onMove = function( canvas, x, y ) {
-            if ( ! this.isAliased ) {
-                x |= 0;
-                y |= 0;
-            }
-
-            this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
-
-            this.lastX = x;
-            this.lastY = y;
-        };
-        setup.onUp = function( canvas, x, y ) {
-            if ( ! this.isAliased ) {
-                x |= 0;
-                y |= 0;
-            }
-
-            this.setDrawArea( this.startX, this.startY, x-this.startX, y-this.startY, this.size );
-
-            this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
-
-            this.lastX = x;
-            this.lastY = y;
-        };
-
-        setup.cursor = DEFAULT_CURSOR;
-
-        Command.call( this, setup );
-    };
-
-    Geometry.prototype = proto( Command );
-
-    Geometry.prototype.round = function( n, isOutline, size ) {
-        if ( (!isOutline) || size % 2 == 0 ) {
-            return n | 0;
-        } else {
-            return (n | 0) + 0.5;
-        }
-    };
-
-    Geometry.prototype.toggleAliased = function() {
-        this.isAliased = ! this.isAliased ;
-    };
-
-    Geometry.prototype.toggleFilled = function() {
-        this.isFilled = ! this.isFilled ;
-    };
-
-    var ShapeGeometry = function( setup ) {
-        var controls = setup.controls;
-        if ( ! controls ) {
-            controls = [];
-        } else if ( controls && ! ( controls instanceof Array ) ) {
-            controls = [ controls ];
-        }
-
-        setup.controls = controls.concat([
-                {
-                        name: 'Mode',
-                        css: 'outline_cmd',
-                        field: 'isOutline',
-                        type: 'toggle',
-                        css_options: [ 'filled', 'outline' ],
-                        name_options: [ 'Filled', 'Outline' ]
-                },
-                {
-                        name: 'Outline',
-                        css: 'outline_size_cmd',
-                        field: 'size',
-                        type: 'slider',
-
-                        value: 1,
-                        min: 1,
-                        max: MAX_BRUSH_SIZE
-                },
-                {
-                        name: 'Proportion',
-                        css: 'proportion_size_cmd',
-                        field: 'isProportional',
-                        type: 'checkbox'
-                },
-                {
-                        name: 'Center',
-                        css: 'centre_size_cmd',
-                        field: 'isCentred',
-                        type: 'checkbox'
-                }
-        ]);
-
-        // wrap in our own function
-        var drawGeom = setup.onDraw;
-        setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
-            var size = this.size,
-                isOutline = this.isOutline;
-
-            x1 = this.round( x1, isOutline, size );
-            y1 = this.round( y1, isOutline, size );
-            x2 = this.round( x2, isOutline, size );
-            y2 = this.round( y2, isOutline, size );
-
-            var w = x2 - x1,
-                h = y2 - y1;
-
-            if ( this.isProportional ) {
-                var wAbs = Math.abs(w),
-                    hAbs = Math.abs(h);
-
-                if ( wAbs > hAbs ) {
-                    if ( h < 0 ) {
-                        h = - wAbs;
-                    } else {
-                        h =   wAbs;
-                    }
-                } else {
-                    if ( w < 0 ) {
-                        w = - hAbs;
-                    } else {
-                        w =   hAbs;
-                    }
-                }
-            }
-
-            if ( this.isCentred ) {
-                x1 -= w;
-                y1 -= h;
-                w += w;
-                h += h;
-            }
-
-            if ( this.isProportional || this.isCentred ) {
-                this.setDrawArea( x1, y1, w, h, size );
-            }
-
-            clearCtx( ctx,
-                    this.lastX1,
-                    this.lastY1,
-                    this.lastW,
-                    this.lastH,
-                    this.size
-            );
-
-            this.lastX1 = x1,
-            this.lastY1 = y1,
-            this.lastW  = w,
-            this.lastH  = h;
-
-            drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
-        };
-
-        setup.onDown = function(canvas, x, y) {
-            this.lastX1 = x,
-            this.lastY1 = y,
-            this.lastW  = 1,
-            this.lastH  = 1;
-        };
-
-        Geometry.call( this, setup );
-    };
-
-    ShapeGeometry.prototype = proto( Geometry );
-
-    /* Helper Drawing Function */
-
-    var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
-        x1 = Math.round(x1 - size/2);
-        y1 = Math.round(y1 - size/2);
-        x2 = Math.round(x2 - size/2);
-        y2 = Math.round(y2 - size/2);
-
-        var xDiff = x2 - x1,
-            yDiff = y2 - y1 ;
-
-        var inc = Math.max(
-                Math.abs( xDiff ),
-                Math.abs( yDiff )
-        ) / size;
-
-        var xInc = ( xDiff / inc ) / size,
-            yInc = ( yDiff / inc ) / size,
-            x = x1,
-            y = y1 ;
-
-        for ( var i = 0; i < inc; i++ ) {
-            fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
-
-            x += xInc,
-            y += yInc;
-        }
-    };
-
-    var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
-        x0 = Math.round( x0 );
-        x1 = Math.round( x1 );
-        y0 = Math.round( y0 );
-        y1 = Math.round( y1 );
-
-        var sizeI = Math.round( size );
-        var sizeI2 = (sizeI/2) | 0;
-
-        var yDiff = y1 - y0,
-            xDiff = x1 - x0;
-
-        var aXDiff = Math.abs( xDiff ),
-            aYDiff = Math.abs( yDiff );
-
-        if ( aXDiff < aYDiff ) {
-            if ( aXDiff < 1.5 ) {
-                ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
-            }
-        } else if ( aYDiff < 1.5 ) {
-            ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
-        }
-
-        /*
-         * When this is true, we draw across the screen
-         * in horizontal rectangles.
-         *
-         * When this is false, we draw down the screen,
-         * with vertical rectangles.
-         */
-        var moveHorizontal = aXDiff > aYDiff;
-        if ( moveHorizontal ) {
-            y0 -= sizeI2;
-            y1 -= sizeI2;
-        } else {
-            x0 -= sizeI2;
-            x1 -= sizeI2;
-        }
-
-        var inc = Math.min( aXDiff, aYDiff );
-        var xInc = xDiff / inc,
-            yInc = yDiff / inc;
-
-        var x = x0;
-
-        var yStart = y0,
-            yEnd = y1,
-            xStart = x0,
-            xEnd = x1;
-
-        if ( moveHorizontal ) {
-            if ( yStart > yEnd ) {
-                var t = 0;
-
-                t = yStart;
-                yStart = yEnd;
-                yEnd = t;
-
-                t = xStart;
-                xStart = xEnd;
-                xEnd = t;
-
-                xInc = -xInc;
-            }
-        } else {
-            if ( xStart > xEnd ) {
-                var t = 0;
-
-                t = xStart;
-                xStart = xEnd;
-                xEnd = t;
-
-                t = yStart;
-                yStart = yEnd;
-                yEnd = t;
-
-                yInc = -yInc;
-            }
-        }
-
-        for ( var i = 0; i < sizeI; i++ ) {
-            if ( moveHorizontal ) {
-                var x = xStart;
-
-                for ( var y = yStart; y < yEnd; y++ ) {
-                    var drawX = x|0;
-                    var drawY = y|0;
-                    var xWidth = ((x + xInc)|0) - drawX ;
-
-                    ctx.fillRect( drawX, drawY, xWidth, 1 );
-
-                    x += xInc;
-                }
-
-                yStart++;
-                yEnd++;
-            } else {
-                var y = yStart;
-
-                for ( var x = xStart; x < xEnd; x++ ) {
-                    var drawX = x|0;
-                    var drawY = y|0;
-                    var yWidth = ((y + yInc)|0) - drawY ;
-
-                    ctx.fillRect( drawX, drawY, 1, yWidth );
-
-                    y += yInc;
-                }
-
-                xStart++;
-                xEnd++;
-            }
-        }
-
-        return;
-
-        // swap values so we iterate less
-        var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
-        if ( steep ) {
-            var t;
-
-            t = x0;
-            x0 = y0;
-            y0 = t;
-
-            t = x1;
-            x1 = y1;
-            y1 = t;
-        }
-        if ( x0 > x1 ) {
-            var t;
-
-            t = x0;
-            x0 = x1;
-            x1 = t;
-
-            t = y0;
-            y0 = y1;
-            y1 = t;
-        }
-        if ( y0 > y1 ) {
-            var t;
-
-            t = y0;
-            y0 = y1;
-            y1 = t;
-
-            t = y0;
-            y0 = y1;
-            y1 = t;
-        }
-
-        var deltax = x1 - x0,
-            deltay = Math.abs(y1 - y0);
-
-        var ystep;
-        if ( y0 < y1 ) {
-            ystep = 1;
-        } else {
-            ystep = -1;
-        }
-
-        // Now DRAW!
-        var sizeI = Math.round( size );
-        var error = deltax / 2;
-        var y = y0 - Math.round(size/2);
-
-        var c = 0;
-        for ( var y = y0; y < y1; y++ ) {
-            c++;
-            if ( steep ) {
-                ctx.fillRect(y, x, sizeI, 1);
-            } else {
-                ctx.fillRect(x, y, 1, sizeI);
-            }
-
-            error = error - deltay
-            if ( error < 0 ) {
-                y = y + ystep
-                error = error + deltax
-            }
-        }
-    };
-
-    /**
-     * A bespoke brush, specifically for pixelated drawing.
-     *
-     * @constructor
-     * @private
-     */
-    var PixelBrush = function( setup ) {
-        var self = this;
-
-        self.brushCmd = setup.onDraw;
-        self.pencilCommand = function( canvas, x, y, size ) {
-            self.brushCmd( canvas, x, y, size );
-        };
-
-        setup.onDown = function( canvas, x, y ) {
-            this.lastX = x;
-            this.lastY = y;
-            this.skipFirst = true;
-
-            var size = Math.round( this.size );
-
-            x -= (size/2) | 0;
-            y -= (size/2) | 0;
-
-            this.pencilCommand( canvas, x, y, size );
-            canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size );
-
-            this.addDrawArea( x|0, y|0, size );
-        };
-        setup.onMoveOnUp = function( canvas, x, y ) {
-            var size = this.size,
-                diffX = this.lastX - x,
-                diffY = this.lastY - y;
-
-            if ( this.skipFirst && (Math.abs(diffX) >= 1 || Math.abs(diffY) >= 1) ) {
-                this.skipFirst = false;
-
-                if ( diffX >= 1 ) {
-                    diffX--;
-                    this.lastX--;
-                } else if ( diffX <= -1 ) {
-                    diffX++;
-                    this.lastX++;
-                }
-
-                if ( diffY >= 1 ) {
-                    diffY--;
-                    this.lastY--;
-                } else if ( diffY <= -1 ) {
-                    diffY++;
-                    this.lastY++;
-                }
-            }
-
-            if ( Math.abs(diffX) < 0.5 && Math.abs(diffY) < 0.5 ) {
-                return;
-            }
-
-            renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size);
-
-            canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size );
-            this.addDrawArea( x|0, y|0, diffX, diffY, size );
-
-            this.lastX = x;
-            this.lastY = y;
-        };
-
-        Brush.call( this, setup  );
-    };
-    PixelBrush.prototype = proto( Brush );
-
-    /**
-     * @const
-     * @nosideeffects
-     * @private
-     */
-    var ensureEndingSlash = function( url ) {
-        // ensure the cursor folder ends with a slash /
-        if ( url.length > 0 && url.charAt(url.length-1) != '/' ) {
-            return url + '/';
-        } else {
-            return url;
-        }
-    };
-
-    /**
-     * Translates the image location from the one given,
-     * to an explicit url, relative to this request.
-     */
-    var translateImageLocation = function( imageLocation ) {
-        imageLocation = ensureEndingSlash( imageLocation );
-
-        var imageLocationCheck = imageLocation.toLowerCase();
-
-        /*
-         * If the location is not explicit, make it explicit!
-         * This is so setting it in the stylesheet and directly on the dom is the same.
-         * 
-         * It is relative to this page.
-         */
-        if ( ! (
-                imageLocationCheck.indexOf(0) === '/' ||
-                imageLocationCheck.indexOf('http:') === 0  ||
-                imageLocationCheck.indexOf('https:') === 0 ||
-                imageLocationCheck.indexOf('file:') === 0
-        ) ) {
-            var windowLocation = window.location.href;
-
-            var lastSlash = windowLocation.lastIndexOf('/');
-            imageLocation = windowLocation.substring(0, lastSlash+1) + imageLocation;
-        }
-
-        return imageLocation;
-    };
-
-    /**
-     * @const
-     * @nosideeffects
-     * 
-     * @param rule The rule to test.
-     * @return True if the rule is one that should be translated, and otherwise false.
-     */
-    var isUrlRule = function(rule) {
-        return  rule &&
-                rule != 'none' &&
-                rule.indexOf('url(' ) !== -1 &&
-                rule.indexOf('data:') === -1 ;
-    };
-
-    /**
-     * Updates the stylesheets to use the location given.
-     * 
-     * This allows the style sheets to have dynamic image locations,
-     * which are then altered using JS.
-     */
-    var relocateStylesheetImages = function( imageLocation ) {
-        var imageUrl = 'url(' + imageLocation,
-            cursorUrl = imageUrl + 'cursors/',
-            sheets = document.styleSheets;
-
-        var probablySucceeded = false;
-
-        for (var k in sheets) {
-            var sheet = sheets[k];
-
-            if ( sheet.href && sheet.href.indexOf('skybrush.css') !== -1 ) {
-                var rules = sheet.rules || sheet.cssRules;
-
-                for(var r in rules) {
-                    var rule = rules[r],
-                        selectorText = rule.selectorText;
-
-                    if ( selectorText !== undefined && (selectorText.indexOf('skybrush_') !== -1 || selectorText.indexOf('sb_') !== -1) ) {
-                        var style = rule.style;
-
-                        if ( style ) {
-                            var background = style.backgroundImage,
-                                cursor = style.cursor;
-
-                            // has a background url, and it's not a data: image
-                            if ( isUrlRule(background) ) {
-                                /*
-                                 * Firefox adds double quotes around the url, so we get rid of them.
-                                 * We also remove everything from 'url(' up till the last slash.
-                                 */
-                                var newBackground = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
-                                style.backgroundImage = newBackground;
-                                probablySucceeded = true;
-                            }
-
-                            /*
-                             * Opera only pick up on two classes (why???),
-                             * but it's cursor support is so borked already,
-                             * I just don't care.
-                             */
-                            if ( isUrlRule(cursor) ) {
-                                var newCursor = cursor.replace(/"/g, '').replace(/\burl\((.*\/)?/, cursorUrl);
-                                style.cursor = newCursor;
-                                probablySucceeded = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return probablySucceeded;
-    };
-
-    /**
-     * Sets up an event to relocate images as needed.
-     */
-    var relocateImagesLater = function( imageLocation, domObj ) {
-        var imageUrl = 'url(' + imageLocation;
-
-        domObj.addEventListener( 'DOMNodeInserted', function(ev) {
-            // select this + all children
-            var obj = $(ev.target);
-            obj = obj.find('*').add(obj);
-            
-            obj.each(function() {
-                if ( this.skybrush_background_done === undefined ) {
-                    this.skybrush_background_done = true;
-
-                    var style = this.style;
-
-                    if ( !style || !style.backgroundImage ) {
-                        try {
-                            style = window.getComputedStyle( this );
-                        } catch ( err ) {
-                            return;
-                        }
-                    }
-
-                    if ( style ) {
-                        var background = style.backgroundImage;
-
-                        if ( isUrlRule(background) ) {
-                            this.style.backgroundImage = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
-                        }
-                    }
-                }
-            })
-        }, false );
-    }
-
-    /**
      * Creates and then returns all commands used by SkyBrush.
      * This is created on the fly, so it can be run after
      * SkyBrush has been successfully loaded, and setup.
@@ -5429,6 +4163,1117 @@
      * @return An array of all Command objects in use for this SkyBrush app.
      */
     var newCommands = function( painter ) {
+        /**
+         * Used for turning a control name into a CSS class, for
+         * id purposes.
+         *
+         * Essentially it's so if I have a control called 'zoom'
+         * then this is turned into a CSS class, and attached to
+         * the control. This is for internal use, and shouldn't
+         * clash with anything else.
+         *
+         * This class can then be used again later, for finding
+         * the control.
+         *
+         * @const
+         * @nosideeffects
+         * @param name The name to translate
+         * @return The CSS identifier for the given name.
+         */
+        var controlNameToCSSID = function( name ) {
+            return CONTROL_ID_CSS_PREFIX + name.toLowerCase();
+        };
+
+        /**
+         * Creates a new DOM element, for the control given,
+         * all hooked up.
+         *
+         * Control info should provide:
+         *  = name - the name of this control
+         *  = type - checkbox, toggle, slider or another supported type.
+         *  = field - the field that is updated by this control in the command.
+         *
+         * Extra properties include:
+         *  = css - a CSS class added to the final control.
+         *  = default - The default value to set for the field, and it's control.
+         *
+         * Extra properties are also required on a type by type basis.
+         *
+         * @param command The Command that the control info will place their info into.
+         * @param control The control to create a DOM control for, this is the setup info.
+         * @return The HTML control once built.
+         */
+        var newCommandControl = function( command, control, painter ) {
+            var name = control.name,
+                type = control.type.toLowerCase(),
+                 css = control.css,
+            callback = control.callback,
+               field = control.field;
+
+            if (
+                    name === undefined ||
+                    type === undefined ||
+                    field === undefined
+            ) {
+                throw new Error( "Invalid Control Given" );
+            }
+
+            var defaultField = command[ field ];
+            if ( defaultField === undefined ) {
+                defaultField = control.value;
+                command[ field ] = defaultField;
+            }
+
+            var cDom = $('<div>').
+                    addClass( 'skybrush_control' ).
+                    addClass( CONTROL_CSS_PREFIX + type );
+
+            // Add CSS class if we have it
+            if ( css !== undefined ) {
+                cDom.addClass( 'sb_' + css );
+            }
+
+            var label = $('<div>').
+                    addClass('skybrush_command_control_label');
+            label.text( name );
+
+            var cssID = controlNameToCSSID( name );
+
+            /*
+             * Create the Dom Element based on it's type.
+             * All supported types are listed here.
+             */
+            if ( type == 'checkbox' ) {
+                if ( defaultField === undefined ) {
+                    defaultField = false;
+                }
+
+                var checkbox = $('<input>').
+                        attr( 'type', 'checkbox' ).
+                        addClass( cssID ).
+                        change( function() {
+                            var isChecked = $(this).is(':checked')
+
+                            command[ field ] = isChecked;
+                            if ( callback ) {
+                                callback.call( command, isChecked, painter );
+                            }
+                        } );
+
+                if ( command[field] ) {
+                    checkbox.attr( 'checked', 'checked' );
+                }
+
+                cDom.
+                        append( label ).
+                        append( checkbox );
+            } else if ( type == 'toggle' ) {
+                cDom.append( label );
+                var cssStates = control.css_options,
+                        names = control.name_options;
+
+                var numOptions =
+                        ( cssStates ? cssStates.length :
+                        ( names     ? names.length     :
+                                      0 ) );
+
+                var option = -1;
+                var toggle = $('<input>').
+                        addClass( 'skybrush_input_button' ).
+                        addClass( cssID ).
+                        attr( 'type', 'button' );
+                var switchOption = function() {
+                    if ( cssStates && cssStates[option] ) {
+                        toggle.removeClass( cssStates[option] );
+                    }
+
+                    option = (option+1) % numOptions;
+                    if ( names ) {
+                        toggle.val( names[option] );
+                    }
+                    if ( cssStates && cssStates[option] ) {
+                        toggle.addClass( cssStates[option] );
+                    }
+                };
+
+                switchOption();
+
+                toggle.click( function(ev) {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                        switchOption();
+
+                        command[ field ] = option;
+                        if ( callback ) {
+                            callback.call( command, option, painter );
+                        }
+                } );
+
+                cDom.append( toggle );
+            } else if ( type == 'slider' ) {
+                if ( defaultField === undefined ) {
+                    defaultField = 1;
+                }
+
+                var min = control.min,
+                    max = control.max;
+
+                var val = $('<input>').
+                        addClass( 'skybrush_input' ).
+                        attr( 'type', 'number' ).
+                        attr( 'step', 1 ).
+                        attr( 'min', min ).
+                        attr( 'max', max ).
+                        forceNumeric( false ).
+                        keydown( function() {
+                            var $this = $(this);
+
+                            setTimeout( function() {
+                                var n = $this.val();
+
+                                if ( n && n >= 1 ) {
+                                    n = Math.round( n );
+                                    slider.setSlide( n / max );
+
+                                    command[ field ] = n;
+
+                                    if ( callback ) {
+                                        callback.call( command, n, painter );
+                                    }
+                                }
+                            }, 0 );
+                        } );
+
+                var slider = $slider().
+                        addClass( cssID ).
+                        limit( min, max ).
+                        step( 1 ).
+                        slide( function(ev, n, p) {
+                            command[ field ] = n;
+                            val.val( n );
+
+                            if ( callback ) {
+                                callback.call( command, n, painter );
+                            }
+                        } );
+
+                // initialize
+                val.val( defaultField );
+
+                cDom.
+                        append( label ).
+                        append( val ).
+                        append( slider );
+
+                // Slider must be updated in the future,
+                // after the reflow.
+                setTimeout( function() {
+                    slider.setSlide( defaultField / max );
+                }, 0 );
+            } else {
+                throw new Error( "Unknown control setup given" );
+            }
+
+            return cDom;
+        };
+
+        /**
+         * Commands are setup through a JSON object.
+         *
+         * This is used so other functions can change those
+         * properties on the fly, and require new items.
+         *
+         * The other advantage is that it allows many to be
+         * optional.
+         *
+         * Before they were all passed in for each constructor,
+         * but given that many are optional, this list was
+         * becomming unmanageable.
+         *
+         * Basic properties include:
+         *  = name
+         *  = css
+         *  = cursor
+         *  = caption - the tooltip caption to be used
+         *
+         * All events are called in the context of this command.
+         *
+         * Drawing Events:
+         *  = onDown - called when mouse goes down,
+         *  = onMove - then this is called as it's moved,
+         *  = onUp - finally this is called when it goes up.
+         *
+         *  = onDownOnMove - event used for both onDown and onMove
+         *  = onMoveOnUp - event used for both onMove and onUp
+         *
+         * Some sub-versions of Command add their own 'onDraw'
+         * event. This is a general purpose draw event used for
+         * onDown, onMove and onUp; but is normally wrapped in
+         * custom logic.
+         *
+         * However the Command prototype ignores onDraw.
+         *
+         * Other Events:
+         *  = onAttach - called when the Command is set.
+         *  = onDetach - called when the Command is unset.
+         *
+         *  = onShift - called when the shift button is pressed
+         *    down or up. The state and SkyBrush are passed in,
+         *    in that order.
+         *
+         *    This is also called when the command is attached to
+         *    SkyBrush, but only if the shift is down. This is so
+         *    if you update the controls it'll be setup correctly
+         *    on attach, and undone on detach.
+         *
+         *    But to clarify, if shift is not pressed, this will
+         *    never be called.
+         *
+         * Special logic is also added to ensure onAttach and
+         * onDetach cannot be called recursively, as sometimes
+         * this can happen.
+         *
+         * @constructor
+         * @private
+         *
+         * @param setup The information needed for this command.
+         * @param controlsSetup An array listing all of the commands for this control.
+         */
+        var Command = function( setup ) {
+            this.name    = setup.name     || '' ;
+            this.css = setup.css ?
+                    COMMAND_CSS_PREFIX + setup.css :
+                    '' ;
+            this.caption = setup.caption  || '' ;
+
+            this.cursor = setup.cursor;
+
+            this.drawArea = nil;
+
+            this.dom = nil;
+            this.controlsSetup = setup.controls;
+
+            if ( setup.onDown ) {
+                this.onDown = setup.onDown;
+            }
+
+            if ( setup.onDownOnMove ) {
+                this.onDown =
+                this.onMove =
+                       setup.onDownOnMove;
+            }
+
+            if ( setup.onMoveOnUp ) {
+                this.onUp =
+                this.onMove =
+                        setup.onMoveOnUp;
+            }
+
+            if ( setup.onMove ) {
+                this.onMove = setup.onMove;
+            }
+
+            if ( setup.onUp ) {
+                this.onUp = setup.onUp;
+            }
+
+            this.whenAttached = setup.onAttach || nil;
+            this.whenDetached = setup.onDetach || nil;
+
+            var onShift = setup.onShift;
+            if ( onShift ) {
+                var self = this;
+
+                self.shiftDown = function( isShiftDown ) {
+                    onShift.call( self, isShiftDown, this );
+                };
+            } else {
+                this.shiftDown = nil;
+            }
+
+            this.isInAttach = false;
+            this.isInDetach = false;
+        };
+
+        Command.prototype.getCSS = function() {
+            return this.css;
+        };
+
+        /**
+         * Called when a Command object is set as the current
+         * command.
+         *
+         * @param painter The parent SkyBrush instance this is being attached to.
+         */
+        Command.prototype.onAttach = function( painter ) {
+            if ( ! this.isInAttach ) {
+                this.isInAttach = true;
+
+                if ( this.whenAttached ) {
+                    this.whenAttached.call( this, painter );
+                }
+
+                if ( this.shiftDown ) {
+                    painter.onShift( this.shiftDown );
+
+                    // call if shift is down,
+                    // so control is properly setup
+                    if ( painter.isShiftDown() ) {
+                        this.shiftDown.call( painter, true );
+                    }
+                }
+
+                this.isInAttach = false;
+            }
+        };
+
+        /**
+         * For when a Command object is detached from SkyBrush,
+         * and it is no longer set as the current command.
+         *
+         * @param painter The parent SkyBrush instance this is being detached from.
+         */
+        Command.prototype.onDetach = function( painter ) {
+            if ( ! this.isInDetach ) {
+                this.isInDetach = true;
+
+                if ( this.shiftDown ) {
+                    painter.removeOnShift( this.shiftDown );
+
+                    // if changing whilst shift is down,
+                    // we call as though it was lifte,
+                    // so it's like it was released
+                    if ( painter.isShiftDown() ) {
+                        this.shiftDown.call( painter, false );
+                    }
+                }
+
+                if ( this.whenDetached ) {
+                    this.whenDetached.call( this, painter );
+                }
+
+                this.isInDetach = false;
+            }
+        };
+
+        Command.prototype.getCSSCursor = function( painter ) {
+            var cursor = this.cursor;
+
+            if ( cursor === undefined ) {
+                return nil;
+            } else if ( (typeof cursor) === 'string' ) {
+                return cursor;
+            } else {
+                return cursor.call( this, painter );
+            }
+        };
+
+        Command.prototype.getCaption = function() {
+            return this.caption;
+        };
+
+        Command.prototype.getName = function() {
+            return this.name;
+        };
+
+        /**
+         * Finds the control stated, based on it's 'name'.
+         *
+         * If the control is not found, then an empty jQuery
+         * object will be returned.
+         *
+         * @param A jQuery object for the control.
+         */
+        Command.prototype.getControl = function( name ) {
+            return this.getControlsDom().find( '.' + controlNameToCSSID(name) );
+        };
+
+        /**
+         * This returns null if there are no controls
+         * for this command.
+         *
+         * @return The HTML dom with all the control structures for this command.
+         */
+        Command.prototype.createControlsDom = function( painter ) {
+            /*
+             * Controls dom is loaded in a lazy way so painter
+             * starts up a tad faster,
+             */
+            if ( this.dom === nil && this.controlsSetup ) {
+                var dom = nil,
+                    controlsSetup = this.controlsSetup;
+
+                dom = $('<div>').
+                        addClass( 'skybrush_command_controls_inner' );
+
+                if ( controlsSetup instanceof Array ) {
+                    for ( var i = 0; i < controlsSetup.length; i++ ) {
+                        var cDom = newCommandControl( this, controlsSetup[i], painter );
+                        dom.append( cDom );
+                    }
+                } else {
+                    dom.append( newCommandControl( this, controlsSetup, painter ) );
+                }
+
+                this.dom = dom;
+            }
+
+            return this.dom;
+        };
+
+        /**
+         * Returns the dom containing all of the command options
+         * for this Command, or null if there is no dom.
+         *
+         * There would be no dom if there are no options.
+         */
+        Command.prototype.getControlsDom = function() {
+            return this.dom;
+        };
+
+        Command.prototype.popDrawArea = function() {
+            var t = this.drawArea;
+            this.drawArea = nil;
+
+            return t;
+        };
+
+        Command.prototype.addDrawArea = function( x, y, w, h, buffer ) {
+            var da = this.drawArea;
+
+            if ( da !== nil ) {
+                buffer = buffer || 1;
+
+                if ( h === undefined ) {
+                    x -= w/2,
+                    y -= w/2;
+                    h = w;
+                }
+
+                if ( w < 0 ) {
+                    x -= w;
+                    w = -w;
+                }
+
+                if ( h < 0 ) {
+                    y -= h;
+                    h = -h;
+                }
+
+                da.x    = Math.min( da.x   , x - buffer );
+                da.y    = Math.min( da.y   , y - buffer );
+                da.endX = Math.max( da.endX, x+w+buffer );
+                da.endY = Math.max( da.endY, y+h+buffer );
+            } else {
+                this.setDrawArea( x, y, w, h, buffer );
+            }
+
+            return this;
+        };
+
+        /**
+         * This can be used in a single args version, to allow passing
+         * the Draw Area object from one command to another.
+         *
+         * Usage:
+         *      brush.setDrawArea( otherBrush.popDrawArea() )
+         *
+         * You can also use it in a multi-args version to setup a drawing/refresh area.
+         *
+         * @param x
+         * @param y
+         * @param w or size, w when h is provided and size when it's omitted.
+         * @param h Optional,
+         * @param buffer Optional, a buffer around the area to be updated. This must be at least 1.
+         */
+        Command.prototype.setDrawArea = function( x, y, w, h, buffer ) {
+            // If used in single args version,
+            // this allows setting 'null' as the draw area (no draw)
+            if ( y === undefined && x !== undefined ) {
+                this.drawArea = x;
+            } else {
+                buffer = buffer || 1;
+
+                if ( h === undefined ) {
+                    x -= w,
+                    y -= w;
+                    h  = w;
+                }
+
+                if ( w < 0 ) {
+                    w  = -w;
+                    x -=  w;
+                }
+
+                if ( h < 0 ) {
+                    h  = -h;
+                    y -=  h;
+                }
+
+                this.drawArea = {
+                        x: x-buffer,
+                        y: y-buffer,
+                        endX: x+w+buffer,
+                        endY: y+h+buffer
+                }
+            }
+
+            return this;
+        };
+
+        /**
+         * The standard minimum and maximum brush sizes,
+         * and a way to limit them.
+         */
+        var BRUSH_SIZE = {
+            min: 1,
+            max: MAX_BRUSH_SIZE,
+
+            limit: function( size ) {
+                return Math.limit( size, this.min, this.max );
+            }
+        };
+
+        /**
+         * Creates a new Brush, with the name, css class and events given.
+         * Some extras are added on top, which the standard Command does
+         * not have, like brush size.
+         *
+         * @constructor
+         * @private
+         */
+        var Brush = function( setup ) {
+            var controls = setup.controls || [];
+            controls.unshift( {
+                    name: 'Size',
+                    field: 'size',
+
+                    type: 'slider',
+                    css : 'size',
+
+                    callback: function(size, painter) {
+                        painter.setBrushCursorSize( size );
+                    },
+
+                    min: 1,
+                    max: MAX_BRUSH_SIZE,
+            });
+            setup.controls = controls;
+
+            Command.call( this, setup );
+
+            this.size = 0;
+            this.setSize( DEFAULT_BRUSH_SIZE );
+        };
+
+        Brush.prototype = new Command( '', '', {} );
+
+        /**
+         * Sets the size for this brush.
+         * This is automtically limited to default min/max values.
+         *
+         * @param size The new size for this brush.
+         */
+        Brush.prototype.setSize = function(size) {
+            this.size = BRUSH_SIZE.limit( size );
+        };
+
+        /**
+         * Increments the size by the amount given.
+         *
+         * @param inc The amount to increment the size.
+         */
+        Brush.prototype.incrementSize = function( inc ) {
+            this.setSize( this.size + inc );
+        };
+
+        /**
+         * Commands for drawing geometry.
+         *
+         * For the setup, it adds the properties:
+         *
+         *  = onDraw - called for drawing geometry
+         *  = onDown - already exists, but is wrapped in it's own onDown
+         *
+             * @constructor
+             * @private
+             *
+         * @param setup The controls information for this command.
+         */
+        var Geometry = function( setup ) {
+            this.startX = 0;
+            this.startY = 0;
+
+            this.isFilled = true;
+            this.size = 1;
+
+            this.isAliased = false;
+
+            this.drawGeom = setup.onDraw;
+
+            var oldOnDown = setup.onDown;
+            setup.onDown = function( canvas, x, y ) {
+                if ( ! this.isAliased ) {
+                    x |= 0;
+                    y |= 0;
+                }
+
+                this.startX = x,
+                this.startY = y;
+                this.lastX = x;
+                this.lastY = y;
+
+                canvas.getContext().lineJoin = 'miter';
+
+                if ( oldOnDown ) {
+                    oldOnDown.call( this, canvas, x, y );
+                }
+            };
+            setup.onMove = function( canvas, x, y ) {
+                if ( ! this.isAliased ) {
+                    x |= 0;
+                    y |= 0;
+                }
+
+                this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
+
+                this.lastX = x;
+                this.lastY = y;
+            };
+            setup.onUp = function( canvas, x, y ) {
+                if ( ! this.isAliased ) {
+                    x |= 0;
+                    y |= 0;
+                }
+
+                this.setDrawArea( this.startX, this.startY, x-this.startX, y-this.startY, this.size );
+
+                this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
+
+                this.lastX = x;
+                this.lastY = y;
+            };
+
+            setup.cursor = DEFAULT_CURSOR;
+
+            Command.call( this, setup );
+        };
+
+        Geometry.prototype = new Command( '', '', {} );
+
+        Geometry.prototype.round = function( n, isOutline, size ) {
+            if ( (!isOutline) || size % 2 == 0 ) {
+                return n | 0;
+            } else {
+                return (n | 0) + 0.5;
+            }
+        };
+
+        Geometry.prototype.toggleAliased = function() {
+            this.isAliased = ! this.isAliased ;
+        };
+
+        Geometry.prototype.toggleFilled = function() {
+            this.isFilled = ! this.isFilled ;
+        };
+
+        var ShapeGeometry = function( setup ) {
+            var controls = setup.controls;
+            if ( ! controls ) {
+                controls = [];
+            } else if ( controls && ! ( controls instanceof Array ) ) {
+                controls = [ controls ];
+            }
+
+            setup.controls = controls.concat([
+                    {
+                            name: 'Mode',
+                            css: 'outline_cmd',
+                            field: 'isOutline',
+                            type: 'toggle',
+                            css_options: [ 'filled', 'outline' ],
+                            name_options: [ 'Filled', 'Outline' ]
+                    },
+                    {
+                            name: 'Outline',
+                            css: 'outline_size_cmd',
+                            field: 'size',
+                            type: 'slider',
+
+                            value: 1,
+                            min: 1,
+                            max: MAX_BRUSH_SIZE
+                    },
+                    {
+                            name: 'Proportion',
+                            css: 'proportion_size_cmd',
+                            field: 'isProportional',
+                            type: 'checkbox'
+                    },
+                    {
+                            name: 'Center',
+                            css: 'centre_size_cmd',
+                            field: 'isCentred',
+                            type: 'checkbox'
+                    }
+            ]);
+
+            // wrap in our own function
+            var drawGeom = setup.onDraw;
+            setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
+                var size = this.size,
+                    isOutline = this.isOutline;
+
+                x1 = this.round( x1, isOutline, size );
+                y1 = this.round( y1, isOutline, size );
+                x2 = this.round( x2, isOutline, size );
+                y2 = this.round( y2, isOutline, size );
+
+                var w = x2 - x1,
+                    h = y2 - y1;
+
+                if ( this.isProportional ) {
+                    var wAbs = Math.abs(w),
+                        hAbs = Math.abs(h);
+
+                    if ( wAbs > hAbs ) {
+                        if ( h < 0 ) {
+                            h = - wAbs;
+                        } else {
+                            h =   wAbs;
+                        }
+                    } else {
+                        if ( w < 0 ) {
+                            w = - hAbs;
+                        } else {
+                            w =   hAbs;
+                        }
+                    }
+                }
+
+                if ( this.isCentred ) {
+                    x1 -= w;
+                    y1 -= h;
+                    w += w;
+                    h += h;
+                }
+
+                if ( this.isProportional || this.isCentred ) {
+                    this.setDrawArea( x1, y1, w, h, size );
+                }
+
+                clearCtx( ctx,
+                        this.lastX1,
+                        this.lastY1,
+                        this.lastW,
+                        this.lastH,
+                        this.size
+                );
+
+                this.lastX1 = x1,
+                this.lastY1 = y1,
+                this.lastW  = w,
+                this.lastH  = h;
+
+                drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
+            };
+
+            setup.onDown = function(canvas, x, y) {
+                this.lastX1 = x,
+                this.lastY1 = y,
+                this.lastW  = 1,
+                this.lastH  = 1;
+            };
+
+            Geometry.call( this, setup );
+        };
+
+        ShapeGeometry.prototype = new Geometry( '', '', function() {}, undefined );
+
+        /* Helper Drawing Function */
+
+        var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
+            x1 = Math.round(x1 - size/2);
+            y1 = Math.round(y1 - size/2);
+            x2 = Math.round(x2 - size/2);
+            y2 = Math.round(y2 - size/2);
+
+            var xDiff = x2 - x1,
+                yDiff = y2 - y1 ;
+
+            var inc = Math.max(
+                    Math.abs( xDiff ),
+                    Math.abs( yDiff )
+            ) / size;
+
+            var xInc = ( xDiff / inc ) / size,
+                yInc = ( yDiff / inc ) / size,
+                x = x1,
+                y = y1 ;
+
+            for ( var i = 0; i < inc; i++ ) {
+                fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
+
+                x += xInc,
+                y += yInc;
+            }
+        };
+
+        var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
+            x0 = Math.round( x0 );
+            x1 = Math.round( x1 );
+            y0 = Math.round( y0 );
+            y1 = Math.round( y1 );
+
+            var sizeI = Math.round( size );
+            var sizeI2 = (sizeI/2) | 0;
+
+            var yDiff = y1 - y0,
+                xDiff = x1 - x0;
+
+            var aXDiff = Math.abs( xDiff ),
+                aYDiff = Math.abs( yDiff );
+
+            if ( aXDiff < aYDiff ) {
+                if ( aXDiff < 1.5 ) {
+                    ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
+                }
+            } else if ( aYDiff < 1.5 ) {
+                ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
+            }
+
+            /*
+             * When this is true, we draw across the screen
+             * in horizontal rectangles.
+             *
+             * When this is false, we draw down the screen,
+             * with vertical rectangles.
+             */
+            var moveHorizontal = aXDiff > aYDiff;
+            if ( moveHorizontal ) {
+                y0 -= sizeI2;
+                y1 -= sizeI2;
+            } else {
+                x0 -= sizeI2;
+                x1 -= sizeI2;
+            }
+
+            var inc = Math.min( aXDiff, aYDiff );
+            var xInc = xDiff / inc,
+                yInc = yDiff / inc;
+
+            var x = x0;
+
+            var yStart = y0,
+                yEnd = y1,
+                xStart = x0,
+                xEnd = x1;
+
+            if ( moveHorizontal ) {
+                if ( yStart > yEnd ) {
+                    var t = 0;
+
+                    t = yStart;
+                    yStart = yEnd;
+                    yEnd = t;
+
+                    t = xStart;
+                    xStart = xEnd;
+                    xEnd = t;
+
+                    xInc = -xInc;
+                }
+            } else {
+                if ( xStart > xEnd ) {
+                    var t = 0;
+
+                    t = xStart;
+                    xStart = xEnd;
+                    xEnd = t;
+
+                    t = yStart;
+                    yStart = yEnd;
+                    yEnd = t;
+
+                    yInc = -yInc;
+                }
+            }
+
+            for ( var i = 0; i < sizeI; i++ ) {
+                if ( moveHorizontal ) {
+                    var x = xStart;
+
+                    for ( var y = yStart; y < yEnd; y++ ) {
+                        var drawX = x|0;
+                        var drawY = y|0;
+                        var xWidth = ((x + xInc)|0) - drawX ;
+
+                        ctx.fillRect( drawX, drawY, xWidth, 1 );
+
+                        x += xInc;
+                    }
+
+                    yStart++;
+                    yEnd++;
+                } else {
+                    var y = yStart;
+
+                    for ( var x = xStart; x < xEnd; x++ ) {
+                        var drawX = x|0;
+                        var drawY = y|0;
+                        var yWidth = ((y + yInc)|0) - drawY ;
+
+                        ctx.fillRect( drawX, drawY, 1, yWidth );
+
+                        y += yInc;
+                    }
+
+                    xStart++;
+                    xEnd++;
+                }
+            }
+
+            return;
+
+            // swap values so we iterate less
+            var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+            if ( steep ) {
+                var t;
+
+                t = x0;
+                x0 = y0;
+                y0 = t;
+
+                t = x1;
+                x1 = y1;
+                y1 = t;
+            }
+            if ( x0 > x1 ) {
+                var t;
+
+                t = x0;
+                x0 = x1;
+                x1 = t;
+
+                t = y0;
+                y0 = y1;
+                y1 = t;
+            }
+            if ( y0 > y1 ) {
+                var t;
+
+                t = y0;
+                y0 = y1;
+                y1 = t;
+
+                t = y0;
+                y0 = y1;
+                y1 = t;
+            }
+
+            var deltax = x1 - x0,
+                deltay = Math.abs(y1 - y0);
+
+            var ystep;
+            if ( y0 < y1 ) {
+                ystep = 1;
+            } else {
+                ystep = -1;
+            }
+
+            // Now DRAW!
+            var sizeI = Math.round( size );
+            var error = deltax / 2;
+            var y = y0 - Math.round(size/2);
+
+            var c = 0;
+            for ( var y = y0; y < y1; y++ ) {
+                c++;
+                if ( steep ) {
+                    ctx.fillRect(y, x, sizeI, 1);
+                } else {
+                    ctx.fillRect(x, y, 1, sizeI);
+                }
+
+                error = error - deltay
+                if ( error < 0 ) {
+                    y = y + ystep
+                    error = error + deltax
+                }
+            }
+        };
+
+        /**
+         * A bespoke brush, specifically for pixelated drawing.
+         *
+         * @constructor
+         * @private
+         */
+        var PixelBrush = function( setup ) {
+            var self = this;
+
+            self.brushCmd = setup.onDraw;
+            self.pencilCommand = function( canvas, x, y, size ) {
+                self.brushCmd( canvas, x, y, size );
+            };
+
+            setup.onDown = function( canvas, x, y ) {
+                this.lastX = x;
+                this.lastY = y;
+                this.skipFirst = true;
+
+                var size = Math.round( this.size );
+
+                x -= (size/2) | 0;
+                y -= (size/2) | 0;
+
+                this.pencilCommand( canvas, x, y, size );
+                canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size );
+
+                this.addDrawArea( x|0, y|0, size );
+            };
+            setup.onMoveOnUp = function( canvas, x, y ) {
+                var size = this.size,
+                    diffX = this.lastX - x,
+                    diffY = this.lastY - y;
+
+                if ( this.skipFirst && (Math.abs(diffX) >= 1 || Math.abs(diffY) >= 1) ) {
+                    this.skipFirst = false;
+
+                    if ( diffX >= 1 ) {
+                        diffX--;
+                        this.lastX--;
+                    } else if ( diffX <= -1 ) {
+                        diffX++;
+                        this.lastX++;
+                    }
+
+                    if ( diffY >= 1 ) {
+                        diffY--;
+                        this.lastY--;
+                    } else if ( diffY <= -1 ) {
+                        diffY++;
+                        this.lastY++;
+                    }
+                }
+
+                if ( Math.abs(diffX) < 0.5 && Math.abs(diffY) < 0.5 ) {
+                    return;
+                }
+
+                renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size);
+
+                canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size );
+                this.addDrawArea( x|0, y|0, diffX, diffY, size );
+
+                this.lastX = x;
+                this.lastY = y;
+            };
+
+            Brush.call( this, setup  );
+        };
+        PixelBrush.prototype = new Brush( '', '', {} );
+
         var pickerCommand = new Command({
                 name  : 'Picker',
                 css   : 'picker',
@@ -6135,6 +5980,161 @@
                 } )
         ];
     };
+
+    /**
+     * @const
+     * @nosideeffects
+     * @private
+     */
+    var ensureEndingSlash = function( url ) {
+        // ensure the cursor folder ends with a slash /
+        if ( url.length > 0 && url.charAt(url.length-1) != '/' ) {
+            return url + '/';
+        } else {
+            return url;
+        }
+    };
+
+    /**
+     * Translates the image location from the one given,
+     * to an explicit url, relative to this request.
+     */
+    var translateImageLocation = function( imageLocation ) {
+        imageLocation = ensureEndingSlash( imageLocation );
+
+        var imageLocationCheck = imageLocation.toLowerCase();
+
+        /*
+         * If the location is not explicit, make it explicit!
+         * This is so setting it in the stylesheet and directly on the dom is the same.
+         * 
+         * It is relative to this page.
+         */
+        if ( ! (
+                imageLocationCheck.indexOf(0) === '/' ||
+                imageLocationCheck.indexOf('http:') === 0  ||
+                imageLocationCheck.indexOf('https:') === 0 ||
+                imageLocationCheck.indexOf('file:') === 0
+        ) ) {
+            var windowLocation = window.location.href;
+
+            var lastSlash = windowLocation.lastIndexOf('/');
+            imageLocation = windowLocation.substring(0, lastSlash+1) + imageLocation;
+        }
+
+        return imageLocation;
+    };
+
+    /**
+     * @const
+     * @nosideeffects
+     * 
+     * @param rule The rule to test.
+     * @return True if the rule is one that should be translated, and otherwise false.
+     */
+    var isUrlRule = function(rule) {
+        return  rule &&
+                rule != 'none' &&
+                rule.indexOf('url(' ) !== -1 &&
+                rule.indexOf('data:') === -1 ;
+    };
+
+    /**
+     * Updates the stylesheets to use the location given.
+     * 
+     * This allows the style sheets to have dynamic image locations,
+     * which are then altered using JS.
+     */
+    var relocateStylesheetImages = function( imageLocation ) {
+        var imageUrl = 'url(' + imageLocation,
+            cursorUrl = imageUrl + 'cursors/',
+            sheets = document.styleSheets;
+
+        var probablySucceeded = false;
+
+        for (var k in sheets) {
+            var sheet = sheets[k];
+
+            if ( sheet.href && sheet.href.indexOf('skybrush.css') !== -1 ) {
+                var rules = sheet.rules || sheet.cssRules;
+
+                for(var r in rules) {
+                    var rule = rules[r],
+                        selectorText = rule.selectorText;
+
+                    if ( selectorText !== undefined && (selectorText.indexOf('skybrush_') !== -1 || selectorText.indexOf('sb_') !== -1) ) {
+                        var style = rule.style;
+
+                        if ( style ) {
+                            var background = style.backgroundImage,
+                                cursor = style.cursor;
+
+                            // has a background url, and it's not a data: image
+                            if ( isUrlRule(background) ) {
+                                /*
+                                 * Firefox adds double quotes around the url, so we get rid of them.
+                                 * We also remove everything from 'url(' up till the last slash.
+                                 */
+                                var newBackground = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
+                                style.backgroundImage = newBackground;
+                                probablySucceeded = true;
+                            }
+
+                            /*
+                             * Opera only pick up on two classes (why???),
+                             * but it's cursor support is so borked already,
+                             * I just don't care.
+                             */
+                            if ( isUrlRule(cursor) ) {
+                                var newCursor = cursor.replace(/"/g, '').replace(/\burl\((.*\/)?/, cursorUrl);
+                                style.cursor = newCursor;
+                                probablySucceeded = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return probablySucceeded;
+    };
+
+    /**
+     * Sets up an event to relocate images as needed.
+     */
+    var relocateImagesLater = function( imageLocation, domObj ) {
+        var imageUrl = 'url(' + imageLocation;
+
+        domObj.addEventListener( 'DOMNodeInserted', function(ev) {
+            // select this + all children
+            var obj = $(ev.target);
+            obj = obj.find('*').add(obj);
+            
+            obj.each(function() {
+                if ( this.skybrush_background_done === undefined ) {
+                    this.skybrush_background_done = true;
+
+                    var style = this.style;
+
+                    if ( !style || !style.backgroundImage ) {
+                        try {
+                            style = window.getComputedStyle( this );
+                        } catch ( err ) {
+                            return;
+                        }
+                    }
+
+                    if ( style ) {
+                        var background = style.backgroundImage;
+
+                        if ( isUrlRule(background) ) {
+                            this.style.backgroundImage = background.replace(/"/g, '').replace(/\burl\((.*\/)?/, imageUrl);
+                        }
+                    }
+                }
+            })
+        }, false );
+    }
 
     /**
      * Constant for identifying the square.
