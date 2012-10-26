@@ -766,7 +766,7 @@
                     // must use the event name as 'bind' seems to propogate anyway
                     var event = arguments[i];
 
-                    if ( dom[event] ) {
+                    if ( this[event] ) {
                         this[ event ]( callback );
                     } else {
                         this.bind( event, callback );
