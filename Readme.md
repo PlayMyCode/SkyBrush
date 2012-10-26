@@ -432,6 +432,30 @@ The zoom value is a multiplyer; you can imagine multiplying it against 100%. For
 
 At half zoom, 0.5 is passed in, whilst at 25% zoom, 0.25 is passed in.
 
+### .onCtrl( key, callback )
+
+Called when a 'ctrl+key' is pressed.
+Key is expected to be a string, describing the key, such as 'z' for 'ctrl+z' or 's' for 'ctrl+s'.
+
+The function is given an Event object, representing the current 'keydown' action.
+This for the event that matches 'ctrl+key'.
+
+```js
+    /**
+     * A save handler.
+     */
+    skybrush.onCtrl( 's', function(ev) {
+        // save here
+    } )
+
+    /**
+     * Bind 'ctrl+u' as an alternative for undo.
+     */
+    skybrush.onCtrl( 'u', function(ev) {
+        skybrush.undo();
+    } )
+```
+
 ### .onShift( callback )
 
 Called when SkyBrush sees and runs a shift event.
