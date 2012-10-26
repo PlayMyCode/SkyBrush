@@ -431,7 +431,6 @@
         
         -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
            -moz-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
-            -ms-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
              -o-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
                 transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
             
@@ -442,7 +441,6 @@
     .skybrush_info_bar.sb_show {
         -webkit-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
            -moz-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
-            -ms-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
              -o-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
                 transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
 
@@ -593,7 +591,6 @@
 
             -webkit-transition: width 200ms linear 0s, height 200ms linear 0s, -webkit-transform 200ms linear 0s;
                -moz-transition: width 200ms linear 0s, height 200ms linear 0s,    -moz-transform 200ms linear 0s;
-                -ms-transition: width 200ms linear 0s, height 200ms linear 0s,     -ms-transform 200ms linear 0s;
                  -o-transition: width 200ms linear 0s, height 200ms linear 0s,      -o-transform 200ms linear 0s;
                     transition: width 200ms linear 0s, height 200ms linear 0s,         transform 200ms linear 0s;
         }
@@ -610,7 +607,6 @@
             
             -webkit-transition: opacity 200ms linear 0s;
                -moz-transition: opacity 200ms linear 0s;
-                -ms-transition: opacity 200ms linear 0s;
                  -o-transition: opacity 200ms linear 0s;
                     transition: opacity 200ms linear 0s;
         }
@@ -672,7 +668,6 @@
     
     -webkit-transition: visibility 0s linear 200ms, opacity 200ms linear;
        -moz-transition: visibility 0s linear 200ms, opacity 200ms linear;
-        -ms-transition: visibility 0s linear 200ms, opacity 200ms linear;
          -o-transition: visibility 0s linear 200ms, opacity 200ms linear;
             transition: visibility 0s linear 200ms, opacity 200ms linear;
             
@@ -687,7 +682,6 @@
     
     -webkit-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
        -moz-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
-        -ms-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
          -o-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
             transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
 
@@ -751,13 +745,11 @@
 
     -webkit-transition: opacity 200ms linear 0s;
        -moz-transition: opacity 200ms linear 0s;
-        -ms-transition: opacity 200ms linear 0s;
          -o-transition: opacity 200ms linear 0s;
             transition: opacity 200ms linear 0s;
     
     -webkit-transition-property: background-color, border-color;
        -moz-transition-property: background-color, border-color;
-        -ms-transition-property: background-color, border-color;
          -o-transition-property: background-color, border-color;
             transition-property: background-color, border-color;
     
@@ -790,7 +782,6 @@
     .skybrush_marquee.sb_reposition {
         -webkit-transition-property: background-color, border-color, width, height, -webkit-transform;
            -moz-transition-property: background-color, border-color, width, height, -moz-transform;
-            -ms-transition-property: background-color, border-color, width, height, -ms-transform;
              -o-transition-property: background-color, border-color, width, height, -o-transform;
                 transition-property: background-color, border-color, width, height, transform;
     }
@@ -886,7 +877,6 @@
     
     -webkit-transition: opacity 200ms linear 0s;
        -moz-transition: opacity 200ms linear 0s;
-        -ms-transition: opacity 200ms linear 0s;
          -o-transition: opacity 200ms linear 0s;
             transition: opacity 200ms linear 0s;
     
@@ -1306,7 +1296,6 @@
 
                 -webkit-transition: opacity 150ms linear 0s;
                    -moz-transition: opacity 150ms linear 0s;
-                    -ms-transition: opacity 150ms linear 0s;
                      -o-transition: opacity 150ms linear 0s;
                         transition: opacity 150ms linear 0s;
             }
