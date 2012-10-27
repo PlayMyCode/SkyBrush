@@ -1040,6 +1040,12 @@
                 } else {
                     newOnComplete = onComplete;
                 }
+
+                if ( url.indexOf('?') === -1 ) {
+                    url += '?php_error_is_ajax=true';
+                } else {
+                    url += '&php_error_is_ajax=true';
+                }
                 
                 var frameID = frame( form, newOnComplete, onError );
                 form.
