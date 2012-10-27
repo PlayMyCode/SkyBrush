@@ -1022,10 +1022,15 @@
                 if ( typeof(onComplete) == 'function' ) {
                     if ( type && type.toLowerCase() == 'json' ) {
                         newOnComplete = function( result ) {
-                            var resultObj = $.parseJSON(
-                                    stripOuterHTMLAroundJSON( result )
-                            );
-                            onComplete.call( form, resultObj );
+                            try {
+                                var resultObj = $.parseJSON(
+                                        stripOuterHTMLAroundJSON( result )
+                                );
+
+                                onComplete.call( form, resultObj );
+                            } catch ( err ) {
+                                onError.call( form, err );
+                            }
                         }
                     } else {
                         newOnComplete = function( result ) {
