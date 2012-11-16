@@ -247,11 +247,33 @@
         $.browser.iPad = isIPad;
         $.browser.iPod = isIPod;
 
-        $.support.transform3d =
-                  $.browser.webkit  ||
-                  $.browser.opera   ||
-                  $.browser.mozilla ||
-                ( $.browser.msie && $.browser.version >= 10 );
+        /*
+         * Apply a translate3d, and then test if it's still present.
+         */
+
+        var transformTest = 'translate3d( 0, 0, 0 )';
+
+        input.style.WebkitTransform = transformTest;
+        input.style.   MozTransform = transformTest;
+        input.style.    msTransform = transformTest;
+        input.style.     OTransform = transformTest;
+        input.style.      transform = transformTest;
+
+        /*
+         * Test the common browsers in order, with a specific test for each.
+         * For example opera requires the transform sticking,
+         * whilst IE requires being version 10 or above.
+         *
+         * If we hit an unknown browser, we just test if the transform is present.
+         */
+        $.support.transform3d = !! (
+                $.browser.opera  ?   input.style.transform                                   :
+                $.browser.moz    ? ( input.style.transform || input.style.MozTransform    )  :
+                $.browser.webkit ? ( input.style.transform || input.style.WebkitTransform )  :
+                $.browser.iOS    ? ( input.style.transform || input.style.WebkitTransform )  :
+                $.browser.msie   ?   $.browser.version >= 10                                 :
+                                     input.style.transform
+        )
     })();
 
     /**
