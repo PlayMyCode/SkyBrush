@@ -4756,7 +4756,7 @@
                     },
 
                     min: 1,
-                    max: MAX_BRUSH_SIZE,
+                    max: MAX_BRUSH_SIZE
             });
             setup.controls = controls;
 
