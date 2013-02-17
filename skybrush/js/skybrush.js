@@ -891,7 +891,10 @@
      * @return  {Array.<number>} The HSV representation
      */
     var rgbToHSV = function(r, g, b){
-        r = r/255, g = g/255, b = b/255;
+        r = r/255,
+        g = g/255,
+        b = b/255;
+
         var max = Math.max(r, g, b), min = Math.min(r, g, b);
         var h, s, v = max;
 
@@ -926,28 +929,169 @@
     function hsvToRGB(h, s, v){
         var r, g, b;
 
-        var i = Math.floor(h * 6);
-        var f = h * 6 - i;
-        var p = v * (1 - s);
-        var q = v * (1 - f * s);
-        var t = v * (1 - (1 - f) * s);
+        var i = (h *  6)|0;
+        var f =  h *  6 - i;
+        var p =  v * (1 - s);
+        var q =  v * (1 - f * s);
+        var t =  v * (1 - (1 - f) * s);
 
-        switch(i % 6){
-            case 0:r = v, g = t, b = p;break;
-            case 1:r = q, g = v, b = p;break;
-            case 2:r = p, g = v, b = t;break;
-            case 3:r = p, g = q, b = v;break;
-            case 4:r = t, g = p, b = v;break;
-            case 5:r = v, g = p, b = q;break;
+        var iMod = i % 6;
+
+               if ( iMod === 0 ) { r = v, g = t, b = p;
+        } else if ( iMod === 1 ) { r = q, g = v, b = p;
+        } else if ( iMod === 2 ) { r = p, g = v, b = t;
+        } else if ( iMod === 3 ) { r = p, g = q, b = v;
+        } else if ( iMod === 4 ) { r = t, g = p, b = v;
+        } else   /* iMod === 5 */{ r = v, g = p, b = q;
         }
 
-        return [r * 255, g * 255, b * 255];
+        return [
+                (r*255 + 0.5)|0,
+                (g*255 + 0.5)|0,
+                (b*255 + 0.5)|0
+        ];
+    }
+
+    function hsvToB(h, s, v){
+        var iMod = ((h*6)|0) % 6;
+
+        if ( iMod === 0 ) {
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 1 ) {
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 2 ) {
+            return ((
+                    // t
+                    (v * (1 - (1-(h*6-((h*6)|0))) * s))
+            )*255 + 0.5)|0;
+        } else if ( iMod === 3 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else if ( iMod === 4 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else /* iMod === 5 */{
+            return ((
+                    // q
+                    v * (1 - (h*6-((h*6)|0)) * s)
+            )*255 + 0.5)|0;
+        }
+    }
+
+    function hsvToG(h, s, v){
+        var iMod = ((h*6)|0) % 6;
+
+        if ( iMod === 0 ) {
+            return ((
+                    // t
+                    (v * (1 - (1-(h*6-((h*6)|0))) * s))
+            )*255 + 0.5)|0;
+        } else if ( iMod === 1 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else if ( iMod === 2 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else if ( iMod === 3 ) {
+            return ((
+                    // q
+                    v * (1 - (h*6-((h*6)|0)) * s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 4 ) {
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        } else /* iMod === 5 */{
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        }
+    }
+
+    /**
+     * @param   {number} h       The hue
+     * @param   {number} s       The saturation
+     * @param   {number} v       The value
+     * @return  {number}         The red component, in the RGB colour model.
+     */
+    function hsvToR(h, s, v){
+        var iMod = ((h*6)|0) % 6;
+
+        if ( iMod === 0 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else if ( iMod === 1 ) {
+            return ((
+                    // q
+                    v * (1 - (h*6-((h*6)|0)) * s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 2 ) {
+            return ((
+                    // p
+                    v*(1-s))
+            *255 + 0.5)|0;
+        } else if ( iMod === 3 ) {
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 4 ) {
+            return ((
+                    // t
+                    (v * (1 - (1-(h*6-((h*6)|0))) * s))
+            )*255 + 0.5)|0;
+        } else /* iMod === 5 */{
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        }
+    }
+
+    /**
+     * Converts given hsv value, into a hex colour.
+     * It's the same as 'rgbToColor', only it takes
+     * HSV values instead.
+     *
+     * Example result: #d9aa23
+     *
+     * @param r The hue.
+     * @param s The saturation, 0.0 to 1.0.
+     * @param v The value, 0.0 to 1.0.
+     * @return {string} A CSS hex string for this color.
+     */
+    var hsvToColor = function( h, s, v ) {
+        // hsvToR/G/B returns an int, so no rounding is needed!
+        return '#' +
+                INT_TO_HEX[ hsvToR(h, s, v) ] +
+                INT_TO_HEX[ hsvToG(h, s, v) ] +
+                INT_TO_HEX[ hsvToB(h, s, v) ] ;
     }
 
     /**
      * All components must be provided as values between 0 and 255.
      * Floating point values are allowed, but will be rounded to
      * the nearest whole number.
+     *
+     * Example result: #d9aa23
      * 
      * @param r The red component.
      * @param g The green component.
@@ -7314,8 +7458,7 @@
 
         var updateHue = function( newHue ) {
             hue = newHue;
-            var rgb = hsvToRGB( newHue, 1.0, 1.0 );
-            var strBackColor = rgbToColor( rgb[0], rgb[1], rgb[2] );
+            var strBackColor = hsvToColor( newHue, 1.0, 1.0 );
 
             // update the back of the mixer
             colourBack.css({
@@ -7406,11 +7549,10 @@
                 var i = (y*COLOUR_WHEEL_WIDTH + x) * 4;
 
                 var paintHue = atan2ToHue( COLOUR_WHEEL_WIDTH/2 - y, COLOUR_WHEEL_WIDTH/2 - x );
-                var rgb = hsvToRGB( paintHue, 1, 1 );
 
-                data[i  ] = rgb[0];
-                data[i+1] = rgb[1];
-                data[i+2] = rgb[2];
+                data[i  ] = hsvToR( paintHue, 1, 1 );
+                data[i+1] = hsvToG( paintHue, 1, 1 );
+                data[i+2] = hsvToB( paintHue, 1, 1 );
                 data[i+3] = 255;
             }
         }
@@ -7430,9 +7572,12 @@
                         // change the hue
                         if ( hypot <= COLOUR_WHEEL_WIDTH/2 ) {
                             hue = atan2ToHue( distY, distX );
-                            var rgbs = hsvToRGB( hue, saturation, value );
                             painter.setColor(
-                                    rgbToColor( rgbs[0], rgbs[1], rgbs[2] )
+                                    hsvToColor(
+                                            hue,
+                                            saturation,
+                                            value
+                                    )
                             );
 
                             updateHue( hue );
@@ -7487,9 +7632,8 @@
                     ) {
                         value = 1 - ( y / mixerSize );
                         saturation = x / ( mixerSize - (1-value)*mixerSize );
-                        var rgb = hsvToRGB( hue, saturation, value );
 
-                        painter.setColor( rgbToColor( rgb[0], rgb[1], rgb[2] ) );
+                        painter.setColor( hsvToColor(hue, saturation, value) );
                     }
 
                     ev.preventDefault();
@@ -7741,7 +7885,6 @@
 
             // convert colour to full hue
             var hsv = rgbToHSV( r, g, b );
-            var rgb2 = hsvToRGB( hsv[0], 1, 1 );
 
             // cache these for laterz
             saturation = hsv[1];
