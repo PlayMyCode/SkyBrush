@@ -1867,9 +1867,9 @@
         var ctxData = ctx.getImageData( 0, 0, w, h );
         var data = ctxData.data;
 
-        for ( var x = 0; x < w; x++ ) {
-            for ( var y = 0; y < h; y++ ) {
-                var i = (x + y*w) * 4,
+        for ( var y = 0; y < h; y++ ) {
+            for ( var x = 0; x < w; x++ ) {
+                var i = (y*w + x) * 4,
                 a = ( (1 - y/h)*255 + 0.5 ) | 0;
 
                 // generate a Photoshop-like checker board
@@ -3942,7 +3942,7 @@
             }
         }
 
-            // search for maxY
+        // search for maxY
         for ( var y = h-1; y >= 0; y-- ) {
             var hasAlpha = false;
 
@@ -7401,8 +7401,8 @@
         );
         data = wheelData.data;
 
-        for ( var x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
-            for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
+        for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
+            for ( var x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
                 var i = (y*COLOUR_WHEEL_WIDTH + x) * 4;
 
                 var paintHue = atan2ToHue( COLOUR_WHEEL_WIDTH/2 - y, COLOUR_WHEEL_WIDTH/2 - x );
