@@ -7845,8 +7845,11 @@
         /* Finish the GUI */
 
         // put it on the right side
-        var x = painter.dom.width() - colorGUI.dom.width() - GUI_DEFAULT_X ;
-        colorGUI.xy( x, GUI_DEFAULT_Y );
+        // perform in the future, as the painter.dom size may not be certain
+        setTimeout( function() {
+            var x = painter.dom.width() - colorGUI.dom.width() - GUI_DEFAULT_X ;
+            colorGUI.xy( x, GUI_DEFAULT_Y );
+        }, 0 );
 
         /*
          * Update Callbacks for Colour and Alpha

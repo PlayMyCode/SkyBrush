@@ -246,6 +246,7 @@
     min-height: 500px;
     min-width: 944px;
     
+    overflow: hidden;
     position: relative;
     
     outline: 0;
@@ -254,6 +255,7 @@
     
     font-family: sans-serif;
 
+    text-align: left;
 }
     /* 
      * The top bar at the top of SkyBrush.
