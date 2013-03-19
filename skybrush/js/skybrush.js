@@ -1693,16 +1693,14 @@
          * Dragging the GUI around.
          */
         header.leftdown( function(ev) {
+            ev.preventDefault();
+
             // store the offset for when we are re-located later
             var mouseLoc = ev.offset( self.dom );
             self.dragOffsetX = mouseLoc.left;
             self.dragOffsetY = mouseLoc.top ;
 
             self.parent.startDrag(
-                    function(ev) {
-                        // do nothing
-                    },
-
                     function(ev) {
                         return self.xy( ev );
                     },
@@ -2313,7 +2311,7 @@
      * @constructor
      * @private
      */
-    var Marquee = function( canvas, viewport ) {
+    var Marquee = function( canvas, viewport, painter ) {
         this.canvas = canvas;
 
         ViewOverlay.call( this, viewport, 'skybrush_marquee' );
@@ -2327,18 +2325,68 @@
 
         this.isShowingHandles = false;
 
-        topLeft.bind( 'vmousedown', function() {
-            painter.grabDrag(
-                    function() {
-                        // todo
-                    },
+        var self = this;
 
-                    function() {
-                        // todo
-                    },
+        var updateTopLeft = function(ev, x, y) {
+            var endX = self.x + self.w,
+                endY = self.y + self.h;
 
-                    function() {
-                        // todo
+            if ( x > endX ) {
+                x = endX;
+            }
+
+            if ( y > endY ) {
+                y = endY;
+            }
+
+            var w = (self.x + self.w) - x,
+                h = (self.y + self.h) - y;
+
+            self.selectArea( x, y, w, h );
+        };
+
+        topLeft.leftdown( function(ev) {
+            ev.preventDefault();
+
+            var x = self.x,
+                y = self.h;
+
+            self.startHighlight( false );
+
+            painter.startDrag(
+                    updateTopLeft,
+
+                    function(ev, x, y) {
+                        updateTopLeft(ev, x, y);
+                        self.stopHighlight();
+                    }
+            );
+        } );
+
+        var updateWidthHeight = function(ev, x, y) {
+            var newW = Math.max( 0, x - self.x ),
+                newH = Math.max( 0, y - self.y );
+
+            self.selectArea(
+                    self.x, self.y,
+                    newW, newH
+            );
+        };
+
+        bottomRight.leftdown( function(ev) {
+            ev.preventDefault();
+
+            var width  = self.w,
+                height = self.h;
+
+            self.startHighlight( false );
+
+            painter.startDrag(
+                    updateWidthHeight,
+
+                    function(ev, x, y) {
+                        updateWidthHeight(ev, x, y)
+                        self.stopHighlight();
                     }
             );
         } );
@@ -2369,11 +2417,19 @@
      *
      * This is a visual change, to give the user a visual
      * indication that the marquee is currently being altered.
+     *
+     * @param clear True to clear this when it highlights, false to not. Defaults to true.
      */
-    Marquee.prototype.startHighlight = function() {
+    Marquee.prototype.startHighlight = function( clear ) {
         this.dom.ensureClass( 'sb_highlight' );
 
-        return this.clear();
+        if ( clear === undefined || clear ) {
+            this.clear();
+        } else {
+            this.dom.removeClass( 'sb_reposition' );
+        }
+
+        return this;
     };
 
     /**
@@ -2809,7 +2865,7 @@
         } );
 
         _this.grid    = new GridManager( viewport );
-        _this.marquee = new Marquee( _this, viewport );
+        _this.marquee = new Marquee( _this, viewport, painter );
         _this.copyObj = new CopyManager( viewport );
 
         painter.onSetCommand( function( command ) {
@@ -6897,6 +6953,34 @@
         return '.' + klass + '{ cursor: ' + newCursor + ' !important; }';
     };
 
+    /*
+     * SkyBrush helper functions.
+     * They are essentially private methods.
+     */
+
+    var processDrag = function( self, fun, ev ) {
+        if ( fun ) {
+            var loc = self.canvas.translateLocation( ev );
+            fun( ev, loc.left, loc.top );
+
+            ev.preventDefault();
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    var processCommand = function( self, name, ev ) {
+        var fun = self.command[name];
+
+        if ( fun !== undefined ) {
+            var loc = self.canvas.translateLocation( ev );
+
+            self.command[name]( self.canvas, loc.left, loc.top, self, ev );
+        }
+    };
+
     /**
      * The main entry point for creating a new SkyBrush
      * application. It works by taking a HTML DOM element, and
@@ -7077,7 +7161,11 @@
         // initialized laterz
         _this.command = nil;
 
-        _this.dragging = nil;
+        _this.isDraggingFlag = false;
+        _this.dragging = {
+                onMove: undefined,
+                onEnd: undefined
+        };
 
         // state flags
         _this.isPainting  = false;
@@ -8800,7 +8888,7 @@
 
         return ! (
                 this.processOnDraw( ev ) ||
-                this.processOnDrag( ev )
+                processDrag( this, this.dragging.onMove, ev )
         );
     };
 
@@ -8871,14 +8959,27 @@
     };
 
     SkyBrush.prototype.runMouseUp = function( ev ) {
-        if ( IS_TOUCH ) {
-            this.brushCursor.hideTouch();
-        }
+        if ( this.isDragging() ) {
+            processDrag( this, this.dragging.onEnd, ev );
 
-        return ! (
-                this.endDraw( ev ) ||
-                this.endDrag( ev )
-        );
+            this.dragging.onMove =
+            this.dragging.onEnd  =
+                    undefined;
+
+            this.isDraggingFlag = false;
+
+            return false;
+        } else if ( this.isPainting ) {
+            this.endDraw( ev );
+
+            this.isPainting = false;
+
+            if ( IS_TOUCH ) {
+                this.brushCursor.hideTouch();
+            }
+
+            return false;
+        }
     };
 
     SkyBrush.prototype.runMouseDown = function( ev ) {
@@ -8908,33 +9009,33 @@
                 ! $target.is('input, a, .sb_no_target') &&
                 ! ev.isInScrollBar(this.viewport)
         ) {
-            if ( IS_TOUCH ) {
-                this.brushCursor.showTouch();
-                this.brushCursor.onMove( ev );
+            if ( this.isDragging() ) {
+                processDrag( this, this.dragging.onStart, ev );
+            } else {
+                this.isPainting = true;
+                return this.runStartDraw( ev );
             }
-
-            this.dom.focus();
-
-            return this.startDraw( ev );
         }
     };
 
-    SkyBrush.prototype.startDraw = function( ev ) {
-        if ( this.isDragging() ) {
-            this.dragging.onStart( ev );
-        } else {
-            this.processCommand( 'onDown', ev );
-            this.isPainting = true;
-
-            ev.preventDefault();
+    SkyBrush.prototype.runStartDraw = function( ev ) {
+        if ( IS_TOUCH ) {
+            this.brushCursor.showTouch();
+            this.brushCursor.onMove( ev );
         }
+
+        this.dom.focus();
+
+        processCommand( this, 'onDown', ev );
+
+        ev.preventDefault();
 
         return false;
     };
 
     SkyBrush.prototype.processOnDraw = function( ev ) {
         if ( this.isPainting ) {
-            this.processCommand( 'onMove', ev );
+            processCommand( this, 'onMove', ev );
             ev.preventDefault();
 
             return true;
@@ -8955,56 +9056,21 @@
      * @param ev
      */
     SkyBrush.prototype.endDraw = function( ev ) {
-        if ( this.isPainting ) {
-            this.isPainting = false;
-            this.processCommand( 'onUp', ev );
+        processCommand( this, 'onUp', ev );
 
-            this.canvas.endDraw( this.command.popDrawArea() );
+        this.canvas.endDraw( this.command.popDrawArea() );
 
-            this.events.run( 'onDraw' );
+        this.events.run( 'onDraw' );
 
-            return true;
-        }
+        return true;
     };
 
-    SkyBrush.prototype.startDrag = function( onDown, onMove, onEnd ) {
-        if ( !this.isPainting && !this.isDragging() ) {
-            this.dragging = {
-                    onDown: onDown,
-                    onMove: onMove,
-                    onEnd : onEnd
-            };
+    SkyBrush.prototype.startDrag = function( onMove, onEnd ) {
+        if ( ! this.isPainting && !this.isDragging() ) {
+            this.dragging.onMove  = onMove;
+            this.dragging.onEnd   = onEnd ;
 
-            return true;
-        }
-    };
-
-    /**
-     * The dragging action, dragging GUI elements across the screen.
-     *
-     * @private
-     */
-    SkyBrush.prototype.processOnDrag = function( ev ) {
-        if ( this.dragging !== nil ) {
-            this.dragging.onMove(ev);
-            ev.preventDefault();
-
-            return true;
-        }
-    };
-
-    /**
-     * If the SkyBrush is currently dragging a GUI component,
-     * then it will stop.
-     *
-     * @private
-     */
-    SkyBrush.prototype.endDrag = function( ev ) {
-        if ( this.isDragging() ) {
-            var dragging = this.dragging;
-            this.dragging = nil;
-
-            dragging.onEnd( ev );
+            this.isDraggingFlag   = true;
 
             return true;
         }
@@ -9015,7 +9081,7 @@
      * @return True if this SkyBrush is currently dragging a GUI component, otherwise false.
      */
     SkyBrush.prototype.isDragging = function() {
-        return this.dragging !== nil;
+        return this.isDraggingFlag;
     };
 
     /**
@@ -9658,16 +9724,6 @@
             }
         } else {
             return this.command;
-        }
-    };
-
-    SkyBrush.prototype.processCommand = function( name, ev ) {
-        var fun = this.command[name];
-
-        if ( fun !== undefined ) {
-            var location = this.canvas.translateLocation( ev );
-
-            this.command[name]( this.canvas, location.left, location.top, this, ev );
         }
     };
 
