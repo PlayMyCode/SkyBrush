@@ -703,10 +703,8 @@
         }
 
 .skybrush_copy,
-.skybrush_marquee {
-    display: none;
-    position: absolute;
-    
+.skybrush_marquee,
+.skybrush_marquee_handle {
     -webkit-animation-duration: 1s;
     -webkit-animation-iteration-count: infinite;
        -moz-animation-duration: 1s;
@@ -718,6 +716,12 @@
             animation-duration: 1s;
             animation-iteration-count: infinite;
 }
+.skybrush_copy,
+.skybrush_marquee {
+    display: none;
+    position: absolute;
+}
+
 .skybrush_copy.sb_show,
 .skybrush_marquee.sb_show {
     display: block;
@@ -756,36 +760,87 @@
             transition-property: background-color, border-color;
     
     background-color: transparent;
-    border: 2px dashed #18C;
+}
+.skybrush_marquee.sb_temporary_hide {
+    visibility: hidden !important;
+    opacity: 0 !important;
     
+    -webkit-transition: none !important;
+       -moz-transition: none !important;
+         -o-transition: none !important;
+            transition: none !important;
+}
+
+.skybrush_marquee,
+.skybrush_marquee_handle {
+    border: 2px dashed #18C;
+
     -webkit-animation-name: skybrush_marquee_border_anim;
        -moz-animation-name: skybrush_marquee_border_anim;
         -ms-animation-name: skybrush_marquee_border_anim;
          -o-animation-name: skybrush_marquee_border_anim;
             animation-name: skybrush_marquee_border_anim;
 }
-    .skybrush_marquee.sb_show {
-        opacity: 0.6;
+.skybrush_marquee.sb_show {
+    opacity: 0.6;
+}
+.skybrush_marquee.sb_highlight {
+    background-color: #33aaFF;
+}
+.skybrush_marquee.sb_highlight.sb_outside {
+    background-color: #aa3333;
+    box-shadow: 0 0 40px rgba( 200, 40, 40, 0.7 );
+}
+.skybrush_marquee.sb_highlight.sb_outside,
+.skybrush_marquee.sb_highlight.sb_outside > .skybrush_marquee_handle {
+    border-color: #881111;
+
+    -webkit-animation-name: skybrush_marquee_border_anim_outside;
+       -moz-animation-name: skybrush_marquee_border_anim_outside;
+        -ms-animation-name: skybrush_marquee_border_anim_outside;
+         -o-animation-name: skybrush_marquee_border_anim_outside;
+            animation-name: skybrush_marquee_border_anim_outside;
+}
+.skybrush_marquee.sb_reposition {
+    -webkit-transition-property: background-color, border-color, width, height, -webkit-transform;
+       -moz-transition-property: background-color, border-color, width, height, -moz-transform;
+         -o-transition-property: background-color, border-color, width, height, -o-transform;
+            transition-property: background-color, border-color, width, height, transform;
+}
+    .skybrush_marquee_handle {
+        width : 12px;
+        height: 12px;
+
+        z-index: 6;
+
+        position: absolute;
+
+        cursor: pointer;
+
+        visibility: hidden;
+        opacity: 0;
+
+        -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear, border-color;
+           -moz-transition: visibility 0s linear 100ms, opacity 100ms linear, border-color;
+             -o-transition: visibility 0s linear 100ms, opacity 100ms linear, border-color;
+                transition: visibility 0s linear 100ms, opacity 100ms linear, border-color;
     }
-    .skybrush_marquee.sb_highlight {
-        background-color: #33aaFF;
+    .skybrush_marquee.sb_show > .skybrush_marquee_handle.sb_show {
+        visibility: visible;
+        opacity: 1;
+
+        -webkit-transition: visibility 0s linear      , opacity 100ms linear, border-color;
+           -moz-transition: visibility 0s linear      , opacity 100ms linear, border-color;
+             -o-transition: visibility 0s linear      , opacity 100ms linear, border-color;
+                transition: visibility 0s linear      , opacity 100ms linear, border-color;
     }
-    .skybrush_marquee.sb_highlight.sb_outside {
-        box-shadow: 0 0 40px rgba( 200, 40, 40, 0.7 );
-        background-color: #aa3333;
-        border-color: #881111;
-    
-        -webkit-animation-name: skybrush_marquee_border_anim_outside;
-           -moz-animation-name: skybrush_marquee_border_anim_outside;
-            -ms-animation-name: skybrush_marquee_border_anim_outside;
-             -o-animation-name: skybrush_marquee_border_anim_outside;
-                animation-name: skybrush_marquee_border_anim_outside;
+    .skybrush_marquee_handle.sb_top_left {
+        left: -9px;
+        top : -9px;
     }
-    .skybrush_marquee.sb_reposition {
-        -webkit-transition-property: background-color, border-color, width, height, -webkit-transform;
-           -moz-transition-property: background-color, border-color, width, height, -moz-transform;
-             -o-transition-property: background-color, border-color, width, height, -o-transform;
-                transition-property: background-color, border-color, width, height, transform;
+    .skybrush_marquee_handle.sb_bottom_right {
+        right : -9px;
+        bottom: -9px;
     }
 
 @-webkit-keyframes skybrush_marquee_border_anim {

@@ -2311,13 +2311,39 @@
      * @private
      */
     var Marquee = function( canvas, viewport ) {
-        var _this = this;
-        _this.canvas = canvas;
+        this.canvas = canvas;
 
         ViewOverlay.call( this, viewport, 'skybrush_marquee' );
+
+        var topLeft = $('<div>').addClass('skybrush_marquee_handle sb_top_left'),
+            bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right');
+
+        this.handles = topLeft.add( bottomRight );
+
+        this.dom.append( topLeft, bottomRight );
+
+        this.isShowingHandles = false;
     };
 
     Marquee.prototype = new ViewOverlay();
+
+    /**
+     * Begins displaying the resize handles.
+     */
+    Marquee.prototype.showHandles = function() {
+        this.handles.addClass( 'sb_show' );
+
+        return this;
+    }
+
+    /**
+     * Hides the resize handles.
+     */
+    Marquee.prototype.hideHandles = function() {
+        this.handles.removeClass( 'sb_show' );
+
+        return this;
+    }
 
     /**
      * Puts this into highlighting mode.
@@ -2433,6 +2459,10 @@
         return this;
     };
 
+    Marquee.prototype.hasNoSelection = function() {
+        return ( this.w === 0 ) && ( this.h === 0 ) ;
+    }
+
     /**
      * Returns an object showing the current selection,
      * in canvas pixels, or null if there is no selection.
@@ -2477,6 +2507,12 @@
                 dom.removeClass('sb_outside');
             } else {
                 dom.ensureClass('sb_outside');
+            }
+
+            if ( self.hasNoSelection() ) {
+                dom.ensureClass('sb_temporary_hide');
+            } else {
+                dom.removeClass('sb_temporary_hide');
             }
         } else if ( self.hasClipArea() ) {
             dom.removeClass('sb_outside');
@@ -6059,6 +6095,13 @@
                         css : 'select',
                         caption: 'Selection Tool | shortcut: s',
                         cursor: 'sb_cursor_select',
+
+                        onAttach: function( painter ) {
+                            painter.getCanvas().getMarquee().showHandles();
+                        },
+                        onDetach: function( painter ) {
+                            painter.getCanvas().getMarquee().hideHandles();
+                        },
 
                         onDown: function( canvas, x, y, painter, ev ) {
                             canvas.getMarquee().
