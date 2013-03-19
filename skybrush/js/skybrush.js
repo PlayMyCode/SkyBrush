@@ -1659,9 +1659,9 @@
      * @param klass The CSS class for the content in this GUI.
      */
     var GUI = function( name, klass ) {
-        var _this = this;
+        var self = this;
 
-        _this.dom = $('<div>').
+        self.dom = $('<div>').
                 addClass( 'skybrush_gui' ).
                 addClass( GUI_CSS_PREFIX + klass ).
                 leftdown( function(ev) {
@@ -1678,18 +1678,44 @@
                     }
                 } );
 
-        var header = $('<div>').addClass('skybrush_gui_header'),
+        var header  = $('<div>').addClass('skybrush_gui_header'),
             content = $('<div>').addClass('skybrush_gui_content');
 
-        _this.header = header;
-        _this.isDragged = false;
+        self.header = header;
+        self.isDragged = false;
 
-        _this.dragOffsetX = 0;
-        _this.dragOffsetY = 0;
+        self.dragOffsetX = 0;
+        self.dragOffsetY = 0;
 
         header.text( name );
+
+        /*
+         * Dragging the GUI around.
+         */
         header.leftdown( function(ev) {
-            _this.parent.startDrag( _this.startDrag(ev) );
+            // store the offset for when we are re-located later
+            var mouseLoc = ev.offset( self.dom );
+            self.dragOffsetX = mouseLoc.left;
+            self.dragOffsetY = mouseLoc.top ;
+
+            self.parent.startDrag(
+                    function(ev) {
+                        // do nothing
+                    },
+
+                    function(ev) {
+                        return self.xy( ev );
+                    },
+
+                    function(ev) {
+                        self.xy( ev );
+
+                        self.dragOffsetX = 0;
+                        self.dragOffsetY = 0;
+
+                        return self;
+                    }
+            );
         });
 
         if ( $.browser.msie ) {
@@ -1730,32 +1756,6 @@
         for ( var i = 0; i < arguments.length; i++ ) {
             this.dom.children('.skybrush_gui_content').append( arguments[i] );
         }
-
-        return this;
-    };
-
-    GUI.prototype.startDrag = function(ev) {
-        var mouseLoc = ev.offset( this.dom );
-
-        // store the offset for when we are re-located later
-        this.dragOffsetX = mouseLoc.left;
-        this.dragOffsetY = mouseLoc.top ;
-
-        return this;
-    };
-
-    GUI.prototype.onDrag = function(ev) {
-        return this.xy( ev );
-    };
-
-    /**
-     * Informs this GUI that dragging has ended.
-     */
-    GUI.prototype.onEndDrag = function( ev ) {
-        this.xy( ev );
-
-        this.dragOffsetX = 0;
-        this.dragOffsetY = 0;
 
         return this;
     };
@@ -2066,15 +2066,15 @@
      * to just pass the results on to this grid.
      */
     GridManager.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
-        var _this = this;
+        var self = this;
 
-        _this.zoom = zoom;
-        _this.dom.
+        self.zoom = zoom;
+        self.dom.
                 width( width+1 ).
                 height( height+1 ).
                 translate( canvasX, canvasY );
 
-        _this.update( width+1, height+1 );
+        self.update( width+1, height+1 );
     };
 
     /**
@@ -2239,23 +2239,23 @@
      */
     var ViewOverlay = function( viewport, css ) {
         if ( viewport && css ) {
-            var _this = this,
+            var self = this,
                 dom;
 
-            _this.dom = dom = $('<div>').addClass( css );
+            self.dom = dom = $('<div>').addClass( css );
             viewport.append( dom );
 
-            _this.x = 0;
-            _this.y = 0;
-            _this.w = 0;
-            _this.h = 0;
-            _this.zoom = 1;
+            self.x = 0;
+            self.y = 0;
+            self.w = 0;
+            self.h = 0;
+            self.zoom = 1;
 
-            _this.canvasX = 0;
-            _this.canvasY = 0;
+            self.canvasX = 0;
+            self.canvasY = 0;
 
-            _this.lastLeft = 0;
-            _this.lastTop  = 0;
+            self.lastLeft = 0;
+            self.lastTop  = 0;
         }
     };
 
@@ -2264,6 +2264,9 @@
         return this;
     };
 
+    /**
+     * Takes canvas pixels, and resizes to DOM pixels.
+     */
     ViewOverlay.prototype.setCanvasSize = function( x, y, w, h ) {
         var zoom = this.zoom;
 
@@ -2315,14 +2318,30 @@
 
         ViewOverlay.call( this, viewport, 'skybrush_marquee' );
 
-        var topLeft = $('<div>').addClass('skybrush_marquee_handle sb_top_left'),
-            bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right');
+        var topLeft     = $('<div>').addClass('skybrush_marquee_handle sb_top_left sb_no_target'),
+            bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right sb_no_target');
 
         this.handles = topLeft.add( bottomRight );
 
         this.dom.append( topLeft, bottomRight );
 
         this.isShowingHandles = false;
+
+        topLeft.bind( 'vmousedown', function() {
+            painter.grabDrag(
+                    function() {
+                        // todo
+                    },
+
+                    function() {
+                        // todo
+                    },
+
+                    function() {
+                        // todo
+                    }
+            );
+        } );
     };
 
     Marquee.prototype = new ViewOverlay();
@@ -2363,48 +2382,48 @@
      * shows will now end.
      */
     Marquee.prototype.stopHighlight = function() {
-        var _this = this;
+        var self = this;
 
-        var x = _this.x,
-            y = _this.y,
-            w = _this.w,
-            h = _this.h;
+        var x = self.x,
+            y = self.y,
+            w = self.w,
+            h = self.h;
 
-        _this.dom.removeClass( 'sb_highlight' );
+        self.dom.removeClass( 'sb_highlight' );
 
         if (
                 x < 0 ||
                 y < 0 ||
-                w+x > _this.canvas.width  ||
-                h+y > _this.canvas.height
+                w+x > self.canvas.width  ||
+                h+y > self.canvas.height
         ) {
             var x2 = Math.max( x, 0 ),
-                    y2 = Math.max( y, 0 );
-            var w2 = Math.min( w+x, _this.canvas.width  ) - x2,
-                    h2 = Math.min( h+y, _this.canvas.height ) - y2;
+                y2 = Math.max( y, 0 );
+            var w2 = Math.min( w+x, self.canvas.width  ) - x2,
+                h2 = Math.min( h+y, self.canvas.height ) - y2;
 
-            _this.selectArea( x2, y2, w2, h2 );
+            self.selectArea( x2, y2, w2, h2 );
         }
 
-        if ( _this.hasClipArea() ) {
-            _this.canvas.setClip( _this.x, _this.y, _this.w, _this.h );
+        if ( self.hasClipArea() ) {
+            self.canvas.setClip( self.x, self.y, self.w, self.h );
         } else {
-            _this.dom.removeClass('sb_show');
+            self.dom.removeClass('sb_show');
         }
 
-        return _this;
+        return self;
     };
 
     Marquee.prototype.hasClipArea = function() {
-        var _this = this;
+        var self = this;
 
         return ! (
-                _this.w <= 0 ||
-                _this.h <= 0 ||
-                _this.x+_this.w < 0 ||
-                _this.y+_this.h < 0 ||
-                _this.x >= _this.canvas.getWidth() ||
-                _this.y >= _this.canvas.getHeight()
+                self.w <= 0 ||
+                self.h <= 0 ||
+                self.x+self.w < 0 ||
+                self.y+self.h < 0 ||
+                self.x >= self.canvas.getWidth() ||
+                self.y >= self.canvas.getHeight()
         );
     };
 
@@ -2429,15 +2448,15 @@
     };
 
     Marquee.prototype.selectArea = function( x, y, w, h ) {
-        var _this = this;
+        var self = this;
 
         // floor all locations
-        _this.x = x|0,
-        _this.y = y|0,
-        _this.w = w|0,
-        _this.h = h|0;
+        self.x = x|0,
+        self.y = y|0,
+        self.w = w|0,
+        self.h = h|0;
 
-        return _this.update();
+        return self.update();
     };
 
     /**
@@ -2446,14 +2465,14 @@
      * This is the same as selection a 0x0 region.
      */
     Marquee.prototype.clear = function() {
-        var _this = this;
+        var self = this;
 
-        if ( _this.dom.hasClass('sb_show') ) {
-            _this.select( 0, 0, 0, 0 );
-            _this.canvas.removeClip();
-            _this.dom.removeClass( 'sb_reposition' );
+        if ( self.dom.hasClass('sb_show') ) {
+            self.select( 0, 0, 0, 0 );
+            self.canvas.removeClip();
+            self.dom.removeClass( 'sb_reposition' );
 
-            return _this.update();
+            return self.update();
         }
 
         return this;
@@ -2496,7 +2515,6 @@
             y = self.y,
             w = self.w,
             h = self.h,
-            zoom   = self.zoom,
             canvas = self.canvas,
             dom    = self.dom;
 
@@ -7167,9 +7185,9 @@
 
         /* Handle GUI dragging. */
         $(document).
-                bind('vmousedown', function(ev) { return _this.onMouseDown(ev); }).
-                bind('vmousemove', function(ev) { return _this.onMouseMove(ev); }).
-                bind('vmouseup'  , function(ev) { return _this.onMouseUp(ev); });
+                bind('vmousedown', function(ev) { return _this.runMouseDown(ev); }).
+                bind('vmousemove', function(ev) { return _this.runMouseMove(ev); }).
+                bind('vmouseup'  , function(ev) { return _this.runMouseUp(ev)  ; });
 
         var startingWidth  = options.width  || DEFAULT_WIDTH,
             startingHeight = options.height || DEFAULT_HEIGHT;
@@ -7207,8 +7225,8 @@
     /**
      * Adds an event to the resize handling.
      */
-    SkyBrush.prototype.onResize = function( ev ) {
-        this.events.add( 'resize', ev );
+    SkyBrush.prototype.onResize = function( fun ) {
+        this.events.add( 'resize', fun );
     };
 
     /**
@@ -8172,7 +8190,7 @@
         painter.
                 onUndo( updateUndoRedo ).
                 onRedo( updateUndoRedo ).
-                onEndDraw( updateUndoRedo );
+                onDraw( updateUndoRedo );
 
         var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
                     function() {
@@ -8744,13 +8762,15 @@
         return slide/2 + 0.5;
     };
 
-    SkyBrush.prototype.onEndDraw = function( fun ) {
-        this.canvas.onEndDraw( fun );
-        return this;
-    };
-
+    /**
+     * Event for when *any* drawing operation has ended.
+     * This includes pasting, clearing, etc.
+     *
+     * Pretty much every draw change will be sent to this,
+     * including those which will go to 'onDraw'.
+     */
     SkyBrush.prototype.onDraw = function( fun ) {
-        this.events.add( 'onDraw', fun );
+        this.canvas.onEndDraw( fun );
         return this;
     };
 
@@ -8774,7 +8794,7 @@
      * This ensures if we get a true from one of them, it is then
      * not'd into a false, and so disables the mouse cursor change in Chrome.
      */
-    SkyBrush.prototype.onMouseMove = function( ev ) {
+    SkyBrush.prototype.runMouseMove = function( ev ) {
         this.brushCursor.onMove( ev );
         this.handleScrollbarCursor( ev );
 
@@ -8850,7 +8870,7 @@
         this.currentCursor = cssClass;
     };
 
-    SkyBrush.prototype.onMouseUp = function( ev ) {
+    SkyBrush.prototype.runMouseUp = function( ev ) {
         if ( IS_TOUCH ) {
             this.brushCursor.hideTouch();
         }
@@ -8861,7 +8881,7 @@
         );
     };
 
-    SkyBrush.prototype.onMouseDown = function( ev ) {
+    SkyBrush.prototype.runMouseDown = function( ev ) {
         var infoBar = this.infoBar;
 
         if ( infoBar.isShown() ) {
@@ -8873,7 +8893,7 @@
         }
 
         var $target = $(ev.target);
-                
+        
         /*
          * If we are drawing from totally outside SkyBrush,
          * skip it.
@@ -8885,9 +8905,8 @@
         if (
                 $target.parents('.skybrush').size() > 0 &&
                 ( IS_TOUCH || ev.which === LEFT ) &&
-                !$target.is('input') &&
-                !$target.is('a') &&
-                !ev.isInScrollBar( this.viewport )
+                ! $target.is('input, a, .sb_no_target') &&
+                ! ev.isInScrollBar(this.viewport)
         ) {
             if ( IS_TOUCH ) {
                 this.brushCursor.showTouch();
@@ -8901,7 +8920,9 @@
     };
 
     SkyBrush.prototype.startDraw = function( ev ) {
-        if ( ! this.isDragging() ) {
+        if ( this.isDragging() ) {
+            this.dragging.onStart( ev );
+        } else {
             this.processCommand( 'onDown', ev );
             this.isPainting = true;
 
@@ -8946,15 +8967,13 @@
         }
     };
 
-    /**
-     * Starts dragging on the GUI component given.
-     *
-     * @private
-     * @param gui The GUI component being dragged.
-     */
-    SkyBrush.prototype.startDrag = function( gui ) {
+    SkyBrush.prototype.startDrag = function( onDown, onMove, onEnd ) {
         if ( !this.isPainting && !this.isDragging() ) {
-            this.dragging = gui;
+            this.dragging = {
+                    onDown: onDown,
+                    onMove: onMove,
+                    onEnd : onEnd
+            };
 
             return true;
         }
@@ -8967,7 +8986,7 @@
      */
     SkyBrush.prototype.processOnDrag = function( ev ) {
         if ( this.dragging !== nil ) {
-            this.dragging.onDrag(ev);
+            this.dragging.onMove(ev);
             ev.preventDefault();
 
             return true;
@@ -8985,7 +9004,7 @@
             var dragging = this.dragging;
             this.dragging = nil;
 
-            dragging.onEndDrag( ev );
+            dragging.onEnd( ev );
 
             return true;
         }
