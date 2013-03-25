@@ -54,6 +54,7 @@
  *
  *  p - pencil
  *  b - brush
+ *  w - webby/shading brush
  *  e - eraser
  *  r - rectangle
  *  c - circle
@@ -3012,6 +3013,7 @@
             } );
 
             _this.overlay.ctx.clearRect( 0, 0, _this.overlay.width, _this.overlay.height );
+
             if ( refresh ) {
                 _this.redrawUpscale( ux, uy, uw, uh );
             }
@@ -4569,13 +4571,14 @@
                     defaultField = 1;
                 }
 
-                var min = control.min,
-                    max = control.max;
+                var min  = control.min,
+                    max  = control.max,
+                    step = control.step || 1;
 
                 var val = $('<input>').
                         addClass( 'skybrush_input' ).
                         attr( 'type', 'number' ).
-                        attr( 'step', 1 ).
+                        attr( 'step', step ).
                         attr( 'min', min ).
                         attr( 'max', max ).
                         forceNumeric( false ).
@@ -4601,7 +4604,7 @@
                 var slider = $slider().
                         addClass( cssID ).
                         limit( min, max ).
-                        step( 1 ).
+                        step( step ).
                         slide( function(ev, n, p) {
                             command[ field ] = n;
                             val.val( n );
@@ -4997,8 +5000,7 @@
          * @private
          */
         var Brush = function( setup ) {
-            var controls = setup.controls || [];
-            controls.unshift( {
+            var brushSizeControl = {
                     name: 'Size',
                     field: 'size',
 
@@ -5011,7 +5013,27 @@
 
                     min: 1,
                     max: MAX_BRUSH_SIZE
-            });
+            };
+
+            var controls = setup.controls;
+            if ( controls === undefined ) {
+                controls = [ brushSizeControl ];
+            } else {
+                controls = setup.controls;
+                var addControl = true;
+
+                for ( var i = 0; i < controls.length; i++ ) {
+                    if ( controls[i].field === brushSizeControl.field ) {
+                        addControl = false;
+                        break;
+                    }
+                }
+
+                if ( addControl ) {
+                    controls.unshift( brushSizeControl );
+                }
+            }
+
             setup.controls = controls;
 
             Command.call( this, setup );
@@ -5799,6 +5821,234 @@
                         ctx.lineTo( x, y );
                         ctx.stroke();
                     };
+
+                    return b;
+                })(),
+
+                (function() {
+                    /*
+                     * The webby/shading brush, used for shading areas.
+                     *
+                     * It stores and builds a list of pixels over the course of drawing,
+                     * and iterates over this, to work out new areas to draw upon.
+                     */
+                    var b = new Brush( {
+                            name: 'Webby',
+                            css : 'web',
+                            caption: 'Web Brush | shortcut: w, shift: switches to eraser',
+
+                            controls: [
+                                    {
+                                            name : 'Size',
+                                            field: 'size',
+
+                                            type: 'slider',
+                                            css : 'size',
+
+                                            callback: function(size, painter) {
+                                                painter.setBrushCursorSize( size );
+                                            },
+
+                                            min: 1,
+                                            max: MAX_BRUSH_SIZE/10
+                                    },
+                                    {
+                                            name : 'Dist',
+                                            field: 'dist',
+
+                                            type: 'slider',
+                                            css : 'size',
+
+                                            min: 10,
+                                            max: 100
+                                    }
+                            ],
+
+                            onDown: function( canvas, x, y ) {
+                                this.x =
+                                        this.lastX =
+                                        this.minX =
+                                        this.maxX = x;
+
+                                this.y =
+                                        this.lastY =
+                                        this.minY =
+                                        this.maxY = y;
+
+                                this.updateArea = {
+                                        minX: 1,
+                                        minY: 1,
+                                        maxX: 0,
+                                        maxY: 0
+                                };
+
+                                var ctx = canvas.getContext();
+                                ctx.lineWidth = this.size;
+                                ctx.lineCap   = 'round';
+                                ctx.lineJoin  = 'round';
+                                ctx.beginPath();
+
+                                /*
+                                 * This is to trick it into starting a line,
+                                 * when the mouse goes down.
+                                 */
+                                this.xs = [ x-0.1 ];
+                                this.ys = [ y-0.1 ];
+
+                                this.updateLine( canvas, x, y, this.updateArea );
+
+                                canvas.hideOverlay();
+
+                                if ( this.updateArea.minX < this.updateArea.maxX ) {
+                                    canvas.redrawUpscale(
+                                            this.updateArea.minX,
+                                            this.updateArea.minY,
+                                            this.updateArea.maxX-this.updateArea.minX,
+                                            this.updateArea.maxY-this.updateArea.minY,
+                                            true,
+                                            this.size*2
+                                    );
+                                }
+                            },
+                            onMove: function( canvas, x, y ) {
+                                this.updateLine( canvas, x, y, this.updateArea );
+
+                                canvas.hideOverlay();
+
+                                if ( this.updateArea.minX < this.updateArea.maxX ) {
+                                    canvas.redrawUpscale(
+                                            this.updateArea.minX,
+                                            this.updateArea.minY,
+                                            this.updateArea.maxX-this.updateArea.minX,
+                                            this.updateArea.maxY-this.updateArea.minY,
+                                            true,
+                                            this.size*2
+                                    );
+                                }
+                            },
+                            onUp: function( canvas, x, y ) {
+                                this.updateLine( canvas, x, y, this.updateArea );
+
+                                // end the current path
+                                canvas.getContext().beginPath();
+
+                                this.setDrawArea(
+                                        this.minX, this.minY,
+                                        this.maxX-this.minX, this.maxY-this.minY,
+                                        this.size
+                                );
+                            },
+
+                            onShift: switchToEraser
+                    } );
+
+                    b.updateLine = function( canvas, x, y, updateArea ) {
+                        var lastX = this.lastX = this.x;
+                        var lastY = this.lastY = this.y;
+
+                        this.x = x;
+                        this.y = y;
+
+                        this.minX = Math.min( this.minX, x );
+                        this.maxX = Math.max( this.maxX, x );
+                        this.minY = Math.min( this.minY, y );
+                        this.maxY = Math.max( this.maxY, y );
+
+                        this.xs.push( x );
+                        this.ys.push( y );
+
+                        var xs = this.xs,
+                            ys = this.ys;
+
+                        var ctx = canvas.getContext();
+
+                        var alpha = ctx.globalAlpha;
+
+                        /**
+                         * Set these to invalid values, where min is greater
+                         * than max.
+                         *
+                         * min should be greater than the maximum possible value,
+                         * and max should be smaller than the smallest possible value.
+                         *
+                         * I don't go to extremes, like Integer MAX_NUMBER,
+                         * because that is a 64-bit value. Keeping it to within 31-bits,
+                         * hits a chrome optimization.
+                         */
+                        var minX = canvas.width+1,
+                            maxX = -1;
+
+                        var minY = canvas.height+1,
+                            maxY = -1;
+
+                        var minDist;
+                        if ( this.dist > this.size ) {
+                            minDist = this.dist * this.dist;
+                        } else {
+                            minDist = this.size * this.size;
+                        }
+
+                        var length = this.xs.length;
+                        for (var i = 0; i < length; i++) {
+                            var xi = xs[i],
+                                yi = ys[i];
+                                
+                            var xDist = xi - x;
+                            var yDist = yi - y;
+                            var hypot = xDist * xDist + yDist * yDist;
+
+                            if ( hypot < minDist ) {
+                                ctx.globalAlpha = alpha * ((1 - (hypot / minDist)) * 0.1);
+                                ctx.beginPath();
+                                ctx.moveTo(x, y);
+                                ctx.lineTo(xi, yi);
+                                ctx.stroke()
+
+                                if ( x < xi ) {
+                                    if ( x < minX ) {
+                                        minX = x;
+                                    }
+                                    if ( xi > maxX ) {
+                                        maxX = xi;
+                                    }
+                                } else {
+                                    if ( xi < minX ) {
+                                        minX = xi;
+                                    }
+                                    if ( x > maxX ) {
+                                        maxX = x;
+                                    }
+                                }
+
+                                if ( y < yi ) {
+                                    if ( y < minY ) {
+                                        minY = y;
+                                    }
+                                    if ( yi > maxY ) {
+                                        maxY = yi;
+                                    }
+                                } else {
+                                    if ( yi < minY ) {
+                                        minY = yi;
+                                    }
+                                    if ( y > maxY ) {
+                                        maxY = y;
+                                    }
+                                }
+                            }
+                        }
+
+                        updateArea.minX = minX;
+                        updateArea.minY = minY;
+                        updateArea.maxX = maxX;
+                        updateArea.maxY = maxY;
+
+                        ctx.globalAlpha = alpha;
+                    };
+
+                    // defaults for the brush's fields
+                    b.size  = 2;
+                    b.dist  = 50;
 
                     return b;
                 })(),
@@ -7261,6 +7511,7 @@
                 _this.setSquareCursor( command.size );
             } else if (
                       name == 'brush' ||
+                      name == 'webby' ||
                     ( name == 'eraser' && command.isAliased )
             ) {
                 _this.setCircleCursor( command.size );
