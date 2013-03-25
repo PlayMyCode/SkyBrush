@@ -1004,6 +1004,10 @@
         
         width: 100%;
         height: 100%;
+
+        padding: 5px;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
     }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
@@ -1012,7 +1016,7 @@
         width: 100%;
         -moz-box-sizing: border-box;
              box-sizing: border-box;
-        padding: 5px 5px 0 5px;
+        padding: 5px 0 5px 0;
     }
         .skybrush_controls_header_line {
             float: right;
@@ -1059,8 +1063,6 @@
         width: 140px;
         float: left;
         
-        margin: 5px;
-        
         position: relative;
         
         text-align: center;
@@ -1104,7 +1106,6 @@
                 display: block;
             }
     .skybrush_color_mixer {
-        margin-left: 5px;
         float: left;
         clear: both;
         width:  140px;
@@ -1232,7 +1233,7 @@
         
         position: relative;
         
-        padding: 6px 5px 5px 5px;
+        padding-top: 1px;
         
         float: left;
         clear: both;
@@ -1267,11 +1268,11 @@
                 float: left;
                 clear: both;
                 width: 100%;
-                margin: 3px 0;
+                margin: 1px 0 3px 0;
             }
                 .skybrush_rgb_label {
                     text-transform: uppercase;
-                    margin-top: 2px;
+                    margin-top: 3px;
                     float: left;
                     font-size: 10px;
                     font-weight: bold;
@@ -1292,7 +1293,7 @@
 
         width: 100%;
 
-        margin: 0 0 5px 0;
+        margin: 5px 0 5px 0;
     }
         .skybrush_destination_alpha > .skybrush_command_control_label {
             margin-top: 5px;
@@ -1320,7 +1321,6 @@
     .skybrush_commands_pane {
         float: left;
         clear: both;
-        margin: 5px;
     }
         /*
          * Actual Command button setup.
@@ -1431,7 +1431,7 @@
         float: left;
         clear: both;
         width: 140px;
-        margin: 8px 5px 13px 5px;
+        margin: 3px 0 8px 0;
     }
         .skybrush_command_controls_inner {
             float: left;
