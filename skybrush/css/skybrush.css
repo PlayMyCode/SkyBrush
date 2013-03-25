@@ -743,7 +743,20 @@
 .skybrush_copy.sb_show {
     opacity: 0.9;
 }
+.skybrush_marquee,
+.skybrush_marquee_handle {
+    border: 2px solid #18C;
+
+    -webkit-animation-name: skybrush_marquee_border_anim;
+       -moz-animation-name: skybrush_marquee_border_anim;
+        -ms-animation-name: skybrush_marquee_border_anim;
+         -o-animation-name: skybrush_marquee_border_anim;
+            animation-name: skybrush_marquee_border_anim;
+}
+
 .skybrush_marquee {
+    border-style: dashed;
+
     z-index: 5;
 
     width : 0;
@@ -769,17 +782,6 @@
        -moz-transition: none !important;
          -o-transition: none !important;
             transition: none !important;
-}
-
-.skybrush_marquee,
-.skybrush_marquee_handle {
-    border: 2px dashed #18C;
-
-    -webkit-animation-name: skybrush_marquee_border_anim;
-       -moz-animation-name: skybrush_marquee_border_anim;
-        -ms-animation-name: skybrush_marquee_border_anim;
-         -o-animation-name: skybrush_marquee_border_anim;
-            animation-name: skybrush_marquee_border_anim;
 }
 .skybrush_marquee.sb_show {
     opacity: 0.6;
