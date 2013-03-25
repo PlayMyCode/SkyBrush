@@ -164,7 +164,7 @@
          * @const
          * @type {string}
          */
-        DEFAULT_COMMAND = 'brush',
+        DEFAULT_COMMAND = 'webby',
 
         /**
          * The default size for brushes.
@@ -4477,7 +4477,6 @@
             var defaultField = command[ field ];
             if ( defaultField === undefined ) {
                 defaultField = control.value;
-                command[ field ] = defaultField;
             }
 
             var cDom = $('<div>').
@@ -4567,13 +4566,13 @@
 
                 cDom.append( toggle );
             } else if ( type == 'slider' ) {
-                if ( defaultField === undefined ) {
-                    defaultField = 1;
-                }
-
                 var min  = control.min,
                     max  = control.max,
                     step = control.step || 1;
+
+                if ( defaultField === undefined ) {
+                    defaultField = Math.max( 1, min );
+                }
 
                 var val = $('<input>').
                         addClass( 'skybrush_input' ).
@@ -4630,6 +4629,8 @@
             } else {
                 throw new Error( "Unknown control setup given" );
             }
+
+            command[ field ] = defaultField;
 
             return cDom;
         };
@@ -5843,7 +5844,6 @@
                                             field: 'size',
 
                                             type: 'slider',
-                                            css : 'size',
 
                                             callback: function(size, painter) {
                                                 painter.setBrushCursorSize( size );
@@ -5857,10 +5857,23 @@
                                             field: 'dist',
 
                                             type: 'slider',
-                                            css : 'size',
 
                                             min: 10,
-                                            max: 100
+                                            max: 200
+                                    },
+                                    {
+                                            name : 'Fuzzy',
+                                            field: 'fuzzy',
+
+                                            type: 'slider',
+
+                                            min: 1,
+                                            max: 25
+                                    },
+                                    {
+                                            name: 'continous',
+                                            field: 'isContinous',
+                                            type: 'checkbox'
                                     }
                             ],
 
@@ -5988,7 +6001,29 @@
                             minDist = this.size * this.size;
                         }
 
+                        if ( this.isContinous ) {
+                            ctx.beginPath();
+                            ctx.moveTo(this.lastX, this.lastY);
+                            ctx.lineTo(x, y);
+                            ctx.stroke()
+
+                            minX = Math.min( minX,
+                                    Math.min( this.lastX, x )
+                            );
+                            minY = Math.min( minY,
+                                    Math.min( this.lastY, y )
+                            );
+                            maxX = Math.max( maxX,
+                                    Math.max( this.lastX, x )
+                            );
+                            maxY = Math.max( maxY,
+                                    Math.max( this.lastY, y )
+                            );
+                        }
+
                         var length = this.xs.length;
+                        var maxSkip = this.fuzzy;
+                        var skip = maxSkip;
                         for (var i = 0; i < length; i++) {
                             var xi = xs[i],
                                 yi = ys[i];
@@ -5998,41 +6033,45 @@
                             var hypot = xDist * xDist + yDist * yDist;
 
                             if ( hypot < minDist ) {
-                                ctx.globalAlpha = alpha * ((1 - (hypot / minDist)) * 0.1);
-                                ctx.beginPath();
-                                ctx.moveTo(x, y);
-                                ctx.lineTo(xi, yi);
-                                ctx.stroke()
+                                if ( --skip === 0 ) {
+                                    skip = maxSkip;
 
-                                if ( x < xi ) {
-                                    if ( x < minX ) {
-                                        minX = x;
-                                    }
-                                    if ( xi > maxX ) {
-                                        maxX = xi;
-                                    }
-                                } else {
-                                    if ( xi < minX ) {
-                                        minX = xi;
-                                    }
-                                    if ( x > maxX ) {
-                                        maxX = x;
-                                    }
-                                }
+                                    ctx.globalAlpha = alpha * ((1 - (hypot / minDist)) * 0.1);
+                                    ctx.beginPath();
+                                    ctx.moveTo(x, y);
+                                    ctx.lineTo(xi, yi);
+                                    ctx.stroke()
 
-                                if ( y < yi ) {
-                                    if ( y < minY ) {
-                                        minY = y;
+                                    if ( x < xi ) {
+                                        if ( x < minX ) {
+                                            minX = x;
+                                        }
+                                        if ( xi > maxX ) {
+                                            maxX = xi;
+                                        }
+                                    } else {
+                                        if ( xi < minX ) {
+                                            minX = xi;
+                                        }
+                                        if ( x > maxX ) {
+                                            maxX = x;
+                                        }
                                     }
-                                    if ( yi > maxY ) {
-                                        maxY = yi;
-                                    }
-                                } else {
-                                    if ( yi < minY ) {
-                                        minY = yi;
-                                    }
-                                    if ( y > maxY ) {
-                                        maxY = y;
+
+                                    if ( y < yi ) {
+                                        if ( y < minY ) {
+                                            minY = y;
+                                        }
+                                        if ( yi > maxY ) {
+                                            maxY = yi;
+                                        }
+                                    } else {
+                                        if ( yi < minY ) {
+                                            minY = yi;
+                                        }
+                                        if ( y > maxY ) {
+                                            maxY = y;
+                                        }
                                     }
                                 }
                             }
@@ -6048,7 +6087,9 @@
 
                     // defaults for the brush's fields
                     b.size  = 2;
-                    b.dist  = 50;
+                    b.dist  = 60;
+                    b.fuzzy = 1;
+                    b.isContinous = true;
 
                     return b;
                 })(),
@@ -9021,6 +9062,7 @@
 
         bindCommand( 'p', 'pencil' );
         bindCommand( 'b', 'brush'  );
+        bindCommand( 'w', 'webby'  );
         bindCommand( 'e', 'eraser' );
 
         bindCommand( 'r', 'rectangle' );
