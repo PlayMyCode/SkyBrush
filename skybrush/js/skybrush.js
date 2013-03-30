@@ -244,6 +244,35 @@
         })(),
 
         /**
+         * The the total cursor size is below this,
+         * then it's swapped out,
+         * and a crosshair is used instead.
+         *
+         * @constant
+         * @type {number}
+         */
+        BRUSH_CURSOR_MINIMUM_SIZE = 6,
+
+        /**
+         * The number of pixels to add onto the brush canvas,
+         * when it's being drawn.
+         *
+         * These are extra pixels around the edge, as a little padding.
+         *
+         * If the edge of the brush is too flat, because it's being cut off,
+         * then just increase this value and it should get fixed.
+         */
+        BRUSH_CURSOR_PADDING = 2,
+
+        /**
+         * The size of the cursor when it is below the minimum size.
+         *
+         * @constant
+         * @type {number}
+         */
+        BRUSH_CURSOR_SMALL_RENDER_SIZE = 19,
+
+        /**
          * If we are touch, or not.
          *
          * @const
@@ -4487,7 +4516,8 @@
                 type = control.type.toLowerCase(),
                  css = control.css,
             callback = control.callback,
-               field = control.field;
+               field = control.field,
+            isCursor = control.cursor || false;
 
             if ( name === undefined ) {
                 throw new Error( "Control is missing 'name' field" );
@@ -4538,6 +4568,10 @@
                             if ( callback ) {
                                 callback.call( command, isChecked, painter );
                             }
+
+                            if ( isCursor ) {
+                                painter.refreshCursor( command );
+                            }
                         } );
 
                 if ( command[field] ) {
@@ -4587,6 +4621,10 @@
                         if ( callback ) {
                             callback.call( command, option, painter );
                         }
+
+                        if ( isCursor ) {
+                            painter.refreshCursor( command );
+                        }
                 } );
 
                 cDom.append( toggle );
@@ -4621,6 +4659,10 @@
                                     if ( callback ) {
                                         callback.call( command, n, painter );
                                     }
+
+                                    if ( isCursor ) {
+                                        painter.refreshCursor( command );
+                                    }
                                 }
                             }, 0 );
                         } );
@@ -4635,6 +4677,10 @@
 
                             if ( callback ) {
                                 callback.call( command, n, painter );
+                            }
+
+                            if ( isCursor ) {
+                                painter.refreshCursor( command );
                             }
                         } );
 
@@ -4729,7 +4775,7 @@
                     '' ;
             this.caption = setup.caption  || '' ;
 
-            this.cursor = setup.cursor;
+            this.cursor = setup.cursor    || nil;
 
             this.drawArea = nil;
 
@@ -4839,16 +4885,8 @@
             }
         };
 
-        Command.prototype.getCSSCursor = function( painter ) {
-            var cursor = this.cursor;
-
-            if ( cursor === undefined ) {
-                return nil;
-            } else if ( (typeof cursor) === 'string' ) {
-                return cursor;
-            } else {
-                return cursor.call( this, painter );
-            }
+        Command.prototype.getCursor = function() {
+            return this.cursor;
         };
 
         Command.prototype.getCaption = function() {
@@ -5033,9 +5071,7 @@
                     type: 'slider',
                     css : 'size',
 
-                    callback: function(size, painter) {
-                        painter.setBrushCursorSize( size );
-                    },
+                    cursor: true,
 
                     min: 1,
                     max: MAX_BRUSH_SIZE
@@ -5684,15 +5720,21 @@
                                 this.setDrawArea( this.brush.popDrawArea() );
                             },
 
+                            cursor: function( cursor, painter ) {
+                                if ( this.isChecked ) {
+                                    cursor.setCursor( brushRender.circle, this.size );
+                                } else {
+                                    cursor.setCursor( brushRender.square, this.size );
+                                }
+                            },
+
                             controls: [
                                 {
                                     name: 'Size',
                                     field:'size',
                                     type: 'slider',
 
-                                    callback: function( size, painter ) {
-                                        painter.setBrushCursorSize( size );
-                                    },
+                                    cursor: true,
 
                                     value: 1,
                                     min: 1,
@@ -5703,13 +5745,7 @@
                                     field:'isAliased',
                                     type: 'checkbox',
 
-                                    callback: function( isChecked, painter ) {
-                                        if ( isChecked ) {
-                                            painter.getBrushCursor().setCircle();
-                                        } else {
-                                            painter.getBrushCursor().setSquare();
-                                        }
-                                    },
+                                    cursor: true,
 
                                     value: false
                                 }
@@ -5750,6 +5786,10 @@
                             canvas.getDirectContext().fillRect( x, y, size, size );
                         },
 
+                        cursor: function( cursor, painter ) {
+                            cursor.setSquare( this.size );
+                        },
+
                         onShift: switchToEraser
                 }),
                 (function() {
@@ -5773,6 +5813,10 @@
                             name: 'Brush',
                             css : 'brush',
                             caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
+
+                            cursor: function( cursor, painter ) {
+                                cursor.setCircle( this.size );
+                            },
 
                             onDown: function( canvas, x, y ) {
                                 this.x =
@@ -5863,6 +5907,10 @@
                             css : 'web',
                             caption: 'Web Brush | shortcut: w, shift: switches to eraser',
 
+                            cursor: function(cursor, painter) {
+                                cursor.setCircle( this.size );
+                            },
+
                             controls: [
                                     {
                                             name : 'Size',
@@ -5871,9 +5919,7 @@
 
                                             type: 'slider',
 
-                                            callback: function(size, painter) {
-                                                painter.setBrushCursorSize( size );
-                                            },
+                                            cursor: true,
 
                                             min: 1,
                                             max: MAX_BRUSH_SIZE/10
@@ -6457,25 +6503,21 @@
 
                             name_options: [ 'In', 'Out' ],
 
-                            callback: function(state, painter) {
-                                setTimeout( function() {
-                                    painter.refreshCursor();
-                                }, 0 );
-                            }
+                            cursor: true
                         }],
 
-                        cursor: function( painter ) {
+                        cursor: function( cursor, painter ) {
                             var zoom = painter.getZoom();
 
                             if (
-                                    ( this.zoomOut && zoom == (1/MAX_ZOOM) ) ||
+                                    (  this.zoomOut && zoom == (1/MAX_ZOOM) ) ||
                                     ( !this.zoomOut && zoom == MAX_ZOOM )
                             ) {
-                                return 'sb_cursor_zoom_blank';
+                                cursor.setClass( 'sb_cursor_zoom_blank' );
                             } else if ( this.zoomOut ) {
-                                return 'sb_cursor_zoom_out';
+                                cursor.setClass( 'sb_cursor_zoom_out' );
                             } else {
-                                return 'sb_cursor_zoom_in';
+                                cursor.setClass( 'sb_cursor_zoom_in' );
                             }
                         }
                 }),
@@ -6713,56 +6755,6 @@
     }
 
     /**
-     * Constant for identifying the square.
-     *
-     * Doesn't matter what it is, as long as it's not 0,
-     * false, undefined, null, NaN, infinity or 'nil' (cos they evaluate to false).
-     *
-     * It must not also conflict with the other shape constants.
-     *
-     * @constant
-     * @type {number}
-     */
-    var SQUARE = 1,
-
-        /**
-         * The circle constant, see SQUARE for details.
-         *
-         * @constant
-         * @type {number}
-         */
-        CIRCLE = 2,
-
-        /**
-         * The the total cursor size is below this,
-         * then it's swapped out,
-         * and a crosshair is used instead.
-         *
-         * @constant
-         * @type {number}
-         */
-        BRUSH_CURSOR_MINIMUM_SIZE = 6,
-
-        /**
-         * The number of pixels to add onto the brush canvas,
-         * when it's being drawn.
-         *
-         * These are extra pixels around the edge, as a little padding.
-         *
-         * If the edge of the brush is too flat, because it's being cut off,
-         * then just increase this value and it should get fixed.
-         */
-        BRUSH_CURSOR_PADDING = 2,
-
-        /**
-         * The size of the cursor when it is below the minimum size.
-         *
-         * @constant
-         * @type {number}
-         */
-        BRUSH_CURSOR_SMALL_RENDER_SIZE = 19;
-
-    /**
      * Handles setting the cursor directly, with little management.
      *
      * The point is that this deals with creating and setting a cursor in
@@ -6782,6 +6774,9 @@
         this.cursorClass = nil;
 
         this.inScrollbar = false;
+
+        this.dom = $('<div class="skybrush_brush"></div>');
+        viewport.append( this.dom );
     }
 
     /**
@@ -6828,10 +6823,24 @@
 
         if ( ! this.inScrollbar && url !== this.cursorDataURL ) {
             this.clearCursor();
-            this.viewport.css( 'cursor', url );
+
+            this.setCursorURLInner( url );
         }
 
         this.cursorDataURL = url;
+
+        return this;
+    }
+
+    DirectCursor.prototype.setCursorURLInner = function( url ) {
+        if ( USE_NATIVE_CURSOR ) {
+            this.viewport.css( 'cursor', url );
+        } else {
+            this.dom.css(
+                    'background-image',
+                    'url(' + canvas.toDataURL() + ')'
+            );
+        }
 
         return this;
     }
@@ -6890,7 +6899,7 @@
             if ( this.cursorClass ) {
                 this.setClass( this.cursorClass );
             } else if ( this.cursorDataURL ) {
-                this.setCursorURL( this.cursorDataURL );
+                this.setCursorURLInner( this.cursorDataURL );
             }
         }
 
@@ -6900,21 +6909,53 @@
     /**
      * 
      */
-    var render = {
-        square: function(size, brush) {
-            if ( size > defaultSize ) {
-                brush.render( renderSquare, size, size );
-            } else {
-                brush.showCrosshair();
-            }
+    var brushRender = {
+        square: function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 0.9;
+            ctx.strokeRect(
+                    (middle-size2)+0.4,
+                    (middle-size2)+0.4,
+                    size-0.8,
+                    size-0.8
+            );
+
+            ctx.strokeStyle = '#000';
+            ctx.globalAlpha = 1;
+            ctx.strokeRect(
+                    middle-size2,
+                    middle-size2,
+                    size,
+                    size
+            );
         },
 
-        circle: function(size, brush) {
-            if ( size > defaultSize ) {
-                brush.render( renderCircle, size, size );
-            } else {
-                brush.showCrosshair();
-            }
+        circle: function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 0.9;
+            circlePath( ctx,
+                    (middle-size2)+0.7,
+                    (middle-size2)+0.7,
+                    size-1.4,
+                    size-1.4
+            );
+            ctx.stroke();
+
+            ctx.strokeStyle = '#000';
+            ctx.globalAlpha = 1;
+            circlePath( ctx,
+                    middle - size2,
+                    middle - size2,
+                    size,
+                    size
+            );
+            ctx.stroke();
         }
     }
 
@@ -6936,18 +6977,15 @@
      * @param isTouch True if this is working with touch, false if not.
      * @param cursorTranslator Null for no translator, otherwise provide one.
      */
-    var BrushCursor = function( viewport, isTouch, translator ) {
+    var BrushCursor = function( painter, viewport, isTouch, translator ) {
         var self = this;
 
         self.cursor = new DirectCursor( viewport );
+        self.painter = painter;
 
         self.cursorTranslator = translator || nil;
 
-        var dom = $('<div class="skybrush_brush"></div>');
-        self.dom = dom;
-
         self.viewport = viewport;
-        viewport.append( dom );
 
         // sensible defaults, so they are never 'undefined'
         self.lastX = 0;
@@ -6961,7 +6999,7 @@
         self.isReallyHidden = false;
         self.isTouch = isTouch;
 
-        self.size = 0;
+        self.size = 1;
 
         /**
          * This is the brush size, at the current zoom level.
@@ -6971,7 +7009,7 @@
          *
          * @type {number}
          */
-        self.zoomSize = 0;
+        self.zoomSize = 1;
 
         /**
          * This is the size of the canvas.
@@ -6985,7 +7023,6 @@
          */
         self.displaySize = 0;
         self.cssSetup = {};
-        self.renderSmall = false;
 
         self.shape = undefined;
 
@@ -6994,8 +7031,7 @@
 
         // ensure it's all setup right!
         self.update( 0, 0 );
-        self.setSquare();
-        self.setSize( 100, 1 );
+        self.setSquare( 100 );
 
         self.cursor.setClass( DEFAULT_CURSOR );
 
@@ -7005,11 +7041,8 @@
     };
 
     BrushCursor.prototype.setCrosshair = function() {
-        if ( USE_NATIVE_CURSOR ) {
-            this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2 );
-        } else {
-            // todo: set the cursor to the cursor background
-        }
+        this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2 );
+        this.shape = null;
 
         return this;
     };
@@ -7100,7 +7133,7 @@
             this.isReallyHidden = false;
 
             this.dom.show();
-            this.refreshShape();
+            this.renderShape( this.render, this.zoomSize );
         }
 
         return this;
@@ -7109,7 +7142,6 @@
     BrushCursor.prototype.hideInner = function() {
         if ( ! this.isReallyHidden ) {
             this.isReallyHidden = true;
-
             this.dom.hide();
         }
 
@@ -7129,152 +7161,34 @@
         return ! this.isHidden ;
     };
 
-    BrushCursor.prototype.setCircle = function() {
-        this.setShape( function(ctx, canvas, size) {
-            var middle = canvas.width/2,
-                size2  = size/2;
-
-            ctx.strokeStyle = '#fff';
-            ctx.globalAlpha = 0.9;
-            circlePath( ctx,
-                    (middle-size2)+0.7,
-                    (middle-size2)+0.7,
-                    size-1.4,
-                    size-1.4
-            );
-            ctx.stroke();
-
-            ctx.strokeStyle = '#000';
-            ctx.globalAlpha = 1;
-            circlePath( ctx,
-                    middle - size2,
-                    middle - size2,
-                    size,
-                    size
-            );
-            ctx.stroke();
-        } );
-        this.shape = CIRCLE;
-
-        return this;
+    BrushCursor.prototype.setCircle = function( size ) {
+        return this.setShape( brushRender.circle, size );
     }
 
-    BrushCursor.prototype.setSquare = function() {
-        this.setShape( function(ctx, canvas, size) {
-            var middle = canvas.width/2,
-                size2  = size/2;
-
-            ctx.strokeStyle = '#fff';
-            ctx.globalAlpha = 0.9;
-            ctx.strokeRect(
-                    (middle-size2)+0.4,
-                    (middle-size2)+0.4,
-                    size-0.8,
-                    size-0.8
-            );
-
-            ctx.strokeStyle = '#000';
-            ctx.globalAlpha = 1;
-            ctx.strokeRect(
-                    middle-size2,
-                    middle-size2,
-                    size,
-                    size
-            );
-        } );
-        this.shape = SQUARE;
-
-        return this;
-    };
-
-    BrushCursor.prototype.refreshShape = function() {
-        if ( this.shape === SQUARE ) {
-            return this.setSquare();
-        } else if ( this.shape === CIRCLE ) {
-            return this.setCircle();
-        } else {
-            throw new Error("Unknown shape set: " + this.shape);
-        }
-    };
-
-    BrushCursor.prototype.setShape = function( render ) {
-        if ( ! this.isHidden ) {
-            var self = this;
-
-            // draws a cross hair
-            if ( self.renderSmall ) {
-                self.hide();
-
-                self.setCrosshair();
-            } else {
-                self.show();
-
-                var canvas = self.canvas,
-                    ctx = canvas.getContext( '2d' ),
-                    canvasSize  = self.zoomSize + BRUSH_CURSOR_PADDING;
-
-                canvas.width = canvas.height = canvasSize;
-
-                self.displaySize = canvasSize;
-
-                ctx.beginPath();
-                ctx.lineCap   = 'round';
-                ctx.lineWidth = 1;
-
-                render.call( self, ctx, canvas, self.zoomSize );
-
-                var middle = canvas.width/2;
-
-                // draw a dot in the centre
-                ctx.beginPath();
-
-                ctx.strokeStyle = '#fff';
-                ctx.globalAlpha = 0.9;
-                ctx.strokeRect( middle-0.75, middle-0.75, 1.5, 1.5 );
-
-                ctx.strokeStyle = '#000';
-                ctx.globalAlpha = 0.6;
-                ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
-
-                self.cursorReplace.run( function() {
-                    self.dom.css(
-                            'background-image',
-                            'url(' + canvas.toDataURL() + ')'
-                    );
-                } );
-            }
-        }
+    BrushCursor.prototype.setSquare = function( size ) {
+        return this.setShape( brushRender.square, size );
     };
 
     /**
-     * 'redraw' is provided for times when you know you'll be
-     * making two changes to the brush, and so want to avoid a double
-     * refresh. For example 'setSize(size, zoom).setSquare()' will double redraw.
-     *
-     * If your in doubt about using it, just ignore it!
-     *
-     * @param size The size of the brush, in pixels, regardless of zoom level.
-     * @param zoom The current zoom level.
-     * @param redraw Defaults to true, pass in 'false' to avoid redrawing the shape.
+     * Sets the shape, a second time.
      */
-    BrushCursor.prototype.setSize = function( size, zoom, redraw ) {
-        var newSize = Math.max( (size*zoom) | 0, 1 );
+    BrushCursor.prototype.setShape = function( render, size ) {
+        if ( ! render ) {
+            throw new Error( "undefined brush render given" );
+        }
+
+        this.shape = render;
         this.size = size;
-        this.zoom = zoom;
 
-        if ( this.zoomSize !== newSize ) {
-            if ( newSize < BRUSH_CURSOR_MINIMUM_SIZE ) {
-                newSize = BRUSH_CURSOR_SMALL_RENDER_SIZE;
-                this.renderSmall = true;
-            } else {
-                this.renderSmall = false;
-            }
+        var zoom = this.zoom;
 
-            this.zoomSize = newSize;
+        var newSize = Math.max( (size*zoom) | 0, 1 );
+        if ( newSize < BRUSH_CURSOR_MINIMUM_SIZE ) {
+            newSize = BRUSH_CURSOR_SMALL_RENDER_SIZE;
+        }
 
-            if ( redraw !== false ) {
-                this.refreshShape();
-            }
+        if ( this.shape !== render || this.zoomSize !== newSize ) {
+            this.renderShape( render, newSize );
 
             return this.update();
         }
@@ -7282,16 +7196,80 @@
         return this;
     };
 
-    BrushCursor.prototype.setZoom = function( zoom ) {
-        return this.setSize( this.size, zoom );
+    BrushCursor.prototype.renderShape = function( render, newSize ) {
+        if ( render !== null ) {
+            this.zoomSize = newSize;
+            this.shape = render;
+
+            if ( ! this.isHidden ) {
+                var self = this;
+
+                // draws a cross hair
+                if ( newSize <= BRUSH_CURSOR_SMALL_RENDER_SIZE ) {
+                    self.setCrosshair();
+                } else {
+                    var canvas = self.canvas,
+                        ctx = canvas.getContext( '2d' ),
+                        canvasSize  = newSize + BRUSH_CURSOR_PADDING;
+
+                    canvas.width = canvas.height = canvasSize;
+
+                    self.displaySize = canvasSize;
+
+                    ctx.beginPath();
+                    ctx.lineCap   = 'round';
+                    ctx.lineWidth = 1;
+
+                    this.shape.call( self, ctx, canvas, newSize );
+
+                    var middle = canvas.width/2;
+
+                    // draw a dot in the centre
+                    ctx.beginPath();
+
+                    ctx.strokeStyle = '#fff';
+                    ctx.globalAlpha = 0.9;
+                    ctx.strokeRect( middle-0.75, middle-0.75, 1.5, 1.5 );
+
+                    ctx.strokeStyle = '#000';
+                    ctx.globalAlpha = 0.6;
+                    ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
+
+                    self.cursorReplace.run( function() {
+                        self.cursor.setCursorURL( canvas.toDataURL(), newSize/2, newSize/2 );
+                    } );
+                }
+            }
+        }
     };
 
-    BrushCursor.prototype.setCommandCursor = function( cursorCSS ) {
-        if ( ! cursorCSS ) {
-            this.cursor.setBlankCursor();
-        } else {
-            this.cursor.setClass( cursorCSS );
+    BrushCursor.prototype.setZoom = function( zoom ) {
+        this.zoom = zoom;
+
+        if ( this.shape ) {
+            this.setShape( this.shape, this.size );
         }
+
+        return this;
+    };
+
+    BrushCursor.prototype.setCommandCursor = function( painter, command ) {
+        var cursor = command.getCursor();
+
+        if ( ! cursor ) {
+            this.cursor.setBlankCursor();
+        } else if ( typeof cursor === 'string' ) {
+            this.cursor.setClass( cursor );
+        } else {
+            cursor.call( command, this, painter );
+        }
+
+        return this;
+    }
+
+    BrushCursor.prototype.setClass = function( klass ) {
+        this.cursor.setClass( klass );
+        this.shape = null;
 
         return this;
     }
@@ -7388,7 +7366,7 @@
                 _this.lastLeft = left;
                 _this.lastTop  = top;
 
-                _this.dom.translate( left, top );
+                //_this.dom.translate( left, top );
 
                 _this.lastX = pageX;
                 _this.lastY = pageY;
@@ -7417,17 +7395,17 @@
                 var newBackPosition = positionX + ' ' + positionY;
                 if ( newBackPosition !== cssSetup['background-position'] ) {
                     cssSetup['background-position'] = newBackPosition;
-                    _this.dom.css( 'background-position', newBackPosition );
+                    //_this.dom.css( 'background-position', newBackPosition );
                 }
 
                 if ( width !== cssSetup.width ) {
                     cssSetup['width'] = width;
-                    _this.dom.width( width );
+                    //_this.dom.width( width );
                 }
 
                 if ( height !== cssSetup.height ) {
                     cssSetup['height'] = height;
-                    _this.dom.height( height );
+                    //_this.dom.height( height );
                 }
             }
         }
@@ -7435,6 +7413,11 @@
         return _this;
     };
 
+    /**
+     * Handles translating the cursor urls to a new location.
+     *
+     * Note that this is not always in use, and so is optional.
+     */
     var CursorLocationChanger = function( imageLocation ) {
         var stylesheet = document.createElement('style');
         document.getElementsByTagName('head')[0].appendChild( stylesheet );
@@ -7768,7 +7751,7 @@
             }
         }
 
-        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH, cursorTranslator );
+        _this.brushCursor = new BrushCursor( this, _this.viewport, IS_TOUCH, cursorTranslator );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
@@ -7785,13 +7768,11 @@
                       name == 'pencil' ||
                     ( name == 'eraser' && !command.isAliased )
             ) {
-                _this.setSquareCursor( command.size );
             } else if (
                       name == 'brush' ||
                       name == 'webby' ||
                     ( name == 'eraser' && command.isAliased )
             ) {
-                _this.setCircleCursor( command.size );
             } else {
                 _this.brushCursor.hide();
             }
@@ -10134,14 +10115,26 @@
         }
     };
 
-    SkyBrush.prototype.refreshCursor = function() {
+    /**
+     * The parameter given, is optional. If given, then the cursor is only
+     * refreshed, if the currently set command, is the same as the one given.
+     *
+     * This is so you can just do ...
+     *
+     *      painter.refreshCommand( this );
+     *
+     * ... and not care if you are or aren't the current command.
+     *
+     * @param Only refresh, if this is the currently set command.
+     */
+    SkyBrush.prototype.refreshCursor = function( command ) {
         /*
          * Incase this is called right at the beginning,
          * during the setup phase, before any commands have
          * been set.
          */
-        if ( this.command ) {
-            this.brushCursor.setCommandCursor( this.command.getCSSCursor(this) );
+        if ( this.command && (arguments.length === 0 || this.command === command) ) {
+            this.brushCursor.setCommandCursor( this, this.command );
         }
     };
 
@@ -10275,34 +10268,6 @@
         if ( this.canvas.redo() ) {
             this.events.run( 'onredo' );
         }
-
-        return this;
-    };
-
-    SkyBrush.prototype.getBrushCursor = function() {
-        return this.brushCursor;
-    };
-
-    SkyBrush.prototype.setSquareCursor = function( size ) {
-        this.getBrushCursor().
-                show().
-                setSize( size, this.getZoom(), false ).
-                setSquare();
-
-        return this;
-    };
-
-    SkyBrush.prototype.setCircleCursor = function( size ) {
-        this.getBrushCursor().
-                show().
-                setSize( size, this.getZoom(), false ).
-                setCircle();
-
-        return this;
-    };
-
-    SkyBrush.prototype.setBrushCursorSize = function( size ) {
-        this.brushCursor.setSize( size, this.getZoom() );
 
         return this;
     };
