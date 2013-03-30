@@ -180,6 +180,70 @@
         MAX_NATIVE_CURSOR_SIZE = 128,
 
         /**
+         * @const
+         * @type {string}
+         */
+        DEFAULT_CURSOR = 'sb_cursor_default',
+
+        /**
+         * @const
+         * @type {string}
+         */
+        NO_CURSOR_CSS = 'sb_cursor_none',
+
+        /**
+         * The size of the crosshair brush.
+         */
+        CROSSHAIR_CURSOR_SIZE = 19,
+
+        /**
+         * A data url, of a crosshair, for use as a cursor.
+         *
+         * It's generated on the fly, when SkyBrush loads.
+         */
+        CROSSHAIR_CURSOR_DATA_URL = (function() {
+            var renderCrossHair = function(ctx) {
+                // top middle line
+                ctx.moveTo( CROSSHAIR_CURSOR_SIZE/2, 0 );
+                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2-2 );
+
+                // bottom middle line
+                ctx.moveTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2+2 );
+                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE );
+
+                // left line
+                ctx.moveTo( 0, CROSSHAIR_CURSOR_SIZE/2 );
+                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2-2, CROSSHAIR_CURSOR_SIZE/2 );
+
+                // right line
+                ctx.moveTo( CROSSHAIR_CURSOR_SIZE    , CROSSHAIR_CURSOR_SIZE/2 );
+                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2+2, CROSSHAIR_CURSOR_SIZE/2 );
+
+                ctx.stroke();
+
+                // a dot in the centre
+                ctx.fillRect( CROSSHAIR_CURSOR_SIZE/2-0.5, CROSSHAIR_CURSOR_SIZE/2-0.5, 1, 1 );
+            };
+
+            var canvas = document.createElement( 'canvas' );
+            canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE;
+
+            var ctx = canvas.getContext( '2d' );
+
+            ctx.globalAlpha = 0.75;
+
+            ctx.strokeStyle = ctx.fillStyle = '#fff';
+            ctx.translate( 0.2, 0.2 );
+            renderCrossHair( ctx );
+
+            ctx.strokeStyle = ctx.fillStyle = '#000';
+            ctx.translate( -0.4, -0.4 );
+            renderCrossHair( ctx );
+
+            return canvas.toDataURL();
+        })(),
+
+        /**
          * If we are touch, or not.
          *
          * @const
@@ -203,18 +267,6 @@
          * @type {number}
          */
         DEFAULT_BRUSH_SIZE = 2,
-
-        /**
-         * @const
-         * @type {string}
-         */
-        DEFAULT_CURSOR = 'sb_cursor_default',
-
-        /**
-         * @const
-         * @type {string}
-         */
-        NO_CURSOR_CSS = 'sb_cursor_none',
 
         /**
          * The prefix added to command css classes.
@@ -283,7 +335,7 @@
          * @const
          * @type {string}
          */
-        CONTROL_ID_CSS_PREFIX = 'painter_control_css_id_',
+        CONTROL_ID_CSS_PREFIX = '__skybrush_control_css_id_',
 
         /**
          * Starting X location of the GUI dialogues.
@@ -4308,7 +4360,8 @@
 
         self.confirm = nil;
 
-        self.content = $('<div>').addClass('skybrush_info_content');
+        self.content = $('<div>').
+                addClass('skybrush_info_content');
 
         /* Finally, put it all together */
         var topArrow = $('<div>').
@@ -4319,7 +4372,7 @@
                 append( topArrow ).
                 append( self.content );
 
-                self.dom = $('<div>').
+        self.dom = $('<div>').
                 addClass('skybrush_info_bar').
                 append( wrap );
 
@@ -4329,7 +4382,7 @@
     InfoBar.prototype.show = function( button ) {
         var self = this;
 
-        var painterDom = self.dom.parent( '.skybrush' );
+        var painterDom = self.dom.parents( '.skybrush' );
         var left = button.offset().left - painterDom.offset().left;
 
         // correct for width's
@@ -4388,7 +4441,7 @@
      * @param cursorRoot The root location of where cursor images are held.
      * @return An array of all Command objects in use for this SkyBrush app.
      */
-    var newCommands = function( painter ) {
+    var newCommands = function() {
         /**
          * Used for turning a control name into a CSS class, for
          * id purposes.
@@ -6404,7 +6457,7 @@
 
                             name_options: [ 'In', 'Out' ],
 
-                            callback: function() {
+                            callback: function(state, painter) {
                                 setTimeout( function() {
                                     painter.refreshCursor();
                                 }, 0 );
@@ -6710,20 +6763,185 @@
         BRUSH_CURSOR_SMALL_RENDER_SIZE = 19;
 
     /**
+     * Handles setting the cursor directly, with little management.
+     *
+     * The point is that this deals with creating and setting a cursor in
+     * different ways, without caring about why, or what it is for.
+     * 
+     * i.e. this deals with data urls and CSS classes, whilst BrushCursor deals
+     * with crosshairs, squares and circles.
+     *
+     * The real point of this is to bind all of the setting by url, setting by
+     * class, and hiding the cursor, into one place, to simplify the
+     * BrushCursor.
+     */
+    var DirectCursor = function( viewport ) {
+        this.viewport = viewport;
+
+        this.cursorDataURL = nil;
+        this.cursorClass = nil;
+
+        this.inScrollbar = false;
+    }
+
+    /**
+     * Cleares the items set on the cursor, so it's back to it's default state.
+     *
+     * Note that the internal data structures are *not* updated.
+     */
+    DirectCursor.prototype.clearCursor = function() {
+        if ( this.cursorDataURL !== nil ) {
+            this.viewport.css( 'cursor', undefined );
+            this.cursorDataURL = nil;
+        }
+
+        if ( this.cursorClass !== nil ) {
+            this.viewport.removeClass( this.cursorClass );
+            this.cursorClass = nil;
+        }
+
+        return this;
+    }
+
+    /**
+     * Sets the cursor to display the data url given. Only the url needs to be
+     * given, i.e.
+     *
+     *  cursor.setCursorURL( '/cursors/crosshair.cur' );
+     *
+     * This can also take a data url, but it only works if the browser actually
+     * supports them.
+     *
+     * @param The data URI for the cursor.
+     * @param x Optional x offset for the cursor.
+     * @param y Optional y offset for the cursor.
+     */
+    DirectCursor.prototype.setCursorURL = function( url, x, y ) {
+        if ( x === undefined ) {
+            x = 0;
+        }
+        if ( y === undefined ) {
+            y = 0;
+        }
+
+        url = 'url(' + url + ') ' + x + ' ' + y + ', auto' ;
+
+        if ( ! this.inScrollbar && url !== this.cursorDataURL ) {
+            this.clearCursor();
+            this.viewport.css( 'cursor', url );
+        }
+
+        this.cursorDataURL = url;
+
+        return this;
+    }
+
+    /**
+     * Adds the CSS class to the viewport, that the cursor is within.
+     */
+    DirectCursor.prototype.setClass = function( klass ) {
+        // ie cannot handle our cursors, so hide them
+        if ( $.browser.msie ) {
+            klass = DEFAULT_CURSOR;
+        }
+
+        if ( ! this.inScrollbar && klass !== this.cursorClass ) {
+            this.clearCursor();
+            this.viewport.addClass( klass );
+        }
+
+        this.cursorClass = klass;
+            
+        return this;
+    };
+
+    /**
+     * Sets the cursor to a blank one.
+     */
+    DirectCursor.prototype.setBlankCursor = function() {
+        this.setClass( NO_CURSOR_CSS );
+
+        return this;
+    };
+
+    /**
+     * Call this, when the cursor has entered a Scrollbar.
+     *
+     * Don't worry about what it does, just do it.
+     */
+    DirectCursor.prototype.enterScrollbar = function() {
+        if ( ! this.inScrollbar ) {
+            this.clearCursor();
+            this.inScrollbar = true;
+        }
+
+        return this;
+    };
+
+    /**
+     * Call this, when the cursor has left a Scrollbar.
+     *
+     * Don't worry about what it does, just do it.
+     */
+    DirectCursor.prototype.leaveScrollbar = function() {
+        if ( this.inScrollbar ) {
+            this.inScrollbar = false;
+
+            if ( this.cursorClass ) {
+                this.setClass( this.cursorClass );
+            } else if ( this.cursorDataURL ) {
+                this.setCursorURL( this.cursorDataURL );
+            }
+        }
+
+        return this;
+    };
+
+    /**
+     * 
+     */
+    var render = {
+        square: function(size, brush) {
+            if ( size > defaultSize ) {
+                brush.render( renderSquare, size, size );
+            } else {
+                brush.showCrosshair();
+            }
+        },
+
+        circle: function(size, brush) {
+            if ( size > defaultSize ) {
+                brush.render( renderCircle, size, size );
+            } else {
+                brush.showCrosshair();
+            }
+        }
+    }
+
+    /**
+     * This differs from DirectCursor, in that this deals with the brush size,
+     * zoom, and some decision making on how the brush should look.
+     *
      * If 'isTouch' is set, then only 'showTouch' and 'hideTouch'
      * will actually allow this to be seen or not.
      *
      * The other 'show' and 'hide' will still look like they work,
      * and will as far as they can, except nothing actually appeares.
+     *
+     * The 'cursorTranslator' is used for translating cursor locations.
+     * That is so the CSS can move to a different location,
+     * but still work.
+     *
+     * @param viewport The view area this is a cursor for.
+     * @param isTouch True if this is working with touch, false if not.
+     * @param cursorTranslator Null for no translator, otherwise provide one.
      */
-    var BrushCursor = function( viewport, isTouch ) {
+    var BrushCursor = function( viewport, isTouch, translator ) {
         var self = this;
 
-        // caches the currently set cursor,
-        // for when the brush cursor is shown
-        self.oldCursor = nil;
-        self.currentCursor = nil;
-        self.cursorTranslator = nil;
+        self.cursor = new DirectCursor( viewport );
+
+        self.cursorTranslator = translator || nil;
 
         var dom = $('<div class="skybrush_brush"></div>');
         self.dom = dom;
@@ -6779,11 +6997,21 @@
         self.setSquare();
         self.setSize( 100, 1 );
 
-        self.setCursorClass( DEFAULT_CURSOR );
+        self.cursor.setClass( DEFAULT_CURSOR );
 
         if ( isTouch ) {
             self.hideTouch();
         }
+    };
+
+    BrushCursor.prototype.setCrosshair = function() {
+        if ( USE_NATIVE_CURSOR ) {
+            this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2 );
+        } else {
+            // todo: set the cursor to the cursor background
+        }
+
+        return this;
     };
 
     BrushCursor.prototype.onMove = function(ev) {
@@ -6807,7 +7035,6 @@
     BrushCursor.prototype.handleScrollbarCursor = function( ev ) {
         var x = ev.pageX,
             y = ev.pageY,
-            overlapsScrollbar = false,
             scrollBars = this.viewport.scrollBarSize();
 
         // work out if we are on top of a scroll bar
@@ -6818,51 +7045,18 @@
                     scrollBars.right > 0 &&
                     pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
             ) {
-                overlapsScrollbar = true;
+                this.cursor.enterScrollbar();
             } else if (
                     scrollBars.bottom > 0 &&
                     pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
             ) {
-                overlapsScrollbar = true;
+                this.cursor.enterScrollbar();
+            } else {
+                this.cursor.leaveScrollbar();
             }
+        } else {
+            this.cursor.leaveScrollbar();
         }
-
-        // if we have just moved in, set it to default
-        if ( overlapsScrollbar ) {
-            if ( this.oldCursor === nil && this.currentCursor !== nil ) {
-                this.oldCursor = this.currentCursor;
-
-                if ( this.currentCursor !== nil ) {
-                    this.viewport.removeClass( this.currentCursor );
-                }
-            }
-        // if we just moved out, set it to the old cursor
-        } else if ( this.oldCursor !== nil ) {
-            this.setCursorClass( this.oldCursor );
-        }
-
-        return overlapsScrollbar;
-    };
-
-    BrushCursor.prototype.setCursorTranslator = function( translator ) {
-        this.cursorTranslator = translator;
-
-        return this;
-    }
-
-    BrushCursor.prototype.setCursorClass = function( cssClass ) {
-        if ( this.currentCursor !== nil ) {
-            this.viewport.removeClass( this.currentCursor );
-        }
-        
-        if ( this.cursorTranslator !== nil ) {
-            this.cursorTranslator.relocateCursor( cssClass );
-        }
-
-        this.viewport.addClass( cssClass );
-
-        this.oldCursor = nil;
-        this.currentCursor = cssClass;
 
         return this;
     };
@@ -7005,58 +7199,29 @@
 
     BrushCursor.prototype.setShape = function( render ) {
         if ( ! this.isHidden ) {
-            var self = this,
-                canvas = self.canvas,
-                ctx = canvas.getContext( '2d' );
-
-            self.show();
-
-            var canvasSize  = self.zoomSize + BRUSH_CURSOR_PADDING,
-                renderSmall = self.renderSmall;
-            self.displaySize = canvasSize;
-
-            canvas.width = canvas.height = canvasSize;
-
-            ctx.beginPath();
-            ctx.lineCap   = 'round';
-            ctx.lineWidth = 1;
+            var self = this;
 
             // draws a cross hair
-            if ( renderSmall ) {
-                var renderCrossHair = function(ctx) {
-                    // top middle line
-                    ctx.moveTo( canvasSize/2, 0 );
-                    ctx.lineTo( canvasSize/2, canvasSize/2-2 );
+            if ( self.renderSmall ) {
+                self.hide();
 
-                    // bottom middle line
-                    ctx.moveTo( canvasSize/2, canvasSize/2+2 );
-                    ctx.lineTo( canvasSize/2, canvasSize );
-
-                    // left line
-                    ctx.moveTo( 0, canvasSize/2 );
-                    ctx.lineTo( canvasSize/2-2, canvasSize/2 );
-
-                    // right line
-                    ctx.moveTo( canvasSize    , canvasSize/2 );
-                    ctx.lineTo( canvasSize/2+2, canvasSize/2 );
-
-                    ctx.stroke();
-
-                    // a dot in the centre
-                    ctx.fillRect( canvasSize/2-0.5, canvasSize/2-0.5, 1, 1 );
-                };
-
-                ctx.globalAlpha = 0.75;
-
-                ctx.strokeStyle = ctx.fillStyle = '#fff';
-                ctx.translate( 0.2, 0.2 );
-                renderCrossHair( ctx );
-
-                ctx.strokeStyle = ctx.fillStyle = '#000';
-                ctx.translate( -0.4, -0.4 );
-                renderCrossHair( ctx );
+                self.setCrosshair();
             } else {
-                render.call( this, ctx, canvas, self.zoomSize );
+                self.show();
+
+                var canvas = self.canvas,
+                    ctx = canvas.getContext( '2d' ),
+                    canvasSize  = self.zoomSize + BRUSH_CURSOR_PADDING;
+
+                canvas.width = canvas.height = canvasSize;
+
+                self.displaySize = canvasSize;
+
+                ctx.beginPath();
+                ctx.lineCap   = 'round';
+                ctx.lineWidth = 1;
+
+                render.call( self, ctx, canvas, self.zoomSize );
 
                 var middle = canvas.width/2;
 
@@ -7070,14 +7235,14 @@
                 ctx.strokeStyle = '#000';
                 ctx.globalAlpha = 0.6;
                 ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
-            }
 
-            self.cursorReplace.run( function() {
-                self.dom.css(
-                        'background-image',
-                        'url(' + canvas.toDataURL() + ')'
-                );
-            } );
+                self.cursorReplace.run( function() {
+                    self.dom.css(
+                            'background-image',
+                            'url(' + canvas.toDataURL() + ')'
+                    );
+                } );
+            }
         }
     };
 
@@ -7122,22 +7287,13 @@
     };
 
     BrushCursor.prototype.setCommandCursor = function( cursorCSS ) {
-        if ( $.browser.msie ) {
-            if ( ! cursorCSS ) {
-                cursorCSS = NO_CURSOR_CSS;
-            } else {
-                cursorCSS = DEFAULT_CURSOR;
-            }
-        } else if ( ! cursorCSS ) {
-            cursorCSS = NO_CURSOR_CSS;
+        if ( ! cursorCSS ) {
+            this.cursor.setBlankCursor();
+        } else {
+            this.cursor.setClass( cursorCSS );
         }
 
-        // currently in a scrollbar, we'll set it later, once we are out
-        if ( this.oldCursor !== nil ) {
-            this.oldCursor = cursorCSS;
-        } else {
-            this.setCursorClass( cursorCSS );
-        }
+        return this;
     }
 
     /**
@@ -7492,7 +7648,7 @@
         if ( ! options ) {
             options = {};
         }
-        
+
         container.empty();
         container.ensureClass( 'skybrush' );
 
@@ -7558,31 +7714,7 @@
         _this.isShiftDownFlag = false;
         _this.isAltDownFlag = false;
 
-        /*
-         * ### Cursor Setup ###
-         */
-
-        /*
-         * Deal with the image translation options.
-         * 
-         * This involves trying to do it in one, right now,
-         * and otherwise having it setup to do it over time.
-         */
-        if ( options.image_location ) {
-            var imageLocation = translateImageLocation( options.image_location );
-
-            /*
-             * Try to relocate image/cursor rules in teh stylesheets, and if that fails,
-             * do it manually as needed.
-             */
-            var success = relocateStylesheetImages( imageLocation );
-            if ( ! success ) {
-                relocateImagesLater( imageLocation, dom.get(0) );
-                _this.brush.setCursorTranslator( new CursorLocationChanger(imageLocation) );
-            }
-        }
-
-        var commands = newCommands( this );
+        var commands = newCommands();
 
         /*
          * Pull out the colour picker command,
@@ -7615,7 +7747,28 @@
 
         _this.infoBar = new InfoBar( dom );
 
-        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH );
+        var cursorTranslator = nil;
+        /*
+         * Deal with the image translation options.
+         * 
+         * This involves trying to do it in one, right now,
+         * and otherwise having it setup to do it over time.
+         */
+        if ( options.image_location ) {
+            var imageLocation = translateImageLocation( options.image_location );
+
+            /*
+             * Try to relocate image/cursor rules in teh stylesheets, and if that fails,
+             * do it manually as needed.
+             */
+            var success = relocateStylesheetImages( imageLocation );
+            if ( ! success ) {
+                relocateImagesLater( imageLocation, dom.get(0) );
+                cursorTranslator = new CursorLocationChanger( imageLocation );
+            }
+        }
+
+        _this.brushCursor = new BrushCursor( _this.viewport, IS_TOUCH, cursorTranslator );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
@@ -7923,43 +8076,62 @@
      * Sets up the colour GUI in the SkyBrush.
      */
     var initializeColors = function( painter, pickerCommand ) {
-        /* Colour Palette */
 
-        var currentColor = nil;
+        /*
+         * Colour Palette
+         *
+         * As this section is called heavily (iterating over lots of colors),
+         * it has been optimized into more direct DOM calls.
+         *
+         * The increase is small, but worth it.
+         */
+
+        var currentColorBorder = nil;
 
         var colors = $('<div>').addClass( 'skybrush_colors_palette' );
-        var newColor = function( painter, colors, strColor ) {
-            var color = $a( '', 'skybrush_colors_palette_color' ).
-                    killEvent( 'click', 'mousedown' ).
-                    append( $('<div>').addClass('skybrush_colors_palette_color_border') ).
-                    css( 'background', strColor ).
-                    vclick( function(ev) {
-                        var $this = $(this);
+        var colorOnClick = function(ev) {
+            var $this = $(this);
 
-                        painter.setColor( $this.data('color') );
+            painter.setColor( $this.data('color') );
 
-                        currentColor = $this.children('.skybrush_colors_palette_color_border');
-                        currentColor.addClass('sb_show');
-
-                        ev.preventDefault();
-                    } ).
-                    data( 'color', strColor );
- 
-            if ( ! $.support.touch ) {
-                color.addClass('sb_hover_border');
+            if ( currentColorBorder !== nil ) {
+                currentColorBorder.removeClass( 'sb_show' );
             }
 
-            colors.append( color );
+            currentColorBorder = $this.children('.skybrush_colors_palette_color_border');
+            currentColorBorder.addClass('sb_show');
+        };
+
+        var newColor = function( painter, colorsDom, strColor ) {
+            var colorDom = document.createElement('a');
+
+            colorDom.className = 'skybrush_colors_palette_color' +
+                    ( ! $.support.touch ?
+                            ' sb_hover_border' :
+                            '' );
+
+            colorDom.setAttribute( 'href', '#' );
+            colorDom.setAttribute( 'data-color', strColor );
+
+            colorDom.innerHTML = '<div class="skybrush_colors_palette_color_border"></div>';
+            colorDom.style.background = strColor;
+
+            $(colorDom).
+                    killEvent( 'click', 'mousedown' ).
+                    vclick( colorOnClick );
+ 
+            colorsDom.appendChild( colorDom );
         };
 
         // setup the default colors
         for ( var i = 0; i < DEFAULT_COLORS.length; i++ ) {
             var strColor = DEFAULT_COLORS[ i ];
 
-            newColor( painter, colors, strColor );
+            newColor( painter, colors.get(0), strColor );
         }
 
-        /* Colour Mixer
+        /* 
+         * Colour Mixer
          *
          * This is added at the end so we don't have to hard code
          * the mixer width. Instead we just use whatever width the
