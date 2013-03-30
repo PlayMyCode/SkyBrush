@@ -235,6 +235,7 @@
 }
 
 .skybrush,
+.skybrush_container,
 .skybrush_wrap,
 .skybrush_viewport,
 .skybrush_viewport_content,
@@ -251,8 +252,9 @@
 .skybrush {
     width : 100%;
     height: 100%;
-    min-height: 500px;
-    min-width: 944px;
+
+    min-height: 600px;
+    min-width : 944px;
     
     overflow: hidden;
     position: relative;
@@ -270,9 +272,17 @@
     -webkit-perspective: 1000;
     -webkit-transform: translateZ(0);
 }
+.skybrush_container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
     .skybrush_wrap {
         padding: 41px 0 0 0;
-        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+             box-sizing: border-box;
 
         /*
          * A table is used, so that it automatically resizes
@@ -606,9 +616,11 @@
         position: relative;
     }
         .skybrush_viewport_content {
-            overflow: auto;
+            overflow: scroll;
             background: #eaeaea;
 
+            width: auto;
+            height: auto;
             max-width: 100%;
             max-height: 100%;
 

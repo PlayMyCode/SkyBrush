@@ -138,6 +138,26 @@
      * Default Values for SkyBrush.
      * This is for the initial setup.
      */
+    var initializeJQuery = (function() {
+        var isInitialized = false;
+
+        return function() {
+            if ( ! isInitialized ) {
+                isInitialized = true;
+
+                if ( ! $ ) {
+                    $ = window['jquery'] || window['$'];
+
+                    // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
+                    if ( ! $ ) {
+                        throw Error("jQuery is required, and it cannot be found!");
+                    }
+                }
+
+                USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera );
+            }
+        }
+    })();
 
     /**
      * @const
@@ -148,6 +168,16 @@
 
         DEFAULT_GRID_WIDTH  = 5, // pixels
         DEFAULT_GRID_HEIGHT = 5, // pixels
+
+        /*
+         * These are for using a native cursor,
+         * instead of background image.
+         *
+         * Although IE does not support cursor data uri's,
+         * it is the least laggy when using background-image.
+         */
+        USE_NATIVE_CURSOR = false,
+        MAX_NATIVE_CURSOR_SIZE = 128,
 
         /**
          * If we are touch, or not.
@@ -1686,7 +1716,7 @@
             ev.stopPropagation();
             ev.preventDefault();
 
-            self.dom.toggleClass( 'sb_hide' );
+            self.toggleOpen();
         } );
 
         self.header = header;
@@ -1735,6 +1765,24 @@
         for ( var i = 0; i < arguments.length; i++ ) {
             this.dom.children('.skybrush_gui_content').append( arguments[i] );
         }
+
+        return this;
+    };
+
+    GUI.prototype.open = function() {
+        ths.dom.removeClass( 'sb_hide' );
+        
+        return this;
+    };
+
+    GUI.prototype.close = function() {
+        this.dom.ensureClass( 'sb_hide' );
+
+        return this;
+    };
+
+    GUI.prototype.toggleOpen = function() {
+        this.dom.toggleClass( 'sb_hide' );
 
         return this;
     };
@@ -4373,7 +4421,7 @@
          *
          * Extra properties include:
          *  = css - a CSS class added to the final control.
-         *  = default - The default value to set for the field, and it's control.
+         *  = value - The default value to set for the field, and it's control.
          *
          * Extra properties are also required on a type by type basis.
          *
@@ -4388,17 +4436,19 @@
             callback = control.callback,
                field = control.field;
 
-            if (
-                    name === undefined ||
-                    type === undefined ||
-                    field === undefined
-            ) {
-                throw new Error( "Invalid Control Given" );
+            if ( name === undefined ) {
+                throw new Error( "Control is missing 'name' field" );
+            } else if ( type === undefined ) {
+                throw new Error( "Control is missing 'type' field" );
+            } else if ( field === undefined ) {
+                throw new Error( "Control is missing 'field' field" );
             }
 
-            var defaultField = command[ field ];
-            if ( defaultField === undefined ) {
+            var defaultField;
+            if ( control.hasOwnProperty('value') ) {
                 defaultField = control.value;
+            } else {
+                defaultField = command[ field ];
             }
 
             var cDom = $('<div>').
@@ -5764,6 +5814,7 @@
                                     {
                                             name : 'Size',
                                             field: 'size',
+                                            value: 2,
 
                                             type: 'slider',
 
@@ -5777,6 +5828,7 @@
                                     {
                                             name : 'Dist',
                                             field: 'dist',
+                                            value: 60,
 
                                             type: 'slider',
 
@@ -5786,6 +5838,7 @@
                                     {
                                             name : 'Fuzzy',
                                             field: 'fuzzy',
+                                            value: 1,
 
                                             type: 'slider',
 
@@ -5793,8 +5846,9 @@
                                             max: 25
                                     },
                                     {
-                                            name: 'continous',
+                                            name: 'continuous',
                                             field: 'isContinous',
+                                            value: true,
                                             type: 'checkbox'
                                     }
                             ],
@@ -6007,12 +6061,6 @@
                         ctx.globalAlpha = alpha;
                     };
 
-                    // defaults for the brush's fields
-                    b.size  = 2;
-                    b.dist  = 60;
-                    b.fuzzy = 1;
-                    b.isContinous = true;
-
                     return b;
                 })(),
 
@@ -6118,7 +6166,8 @@
                             {
                                 name: 'Smooth',
                                 field: 'isAliased',
-                                type: 'checkbox'
+                                type: 'checkbox',
+                                value: true
                             }
                         ]
                 } ),
@@ -6670,6 +6719,12 @@
     var BrushCursor = function( viewport, isTouch ) {
         var self = this;
 
+        // caches the currently set cursor,
+        // for when the brush cursor is shown
+        self.oldCursor = nil;
+        self.currentCursor = nil;
+        self.cursorTranslator = nil;
+
         var dom = $('<div class="skybrush_brush"></div>');
         self.dom = dom;
 
@@ -6724,13 +6779,92 @@
         self.setSquare();
         self.setSize( 100, 1 );
 
+        self.setCursorClass( DEFAULT_CURSOR );
+
         if ( isTouch ) {
             self.hideTouch();
         }
     };
 
     BrushCursor.prototype.onMove = function(ev) {
-        return this.update( ev.pageX, ev.pageY );
+        this.update( ev.pageX, ev.pageY );
+        this.handleScrollbarCursor( ev );
+
+        return this;
+    };
+
+    /**
+     * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
+     * So when we move over the scroll bar, we turn off the custom cursor,
+     * and set it to the standard one.
+     *
+     * It then gets turned back, if we have moved out, and have an old
+     * cursor to set.
+     *
+     * @param ev The event for the mouse movement.
+     * @return true if we are overlapping the scrollbar, false if not.
+     */
+    BrushCursor.prototype.handleScrollbarCursor = function( ev ) {
+        var x = ev.pageX,
+            y = ev.pageY,
+            overlapsScrollbar = false,
+            scrollBars = this.viewport.scrollBarSize();
+
+        // work out if we are on top of a scroll bar
+        if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
+            var pos = this.viewport.offset();
+
+            if (
+                    scrollBars.right > 0 &&
+                    pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
+            ) {
+                overlapsScrollbar = true;
+            } else if (
+                    scrollBars.bottom > 0 &&
+                    pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
+            ) {
+                overlapsScrollbar = true;
+            }
+        }
+
+        // if we have just moved in, set it to default
+        if ( overlapsScrollbar ) {
+            if ( this.oldCursor === nil && this.currentCursor !== nil ) {
+                this.oldCursor = this.currentCursor;
+
+                if ( this.currentCursor !== nil ) {
+                    this.viewport.removeClass( this.currentCursor );
+                }
+            }
+        // if we just moved out, set it to the old cursor
+        } else if ( this.oldCursor !== nil ) {
+            this.setCursorClass( this.oldCursor );
+        }
+
+        return overlapsScrollbar;
+    };
+
+    BrushCursor.prototype.setCursorTranslator = function( translator ) {
+        this.cursorTranslator = translator;
+
+        return this;
+    }
+
+    BrushCursor.prototype.setCursorClass = function( cssClass ) {
+        if ( this.currentCursor !== nil ) {
+            this.viewport.removeClass( this.currentCursor );
+        }
+        
+        if ( this.cursorTranslator !== nil ) {
+            this.cursorTranslator.relocateCursor( cssClass );
+        }
+
+        this.viewport.addClass( cssClass );
+
+        this.oldCursor = nil;
+        this.currentCursor = cssClass;
+
+        return this;
     };
 
     BrushCursor.prototype.showTouch = function() {
@@ -6788,6 +6922,15 @@
         return this;
     };
 
+    /**
+     * Returns if the *fake* brush is shown.
+     * This is regardless of if the brush cursor is rendered using the
+     * background image, or as a native cursor.
+     *
+     * If the fake brush is shown, then a standard url, which is not calculated
+     * by the brush cursor, will be in use. For example, the zoom cursor, or
+     * the standard cursor icon.
+     */
     BrushCursor.prototype.isShown = function() {
         return ! this.isHidden ;
     };
@@ -6978,6 +7121,25 @@
         return this.setSize( this.size, zoom );
     };
 
+    BrushCursor.prototype.setCommandCursor = function( cursorCSS ) {
+        if ( $.browser.msie ) {
+            if ( ! cursorCSS ) {
+                cursorCSS = NO_CURSOR_CSS;
+            } else {
+                cursorCSS = DEFAULT_CURSOR;
+            }
+        } else if ( ! cursorCSS ) {
+            cursorCSS = NO_CURSOR_CSS;
+        }
+
+        // currently in a scrollbar, we'll set it later, once we are out
+        if ( this.oldCursor !== nil ) {
+            this.oldCursor = cursorCSS;
+        } else {
+            this.setCursorClass( cursorCSS );
+        }
+    }
+
     /**
      * pageX and pageY are optional. If omitted, this will
      * presume it is at the same location as the last time
@@ -6986,129 +7148,131 @@
     BrushCursor.prototype.update = function(pageX, pageY) {
         var _this = this;
 
-        if ( pageX === undefined || pageY === undefined ) {
-            pageX = _this.lastX;
-            pageY = _this.lastY;
-        }
+        if ( _this.isShown() ) {
+            if ( pageX === undefined || pageY === undefined ) {
+                pageX = _this.lastX;
+                pageY = _this.lastY;
+            }
 
-        var displaySize  = _this.displaySize,
-            displaySize2 = displaySize/2,
-            pos          = _this.viewport.offset(),
-            scrollBars   = _this.viewport.scrollBarSize();
+            var displaySize  = _this.displaySize,
+                displaySize2 = displaySize/2,
+                pos          = _this.viewport.offset(),
+                scrollBars   = _this.viewport.scrollBarSize();
 
-        var scrollX = _this.viewport.scrollLeft(),
-            scrollY = _this.viewport.scrollTop(),
-            viewportHeight = _this.viewport.height() - scrollBars.bottom,
-            viewportWidth  = _this.viewport.width()  - scrollBars.right;
+            var scrollX = _this.viewport.scrollLeft(),
+                scrollY = _this.viewport.scrollTop(),
+                viewportHeight = _this.viewport.height() - scrollBars.bottom,
+                viewportWidth  = _this.viewport.width()  - scrollBars.right;
+
+                /*
+                 * If the cursor is near the top or bottom edge,
+                 * then the cursor is obscured using 'background-position'.
+                 *
+                 * When this is true, it'll do it on the bottom,
+                 * and when false, it does this for the top edge.
+                 *
+                 * hideFromRight does the same, but on the x axis.
+                 */
+            var hideFromBottom = false,
+                hideFromRight  = false;
 
             /*
-             * If the cursor is near the top or bottom edge,
-             * then the cursor is obscured using 'background-position'.
+             * We have the location, in the middle, of the cursor on the screen.
+             * This is the 'fixed' position, where no scrolling taken into account.
              *
-             * When this is true, it'll do it on the bottom,
-             * and when false, it does this for the top edge.
-             *
-             * hideFromRight does the same, but on the x axis.
+             * We then convert this into the top/left position,
+             * and then add on the scrolling.
              */
-        var hideFromBottom = false,
-            hideFromRight  = false;
 
-        /*
-         * We have the location, in the middle, of the cursor on the screen.
-         * This is the 'fixed' position, where no scrolling taken into account.
-         *
-         * We then convert this into the top/left position,
-         * and then add on the scrolling.
-         */
+            var middleX = (pageX - pos.left),
+                middleY = (pageY - pos.top );
 
-        var middleX = (pageX - pos.left),
-            middleY = (pageY - pos.top );
+            var left,
+                top,
+                width,
+                height;
 
-        var left,
-            top,
-            width,
-            height;
+            /*
+             * Now translate from middle to top/left, for:
+             *  - if over the top edge
+             *  - if over the bottom edge
+             *  - if between those edges
+             */
 
-        /*
-         * Now translate from middle to top/left, for:
-         *  - if over the top edge
-         *  - if over the bottom edge
-         *  - if between those edges
-         */
+            if ( middleY-displaySize2 < 0 ) {
+                top    = 0;
+                height = displaySize + (middleY-displaySize2);
+            } else if ( middleY+displaySize2 > viewportHeight ) {
+                top = middleY-displaySize2;
+                height = viewportHeight - (middleY-displaySize2);
 
-        if ( middleY-displaySize2 < 0 ) {
-            top    = 0;
-            height = displaySize + (middleY-displaySize2);
-        } else if ( middleY+displaySize2 > viewportHeight ) {
-            top = middleY-displaySize2;
-            height = viewportHeight - (middleY-displaySize2);
-
-            hideFromBottom = true;
-        } else {
-            top    = middleY - (displaySize2-1);
-            height = displaySize;
-        }
-
-        if ( middleX-displaySize2 < 0 ) {
-            left  = 0;
-            width = displaySize + (middleX-displaySize2);
-        } else if ( middleX+displaySize2 > viewportWidth ) {
-            left  = middleX-displaySize2;
-            width = viewportWidth - (middleX-displaySize2);
-
-            hideFromRight = true;
-        } else {
-            left  = middleX - (displaySize2-1);
-            width = displaySize;
-        }
-
-        top  += scrollY;
-        left += scrollX;
-
-        if ( left !== this.lastLeft || top !== this.lastTop ) {
-            _this.lastLeft = left;
-            _this.lastTop  = top;
-
-            _this.dom.translate( left, top );
-
-            _this.lastX = pageX;
-            _this.lastY = pageY;
-        }
-
-        /*
-         * Now alter the width/height,
-         * and the background position.
-         */
-
-        width  = Math.max( width , 0 );
-        height = Math.max( height, 0 );
-
-        var cssSetup = this.cssSetup;
-        if (
-                height !== cssSetup.height ||
-                width  !== cssSetup.width
-        ) {
-            var positionY = ! hideFromBottom ?
-                        -(displaySize-height) + 'px' :
-                         0 ;
-            var positionX = ! hideFromRight ?
-                        -(displaySize-width ) + 'px' :
-                         0 ;
-
-            var newBackPosition = positionX + ' ' + positionY;
-            if ( newBackPosition !== cssSetup['background-position'] ) {
-                cssSetup['background-position'] = newBackPosition;
-                _this.dom.css( 'background-position', newBackPosition );
+                hideFromBottom = true;
+            } else {
+                top    = middleY - (displaySize2-1);
+                height = displaySize;
             }
 
-            if ( width !== cssSetup.width ) {
-                cssSetup['width'] = width;
-                _this.dom.width( width );
+            if ( middleX-displaySize2 < 0 ) {
+                left  = 0;
+                width = displaySize + (middleX-displaySize2);
+            } else if ( middleX+displaySize2 > viewportWidth ) {
+                left  = middleX-displaySize2;
+                width = viewportWidth - (middleX-displaySize2);
+
+                hideFromRight = true;
+            } else {
+                left  = middleX - (displaySize2-1);
+                width = displaySize;
             }
 
-            if ( height !== cssSetup.height ) {
-                cssSetup['height'] = height;
-                _this.dom.height( height );
+            top  += scrollY;
+            left += scrollX;
+
+            if ( left !== this.lastLeft || top !== this.lastTop ) {
+                _this.lastLeft = left;
+                _this.lastTop  = top;
+
+                _this.dom.translate( left, top );
+
+                _this.lastX = pageX;
+                _this.lastY = pageY;
+            }
+
+            /*
+             * Now alter the width/height,
+             * and the background position.
+             */
+
+            width  = Math.max( width , 0 );
+            height = Math.max( height, 0 );
+
+            var cssSetup = this.cssSetup;
+            if (
+                    height !== cssSetup.height ||
+                    width  !== cssSetup.width
+            ) {
+                var positionY = ! hideFromBottom ?
+                            -(displaySize-height) + 'px' :
+                             0 ;
+                var positionX = ! hideFromRight ?
+                            -(displaySize-width ) + 'px' :
+                             0 ;
+
+                var newBackPosition = positionX + ' ' + positionY;
+                if ( newBackPosition !== cssSetup['background-position'] ) {
+                    cssSetup['background-position'] = newBackPosition;
+                    _this.dom.css( 'background-position', newBackPosition );
+                }
+
+                if ( width !== cssSetup.width ) {
+                    cssSetup['width'] = width;
+                    _this.dom.width( width );
+                }
+
+                if ( height !== cssSetup.height ) {
+                    cssSetup['height'] = height;
+                    _this.dom.height( height );
+                }
             }
         }
 
@@ -7294,13 +7458,7 @@
      * or even ignoring input.
      */
     var SkyBrush = function( container, options ) {
-        if ( ! $ ) {
-            $ = window['jquery'] || window['$'];
-            // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
-            if ( ! $ ) {
-                throw Error("jQuery is required, and it cannot be found!");
-            }
-        }
+        initializeJQuery();
 
         if ( ! container ) {
             if ( arguments.length === 0 ) {
@@ -7350,12 +7508,14 @@
 
         // create the basic SkyBrush layout
         var dom = $(
-                '<div class="skybrush_wrap">' +
-                    '<div class="skybrush_viewport">' +
-                        '<div class="skybrush_viewport_content"></div>' +
-                    '</div>' +
-                    '<div class="skybrush_gui_pane">' +
-                        '<div class="skybrush_gui_pane_content"></div>' +
+                '<div class="skybrush_container">' +
+                    '<div class="skybrush_wrap">' +
+                        '<div class="skybrush_viewport">' +
+                            '<div class="skybrush_viewport_content"></div>' +
+                        '</div>' +
+                        '<div class="skybrush_gui_pane">' +
+                            '<div class="skybrush_gui_pane_content"></div>' +
+                        '</div>' +
                     '</div>' +
                 '</div>'
         );
@@ -7408,7 +7568,6 @@
          * This involves trying to do it in one, right now,
          * and otherwise having it setup to do it over time.
          */
-        _this.cursorTranslator = nil;
         if ( options.image_location ) {
             var imageLocation = translateImageLocation( options.image_location );
 
@@ -7419,16 +7578,9 @@
             var success = relocateStylesheetImages( imageLocation );
             if ( ! success ) {
                 relocateImagesLater( imageLocation, dom.get(0) );
-                _this.cursorTranslator = new CursorLocationChanger( imageLocation );
+                _this.brush.setCursorTranslator( new CursorLocationChanger(imageLocation) );
             }
         }
-
-        // caches the currently set cursor,
-        // for when the brush cursor is shown
-        _this.oldCursor = nil;
-        _this.currentCursor = nil;
-
-        _this.setCursorClass( DEFAULT_CURSOR );
 
         var commands = newCommands( this );
 
@@ -8184,7 +8336,8 @@
                 add( currentColor, destinationAlpha, mixer );
         
         var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
-                add( colors );
+                add( colors ).
+                close();
 
         painter.addGUI( colorGUI, swatchesGUI );
 
@@ -9099,78 +9252,11 @@
      */
     SkyBrush.prototype.runMouseMove = function( ev ) {
         this.brushCursor.onMove( ev );
-        this.handleScrollbarCursor( ev );
 
         return ! (
                 this.processOnDraw( ev ) ||
                 processDrag( this, this.dragging.onMove, ev )
         );
-    };
-
-    /**
-     * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
-     * So when we move over the scroll bar, we turn off the custom cursor,
-     * and set it to the standard one.
-     *
-     * It then gets turned back, if we have moved out, and have an old
-     * cursor to set.
-     *
-     * @param ev The event for the mouse movement.
-     * @return true if we are overlapping the scrollbar, false if not.
-     */
-    SkyBrush.prototype.handleScrollbarCursor = function( ev ) {
-        var x = ev.pageX,
-            y = ev.pageY,
-            overlapsScrollbar = false,
-            scrollBars = this.viewport.scrollBarSize();
-
-        // work out if we are on top of a scroll bar
-        if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
-            var pos = this.viewport.offset();
-
-            if (
-                    scrollBars.right > 0 &&
-                    pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
-            ) {
-                overlapsScrollbar = true;
-            } else if (
-                    scrollBars.bottom > 0 &&
-                    pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
-            ) {
-                overlapsScrollbar = true;
-            }
-        }
-
-        // if we have just moved in, set it to default
-        if ( overlapsScrollbar ) {
-            if ( this.oldCursor === nil && this.currentCursor !== nil ) {
-                this.oldCursor = this.currentCursor;
-
-                if ( this.currentCursor !== nil ) {
-                    this.viewport.removeClass( this.currentCursor );
-                }
-            }
-        // if we just moved out, set it to the old cursor
-        } else if ( this.oldCursor !== nil ) {
-            this.setCursorClass( this.oldCursor );
-        }
-
-        return overlapsScrollbar;
-    };
-
-    SkyBrush.prototype.setCursorClass = function( cssClass ) {
-        if ( this.currentCursor !== nil ) {
-            this.viewport.removeClass( this.currentCursor );
-        }
-        
-        if ( this.cursorTranslator !== nil ) {
-            this.cursorTranslator.relocateCursor( cssClass );
-        }
-
-        this.viewport.addClass( cssClass );
-
-        this.oldCursor = nil;
-        this.currentCursor = cssClass;
     };
 
     SkyBrush.prototype.runMouseUp = function( ev ) {
@@ -9328,79 +9414,8 @@
      */
     SkyBrush.prototype.getGUI = function( klass ) {
         var gui = this.guiDom.children( '.skybrush_gui.' + klass );
+
         return gui.size() > 0 ? gui : nil ;
-    };
-
-    /**
-     * Toggles between showing/hiding the overlay GUI dialogs.
-     *
-     * @public
-     */
-    SkyBrush.prototype.toggleGUIs = function() {
-        var guis = this.guiDom.children( '.skybrush_gui' );
-
-        if ( guis.hasClass( 'sb_hide' ) ) {
-            this.showGUIs();
-        } else {
-            this.hideGUIs();
-        }
-
-        return this;
-    };
-
-    /*
-     * This uses CSS Transitions for hiding/showing,
-     * as it's much smoother.
-     * Especially in Chrome,
-     * which is terrible at DOM animations.
-     *
-     * jQuery is used for IE 9, as it doesn't support
-     * transitions, and is good at DOM animations.
-     */
-    SkyBrush.prototype.hideGUIs = function() {
-        var guis = this.guiDom.children( '.skybrush_gui' );
-        guis.addClass( 'sb_hide' );
-
-        if ( $.browser.msie && $.browser.version <= 9 ) {
-            // CSS Transitions are not supported, so use jQuery
-            guis.animate({opacity: 0}, 200, function() {
-                $(this).hide();
-            });
-        } else {
-            setTimeout( function() {
-                // ensure we are still hiding them
-                if ( guis.hasClass('sb_hide') ) {
-                    $(this).hide();
-                }
-            }, 200 );
-        }
-
-        return this;
-    };
-
-    /**
-     * If the GUI overlays are not current shown,
-     * then they will be now.
-     *
-     * They get faded in, and you can use 'hideGUIs' to hide them.
-     *
-     * @public
-     */
-    SkyBrush.prototype.showGUIs = function() {
-        var guis = this.guiDom.children( '.skybrush_gui' );
-        guis.
-            show().
-            removeClass( 'sb_hide' );
-
-        if ( $.browser.msie && $.browser.version <= 9 ) {
-            // CSS Transitions are not supported, so use jQuery
-            guis.
-                    clearQueue().
-                    css({opacity: guis.css('opacity')}).
-                    animate( {opacity: 1}, 200 );
-        }
-
-        return this;
     };
 
     // Canvas 2D Context properties we are interested in storing/restoring
@@ -9954,24 +9969,7 @@
          * been set.
          */
         if ( this.command ) {
-            var cursorCSS = this.command.getCSSCursor( this );
-
-            if ( $.browser.msie ) {
-                if ( ! cursorCSS ) {
-                    cursorCSS = NO_CURSOR_CSS;
-                } else {
-                    cursorCSS = DEFAULT_CURSOR;
-                }
-            } else if ( ! cursorCSS ) {
-                cursorCSS = NO_CURSOR_CSS;
-            }
-
-            // currently in a scrollbar, we'll set it later, once we are out
-            if ( this.oldCursor !== nil ) {
-                this.oldCursor = cursorCSS;
-            } else {
-                this.setCursorClass( cursorCSS );
-            }
+            this.brushCursor.setCommandCursor( this.command.getCSSCursor(this) );
         }
     };
 
