@@ -129,7 +129,6 @@
         -ms-user-select: none;
          -o-user-select: none;
             user-select: none;
-    
 }
 .skybrush :not(input) {
     -webkit-appearance: none;
@@ -235,6 +234,15 @@
     margin-left: 4px;
 }
 
+.skybrush,
+.skybrush_wrap,
+.skybrush_viewport,
+.skybrush_viewport_content,
+.skybrush_gui_pane,
+.skybrush_gui_pane_content {
+    outline: 0 !important;
+}
+    
 /* 
  * SkyBrush Core / Root
  * 
@@ -249,20 +257,39 @@
     overflow: hidden;
     position: relative;
     
-    outline: 0;
-    
     cursor: default;
     
     font-family: sans-serif;
 
     text-align: left;
+
+    display: block;
+
+    /* magical webkit speedup */
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    -webkit-transform: translateZ(0);
 }
+    .skybrush_wrap {
+        padding: 41px 0 0 0;
+        box-sizing: border-box;
+
+        /*
+         * A table is used, so that it automatically resizes
+         * the width correctly.
+         *
+         * That is because the menu bar is width + scrollbar,
+         * where scrollbar is an unknown value, as it's device independent.
+         */
+        display: table;
+        width: 100%;
+        height: 100%;
+    }
     /* 
      * The top bar at the top of SkyBrush.
      * This includes zoom, undo/redo and other controls.
      */
     .skybrush_topbar {
-        display: block;
         height: 41px;
         width: 100%;
         
@@ -557,71 +584,87 @@
                     border-color: #e9e9e9;
                     color: #e9e9e9;
                 }
+    .skybrush_gui_pane,
     .skybrush_viewport {
-        position: absolute;
-        
-        /* magical webkit speedup */
-        -webkit-backface-visibility: hidden;
-        -webkit-perspective: 1000;
-        -webkit-transform: translateZ(0);
-
-        /* this is the height of .skybrush .topbar */
-        top: 41px;
-        
-        bottom: 0;
-        left: 0;
-        right: 0;
-        
-        overflow: auto;
-        background: #eaeaea;
+        display: table-cell;
+        height: 100%;
+        min-height: 100%;
     }
-        .skybrush_viewport > canvas {
-            position: absolute;
-            
-            image-rendering: optimize-contrast;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
-        }
-        .skybrush_canvas_draw,
-        .skybrush_canvas_upscale {
-            border: 1px solid #aaa;
-            background: url(./../images/skybrush/canvas_back.png) repeat;
-        }
-        .skybrush_canvas_draw {
-            border-radius: 3px;
-            z-index: 0;
+    .skybrush_gui_pane {
+        background: #ddd;
+    }
+        .skybrush_gui_pane_content {
+            overflow: hidden;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
 
-            -webkit-transition: width 200ms linear 0s, height 200ms linear 0s, -webkit-transform 200ms linear 0s;
-               -moz-transition: width 200ms linear 0s, height 200ms linear 0s,    -moz-transform 200ms linear 0s;
-                 -o-transition: width 200ms linear 0s, height 200ms linear 0s,      -o-transform 200ms linear 0s;
-                    transition: width 200ms linear 0s, height 200ms linear 0s,         transform 200ms linear 0s;
+            height: 100%;
+            min-height: 100%;
         }
-        .skybrush_canvas_overlay {
-            border: 1px solid transparent;
-            z-index: 2;
+    .skybrush_viewport {
+        width: 100%;
+        position: relative;
+    }
+        .skybrush_viewport_content {
+            overflow: auto;
+            background: #eaeaea;
+
+            max-width: 100%;
+            max-height: 100%;
+
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
         }
-        
-        /* The overlay, only shown in non-Firefox for scaling */
-        .skybrush_canvas_upscale {
-            z-index: 1;
-            display: none;
-            opacity: 0;
+            .skybrush_viewport_content > canvas {
+                position: absolute;
+                
+                image-rendering: optimize-contrast;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: -webkit-optimize-contrast;
+            }
+            .skybrush_canvas_draw,
+            .skybrush_canvas_upscale {
+                border: 1px solid #aaa;
+                background: url(./../images/skybrush/canvas_back.png) repeat;
+            }
+            .skybrush_canvas_draw {
+                border-radius: 3px;
+                z-index: 0;
+
+                -webkit-transition: width 200ms linear 0s, height 200ms linear 0s, -webkit-transform 200ms linear 0s;
+                   -moz-transition: width 200ms linear 0s, height 200ms linear 0s,    -moz-transform 200ms linear 0s;
+                     -o-transition: width 200ms linear 0s, height 200ms linear 0s,      -o-transform 200ms linear 0s;
+                        transition: width 200ms linear 0s, height 200ms linear 0s,         transform 200ms linear 0s;
+            }
+            .skybrush_canvas_overlay {
+                border: 1px solid transparent;
+                z-index: 2;
+            }
             
-            -webkit-transition: opacity 200ms linear 0s;
-               -moz-transition: opacity 200ms linear 0s;
-                 -o-transition: opacity 200ms linear 0s;
-                    transition: opacity 200ms linear 0s;
-        }
-        .skybrush_canvas_upscale.sb_offscreenY {
-            border-radius: 0;
-            border-top: 1px solid #ccc;
-            border-bottom: 1px solid #ccc;
-        }
-        .skybrush_canvas_upscale.sb_offscreenX {
-            border-radius: 0;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
-        }
+            /* The overlay, only shown in non-Firefox for scaling */
+            .skybrush_canvas_upscale {
+                z-index: 1;
+                display: none;
+                opacity: 0;
+                
+                -webkit-transition: opacity 200ms linear 0s;
+                   -moz-transition: opacity 200ms linear 0s;
+                     -o-transition: opacity 200ms linear 0s;
+                        transition: opacity 200ms linear 0s;
+            }
+            .skybrush_canvas_upscale.sb_offscreenY {
+                border-radius: 0;
+                border-top: 1px solid #ccc;
+                border-bottom: 1px solid #ccc;
+            }
+            .skybrush_canvas_upscale.sb_offscreenX {
+                border-radius: 0;
+                border-left: 1px solid #ccc;
+                border-right: 1px solid #ccc;
+            }
 
 /*
  * Cursors
@@ -914,34 +957,15 @@
  * These are the floating windows on top of SkyBrush.
  */
 .skybrush_gui {
-    top: 0;
-    border-radius:5px 5px 2px 2px;
-}
-    .skybrush_gui_header {
-        border-radius:4px 4px 0 0;
-        border-bottom: 1px solid #333;
-    }
+    width: 150px;
 
-.skybrush_gui {
-    background: #eaeaea;
-    
+    background: transparent;
     overflow: hidden;
-
-    position: absolute;
     
     padding: 0;
     margin : 0;
     
-    box-shadow: 0 0 20px rgba( 0, 0, 0, 0.4 );
-    
     z-index: 10;
-    
-    -webkit-transition: opacity 200ms linear 0s;
-       -moz-transition: opacity 200ms linear 0s;
-         -o-transition: opacity 200ms linear 0s;
-            transition: opacity 200ms linear 0s;
-    
-    opacity: 1;
 }
 
 /* Set correct cursor for components.
@@ -964,9 +988,6 @@
 .skybrush_gui.sb_focus {
     z-index: 11
 }
-.skybrush_gui.sb_hide {
-    opacity: 0;
-}
     .skybrush_gui_header {
         float: left;
         clear: both;
@@ -974,12 +995,10 @@
         
         width: 100%;
         
-           -moz-box-sizing: border-box;
-                box-sizing: border-box;
+        -moz-box-sizing: border-box;
+             box-sizing: border-box;
         
         padding: 7px 6px 4px 6px;
-        
-        box-shadow: 0 2px 2px rgba( 50, 50, 50, 0.2 );
         
         z-index: 1;
         position: relative;
@@ -990,6 +1009,8 @@
         text-transform: uppercase;
         text-shadow: 0 2px 1px rgba( 0, 0, 0, 0.7 );
 
+        border-top: 1px solid #333;
+
         font-size: 16px;
     }
     .skybrush_gui_content {
@@ -997,17 +1018,19 @@
         clear: both;
         
         display: block;
-        min-height: 8px;
         
         z-index: 0;
         position: relative;
         
         width: 100%;
-        height: 100%;
-
         padding: 5px;
+
         -moz-box-sizing: border-box;
         box-sizing: border-box;
+    }
+    .skybrush_gui.sb_hide > .skybrush_gui_content {
+        height: 0;
+        padding: 0;
     }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
@@ -1037,16 +1060,6 @@
  * The color picker.
  */
 .skybrush_gui.sb_gui_colors {
-    width: 150px;
-
-    /* IE9 SVG */
-    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI0NSUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
-    background: -moz-linear-gradient(top,  #dddddd 45%, #ffffff 50%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(45%,#dddddd), color-stop(50%,#ffffff)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* IE10+ */
-    background: linear-gradient(top,  #dddddd 45%,#ffffff 50%); /* W3C */
 }
     .skybrush_gui.sb_gui_colors > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
         width: 78px;
@@ -1304,16 +1317,6 @@
         }
 
 .skybrush_gui.sb_gui_commands {
-    width: 150px;
-
-    /* IE9 SVG, needs conditional override of 'filter' to 'none' */
-    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSI2NiUiIHN0b3AtY29sb3I9IiNkZGRkZGQiIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSI3OCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
-    background: -moz-linear-gradient(top,  #dddddd 66%, #ffffff 78%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(66%,#dddddd), color-stop(78%,#ffffff)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* IE10+ */
-    background: linear-gradient(top,  #dddddd 66%,#ffffff 78%); /* W3C */
 }
         .skybrush_gui.sb_gui_commands > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
             width: 55px;

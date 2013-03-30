@@ -557,6 +557,14 @@
             }
         };
 
+        $.fn.leftclick = function( fun ) {
+            if ( $.browser.iOS ) {
+                return this.bind( 'vclick', fun );
+            } else {
+                return wrapButtonEvent( this, fun, 'click', 0 );
+            }
+        };
+
         /**
          * Helper for just attaching an event to the left click.
          * 

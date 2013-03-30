@@ -1682,6 +1682,13 @@
         var header  = $('<div>').addClass('skybrush_gui_header'),
             content = $('<div>').addClass('skybrush_gui_content');
 
+        header.leftclick( function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+
+            self.dom.toggleClass( 'sb_hide' );
+        } );
+
         self.header = header;
         self.isDragged = false;
 
@@ -1689,33 +1696,6 @@
         self.dragOffsetY = 0;
 
         header.text( name );
-
-        /*
-         * Dragging the GUI around.
-         */
-        header.leftdown( function(ev) {
-            ev.preventDefault();
-
-            // store the offset for when we are re-located later
-            var mouseLoc = ev.offset( self.dom );
-            self.dragOffsetX = mouseLoc.left;
-            self.dragOffsetY = mouseLoc.top ;
-
-            self.parent.startDrag(
-                    function(ev) {
-                        return self.xy( ev );
-                    },
-
-                    function(ev) {
-                        self.xy( ev );
-
-                        self.dragOffsetX = 0;
-                        self.dragOffsetY = 0;
-
-                        return self;
-                    }
-            );
-        });
 
         if ( $.browser.msie ) {
             header.bind( 'selectstart', function() {return false;} );
@@ -1755,64 +1735,6 @@
         for ( var i = 0; i < arguments.length; i++ ) {
             this.dom.children('.skybrush_gui_content').append( arguments[i] );
         }
-
-        return this;
-    };
-
-    /**
-     * Sets the X and Y location of this GUI within the SkyBrush app.
-     * 
-     * This can take x/y location, or an event. If an event is given,
-     * additional x/y co-ordinates can be given and added on top.
-     * 
-     * Example usage:
-     * 
-     *  // set it to the location 20x30
-     *  gui.xy( 10, 30 );
-     *  
-     *  // set it to the location of the cursor
-     *  dom.mousedown( function(ev) {
-     *     gui.xy( ev );
-     *  } );
-     * 
-     *  // set it to the cursor location + 20x30
-     *  dom.mousedown( function(ev) {
-     *     gui.xy( ev, 20, 30 );
-     *  } );
-     *
-     * @param x The x location, in pixels.
-     * @param y The y location, in pixels.
-     */
-    GUI.prototype.xy = function( a, b, c ) {
-        var x, y;
-
-        /*
-         * handle: gui.xy( ev );
-         */
-        if ( a instanceof $.Event ) {
-            var pos = a.offset( this.dom.parent() );
-
-            if ( b !== undefined ) {
-                x = pos.left + b;
-            } else {
-                x = pos.left;
-            }
-
-            if ( c !== undefined ) {
-                y = pos.top + c;
-            } else {
-                y = pos.top;
-            }
-
-        /*
-         * handle: gui.xy( x, y );
-         */
-        } else {
-            x = a;
-            y = b;
-        }
-
-        this.dom.translate( x-this.dragOffsetX, y-this.dragOffsetY );
 
         return this;
     };
@@ -7371,7 +7293,7 @@
      * This includes handling dragging of the GUI's, painting to the canvas,
      * or even ignoring input.
      */
-    var SkyBrush = function( dom, options ) {
+    var SkyBrush = function( container, options ) {
         if ( ! $ ) {
             $ = window['jquery'] || window['$'];
             // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
@@ -7380,31 +7302,31 @@
             }
         }
 
-        if ( ! dom ) {
+        if ( ! container ) {
             if ( arguments.length === 0 ) {
                 throw new Error( 'no dom value provided' );
             } else {
                 throw new Error( 'invalid dom value given' );
             }
         }
-        if ( (dom instanceof String) || (typeof dom) == 'string' ) {
-            var domObj = $( dom );
+        if ( (container instanceof String) || (typeof container) == 'string' ) {
+            var containerObj = $( container );
 
-            if ( domObj.size() === 0 ) {
-                throw new Error( 'HTML element not found: \'' + dom + '\'' );
+            if ( containerObj.size() === 0 ) {
+                throw new Error( 'HTML element not found: \'' + container + '\'' );
             } else {
-                dom = domObj;
+                container = containerObj;
             }
         } else {
-            if ( ! dom.jquery ) {
-                dom = $( dom );
+            if ( ! container.jquery ) {
+                container = $( container );
             }
             
-            if ( dom.size() === 0 ) {
+            if ( container.size() === 0 ) {
                 throw new Error( 'no dom object given for skybrush to wrap' );
             }
         }
-        
+
         /*
          * Turn options into an empty object if not provided,
          * this makes the options checking much simpler.
@@ -7413,38 +7335,47 @@
             options = {};
         }
         
-        
-        // create the basic SkyBrush layout
-        dom.empty();
-        dom.append( $(
-                '<div class="skybrush_topbar"></div>' +
-                '<div class="skybrush_viewport"><div>'
-        ) );
-        
-        dom.ensureClass( 'skybrush' );
+        container.empty();
+        container.ensureClass( 'skybrush' );
 
         if ( $.browser.iOS ) {
-            dom.ensureClass( 'sb_ios' );
+            container.ensureClass( 'sb_ios' );
         }
 
         if ( DISABLE_CONTEXT_MENU ) {
-            dom.bind( 'contextmenu', function(ev) {
+            container.bind( 'contextmenu', function(ev) {
                 return false;
             } );
         }
+
+        // create the basic SkyBrush layout
+        var dom = $(
+                '<div class="skybrush_wrap">' +
+                    '<div class="skybrush_viewport">' +
+                        '<div class="skybrush_viewport_content"></div>' +
+                    '</div>' +
+                    '<div class="skybrush_gui_pane">' +
+                        '<div class="skybrush_gui_pane_content"></div>' +
+                    '</div>' +
+                '</div>'
+        );
+        var topbarDom = $( '<div class="skybrush_topbar"></div>' );
+
+        container.append( topbarDom, dom );
 
         var $canvas = dom.find('canvas.skybrush_canvas_draw'),
             _this = this,
             canvas, ctx;
 
         _this.dom = dom;
-        _this.viewport = this.dom.children( '.skybrush_viewport' ).
+        _this.guiDom   = this.dom.find( '.skybrush_gui_pane_content' );
+        _this.viewport = this.dom.find( '.skybrush_viewport_content' ).
                 dblclick( function(ev) {
                     ev.stopPropagation();
                     ev.preventDefault();
                 } );
 
-        _this.events = new events.Handler( this );
+        _this.events = new events.Handler( _this );
         _this.canvas = new CanvasManager( _this.viewport, _this );
 
         _this.keysEnabled = true;
@@ -7527,7 +7458,7 @@
 
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
-        initializeTopBar( _this, DEFAULT_ZOOM );
+        initializeTopBar( _this, topbarDom, DEFAULT_ZOOM );
         initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
         _this.infoBar = new InfoBar( dom );
@@ -7586,7 +7517,6 @@
         /* Resize only seems to work on Window, not on the Viewport or SkyBrush */
         $(window).resize( function() {
             _this.events.run( 'resize' );
-//            _this.repositionGUIs();
         } );
 
         // cancel alt/shift down when we alt-tab
@@ -7619,7 +7549,7 @@
     SkyBrush.prototype.repositionGUIs = function() {
         var windowWidth = $(window).width();
 
-        this.dom.children( '.skybrush_gui' ).each( function() {
+        this.guiDom.children( '.skybrush_gui' ).each( function() {
             var gui = $(this),
                 pos = gui.offset();
             var wx = pos.left + gui.width();
@@ -8250,9 +8180,13 @@
                                         } )
                         );
 
-        var colorGUI = new GUI( 'Palette', 'colors' );
-        painter.addGUI( colorGUI );
-        colorGUI.add( currentColor, destinationAlpha, mixer, controlsHeader, colors );
+        var colorGUI = new GUI( 'Palette', 'colors' ).
+                add( currentColor, destinationAlpha, mixer );
+        
+        var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
+                add( colors );
+
+        painter.addGUI( colorGUI, swatchesGUI );
 
         /* Now generate the alpha gradient, now the canvas has reflowed */
 
@@ -8282,15 +8216,6 @@
              mixerFront.bind( 'selectstart', function() {return false;} );
                alphaBar.bind( 'selectstart', function() {return false;} );
         }
-
-        /* Finish the GUI */
-
-        // put it on the right side
-        // perform in the future, as the painter.dom size may not be certain
-        setTimeout( function() {
-            var x = painter.dom.width() - colorGUI.dom.width() - GUI_DEFAULT_X ;
-            colorGUI.xy( x, GUI_DEFAULT_Y );
-        }, 0 );
 
         /*
          * Update Callbacks for Colour and Alpha
@@ -8441,7 +8366,6 @@
         var commandsGUI = new GUI( 'Tools', 'commands' );
         commandsGUI.add( commands, controlsHeader, controlsWrap );
         painter.addGUI( commandsGUI );
-        commandsGUI.xy( GUI_DEFAULT_X, GUI_DEFAULT_Y+60 );
 
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command, lastCommand) {
@@ -8477,9 +8401,7 @@
      * @param painter The parent SkyBrush app.
      * @param defaultZoom The deafault zoom level, a value from: 1/MAX_ZOOM to MAX_ZOOM
      */
-    var initializeTopBar = function( painter, defaultZoom ) {
-        var topbar = painter.dom.children( '.skybrush_topbar' );
-
+    var initializeTopBar = function( painter, topbar, defaultZoom ) {
         var topButton = function() {
             var fun = nil,
                 args = nil;
@@ -9317,7 +9239,7 @@
             this.brushCursor.onMove( ev );
         }
 
-        this.dom.focus();
+        this.viewport.focus();
 
         processCommand( this, 'onDown', ev );
 
@@ -9384,8 +9306,13 @@
      * @param gui The GUI component to display.
      */
     SkyBrush.prototype.addGUI = function( gui ) {
-        gui.setParent( this );
-        this.dom.append( gui.dom );
+        for ( var i = 0; i < arguments.length; i++ ) {
+            var gui = arguments[i];
+            gui.setParent( this );
+            this.guiDom.append( gui.dom );
+        }
+
+        return this;
     };
 
     /**
@@ -9400,7 +9327,7 @@
      * @return The GUI overlay with the name given, as a jQuery object, or null if not found.
      */
     SkyBrush.prototype.getGUI = function( klass ) {
-        var gui = this.dom.children( '.skybrush_gui.' + klass );
+        var gui = this.guiDom.children( '.skybrush_gui.' + klass );
         return gui.size() > 0 ? gui : nil ;
     };
 
@@ -9410,7 +9337,7 @@
      * @public
      */
     SkyBrush.prototype.toggleGUIs = function() {
-        var guis = this.dom.children( '.skybrush_gui' );
+        var guis = this.guiDom.children( '.skybrush_gui' );
 
         if ( guis.hasClass( 'sb_hide' ) ) {
             this.showGUIs();
@@ -9431,7 +9358,7 @@
      * transitions, and is good at DOM animations.
      */
     SkyBrush.prototype.hideGUIs = function() {
-        var guis = this.dom.children( '.skybrush_gui' );
+        var guis = this.guiDom.children( '.skybrush_gui' );
         guis.addClass( 'sb_hide' );
 
         if ( $.browser.msie && $.browser.version <= 9 ) {
@@ -9460,7 +9387,7 @@
      * @public
      */
     SkyBrush.prototype.showGUIs = function() {
-        var guis = this.dom.children( '.skybrush_gui' );
+        var guis = this.guiDom.children( '.skybrush_gui' );
         guis.
             show().
             removeClass( 'sb_hide' );
