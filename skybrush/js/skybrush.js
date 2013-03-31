@@ -601,59 +601,75 @@
          * @const
          * @type {Array.<string>}
          */
-        DEFAULT_COLORS = [
-                // for colours see: http://en.wikipedia.org/wiki/Web_colors
+        DEFAULT_COLORS = (function() {
+            /*
+             * Colors are laid out in groups, we then re-arrange so they are
+             * laid out in columns instead, and can be 'just dumped', into the
+             * DOM.
+             */
+            var colors = [
+                    // for colours see: http://en.wikipedia.org/wiki/Web_colors
 
-                /* Greys */
-                '#ffffff',
-                '#c3c1c1',
-                '#8b8a8a',
-                '#474747',
-                '#000000',
+                    /* Greys */
+                    '#ffffff',
+                    '#c3c1c1',
+                    '#8b8a8a',
+                    '#474747',
+                    '#000000',
 
-                /*colours*/
-                '#ffcdcc',
-                '#ff8d8a',
-                '#ff0600',
-                '#990400',
-                '#630200',
+                    /*colours*/
+                    '#ffcdcc',
+                    '#ff8d8a',
+                    '#ff0600',
+                    '#990400',
+                    '#630200',
 
-                '#FFE7CD',
-                '#FFC78A',
-                '#FF8601',
-                '#995001',
-                '#633400',
+                    '#FFE7CD',
+                    '#FFC78A',
+                    '#FF8601',
+                    '#995001',
+                    '#633400',
 
-                '#FFFDCC',
-                '#FFFA8A',
-                '#FFF500',
-                '#999301',
-                '#635E00',
+                    '#FFFDCC',
+                    '#FFFA8A',
+                    '#FFF500',
+                    '#999301',
+                    '#635E00',
 
-                '#CDF5D0',
-                '#8DE992',
-                '#06D211',
-                '#037E0A',
-                '#045207',
+                    '#CDF5D0',
+                    '#8DE992',
+                    '#06D211',
+                    '#037E0A',
+                    '#045207',
 
-                '#D4F0FE',
-                '#9DDEFE',
-                '#28B5FD',
-                '#1A6D99',
-                '#104662',
+                    '#D4F0FE',
+                    '#9DDEFE',
+                    '#28B5FD',
+                    '#1A6D99',
+                    '#104662',
 
-                '#CCCEFF',
-                '#8A90FF',
-                '#000CFF',
-                '#010799',
-                '#000563',
+                    '#CCCEFF',
+                    '#8A90FF',
+                    '#000CFF',
+                    '#010799',
+                    '#000563',
 
-                '#FFCCED',
-                '#FF8AD8',
-                '#FF00A8',
-                '#980065',
-                '#630041'
-        ];
+                    '#FFCCED',
+                    '#FF8AD8',
+                    '#FF00A8',
+                    '#980065',
+                    '#630041'
+            ];
+
+            var cols = new Array();
+            for ( var i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
+                for ( var j = i; j < colors.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
+                    cols.push( colors[j] );
+                }
+            }
+
+            return cols;
+        })();
 
     /**
      * Mouse constants, so the code is more readable.
@@ -4743,7 +4759,7 @@
                 } );
 
                 cDom.append( toggle );
-            } else if ( type == 'slider' ) {
+            } else if ( type === 'slider' ) {
                 var min  = control.min,
                     max  = control.max,
                     step = control.step || 1;
@@ -4804,8 +4820,8 @@
 
                 cDom.
                         append( label ).
-                        append( val ).
-                        append( slider );
+                        append( slider ).
+                        append( val );
 
                 // Slider must be updated in the future,
                 // after the reflow.
@@ -5837,9 +5853,9 @@
 
                             cursor: function( cursor, painter ) {
                                 if ( this.isChecked ) {
-                                    cursor.setCursor( BRUSH_RENDER_FUNCTIONS.CIRCLE, this.size );
+                                    cursor.setCircle( this.size );
                                 } else {
-                                    cursor.setCursor( BRUSH_RENDER_FUNCTIONS.SQUARE, this.size );
+                                    cursor.setSquare( this.size );
                                 }
                             },
 
@@ -7761,6 +7777,7 @@
                             '<div class="skybrush_viewport_content"></div>' +
                         '</div>' +
                         '<div class="skybrush_gui_pane">' +
+                            '<div class="skybrush_gui_header_bar"></div>' +
                             '<div class="skybrush_gui_pane_content"></div>' +
                         '</div>' +
                     '</div>' +
@@ -8150,62 +8167,55 @@
         /*
          * Colour Palette
          *
-         * As this section is called heavily (iterating over lots of colors),
-         * it has been optimized into more direct DOM calls.
+         * As a small optimization, this builds the palette out of HTML, and
+         * then just turns it into a dom in one.
          *
-         * The increase is small, but worth it.
+         * There is also *one* click handler, to handle all of the colours.
          */
 
-        var currentColorBorder = nil;
+        var colorsHTML = '';
+        for ( var i = 0; i < DEFAULT_COLORS.length; i++ ) {
+            var col = DEFAULT_COLORS[i];
 
-        var colors = $('<div>').addClass( 'skybrush_colors_palette' );
-        var colorOnClick = function(ev) {
-            var $this = $(this);
-
-            painter.setColor( $this.data('color') );
-
-            if ( currentColorBorder !== nil ) {
-                currentColorBorder.removeClass( 'sb_show' );
-            }
-
-            currentColorBorder = $this.children('.skybrush_colors_palette_color_border');
-            currentColorBorder.addClass('sb_show');
-        };
-
-        var newColor = function( painter, colorsDom, strColor ) {
-            var colorDom = document.createElement('a');
-
-            colorDom.className = 'skybrush_colors_palette_color' +
-                    ( ! $.support.touch ?
-                            ' sb_hover_border' :
-                            '' );
-
-            colorDom.setAttribute( 'href', '#' );
-            colorDom.setAttribute( 'data-color', strColor );
-
-            colorDom.innerHTML = '<div class="skybrush_colors_palette_color_border"></div>';
-            colorDom.style.background = strColor;
-
-            $(colorDom).
-                    killEvent( 'click', 'mousedown' ).
-                    vclick( colorOnClick );
- 
-            colorsDom.appendChild( colorDom );
-        };
-
-        // setup the default colors
-        var colorsDom = colors.get(0);
-        for ( var i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
-            if ( i > 0 ) {
-                colorsDom.appendChild( document.createElement('br') );
-            }
-
-            for ( var j = i; j < DEFAULT_COLORS.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
-                var strColor = DEFAULT_COLORS[ j ];
-
-                newColor( painter, colorsDom, strColor );
-            }
+            colorsHTML +=
+                    '<a href="#" ' +
+                        'class="skybrush_colors_palette_color' + ( ! $.support.touch ? ' sb_hover_border' : '' ) + '" ' +
+                        'data-color="' + col + '" ' +
+                        'style="background:' + col + '"' +
+                    '>' +
+                        '<div class="skybrush_colors_palette_color_border"></div>' +
+                    '</a>';
         }
+
+        var colorsDom = document.createElement( 'div' );
+        colorsDom.className = 'skybrush_colors_palette';
+        colorsDom.innerHTML = colorsHTML;
+
+        var colors = $( colorsDom ).
+                killEvent( 'click', 'mousedown' ).
+                leftclick( (function() {
+                    var currentColorBorder = nil;
+
+                    return function(ev) {
+                        var target = ev.target;
+                        if ( target.className === 'skybrush_colors_palette_color_border' ) {
+                            target = target.parentNode;
+                        }
+
+                        var $this = $(target);
+
+                        if ( $this.hasClass('skybrush_colors_palette_color') ) {
+                            painter.setColor( $this.data('color') );
+
+                            if ( currentColorBorder !== nil ) {
+                                currentColorBorder.removeClass( 'sb_show' );
+                            }
+
+                            currentColorBorder = $this.children('.skybrush_colors_palette_color_border');
+                            currentColorBorder.addClass('sb_show');
+                        }
+                    }
+                })() );
 
         /* 
          * Colour Mixer
@@ -8756,20 +8766,13 @@
             }
         }
 
-        var controlsHeader = $('<div>').
-                addClass( 'skybrush_controls_header' );
-        var controlsHeaderText = $('<div>').
-                addClass( 'skybrush_controls_header_text' );
-        controlsHeaderText.text( 'TOOL SETTINGS' );
-
-        controlsHeader.
-                append( controlsHeaderText ).
-                append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
-
         var commandsGUI = new GUI( 'Tools', 'commands' ).
-                append( commands, controlsHeader, controlsWrap );
+                append( commands );
 
-        painter.addGUI( commandsGUI );
+        var commandControlsGUI = new GUI( 'Settings', 'command_settings' ).
+                append( controlsWrap );
+
+        painter.addGUI( commandsGUI, commandControlsGUI );
 
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command, lastCommand) {
