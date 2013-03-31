@@ -1884,7 +1884,7 @@
      * @param name The name of this GUI, this appeares in the header.
      * @param klass The CSS class for the content in this GUI.
      */
-    var GUI = function( name, klass ) {
+    var GUI = function( name, klass, clickableHeader ) {
         var self = this;
 
         self.dom = $('<div>').
@@ -1911,7 +1911,9 @@
             ev.stopPropagation();
             ev.preventDefault();
 
-            self.toggleOpen();
+            if ( clickableHeader !== false ) {
+                self.toggleOpen();
+            }
         } );
 
         self.header = header;
@@ -1920,8 +1922,10 @@
         self.dragOffsetX = 0;
         self.dragOffsetY = 0;
 
-        header.get(0).innerHTML = 
-                '<div class="skybrush_gui_header_text">' + name + '</div>' ;
+        var headerContent = $( '<div class="skybrush_gui_header_text"></div>' );
+        headerContent.html( name );
+
+        header.append( headerContent );
 
         if ( $.browser.msie ) {
             header.bind( 'selectstart', function() { return false; } );
@@ -7948,17 +7952,21 @@
      */
     SkyBrush.prototype.onCtrl = function( key, fun ) {
         var _this = this;
-        key = key.toLowerCase();
+
+        if ( typeof key === 'string' ) {
+            key = key.toLowerCase();
+        }
 
         return _this.onKeyInteraction( nil, function(ev) {
-            var evKey = String.fromCharCode(ev.keyCode).toLowerCase();
-
-            if ( (ev.ctrlKey || ev.metaKey) && evKey == key ) {
+            if (
+                    ( ev.ctrlKey || ev.metaKey ) && (
+                            (typeof key === 'number' && key === ev.keyCode) ||
+                            (typeof key === 'string' && key === String.fromCharCode(ev.keyCode).toLowerCase())
+                    )
+            ) {
                 fun.call( _this, ev );
 
                 return false;
-            } else {
-                return undefined;
             }
         } );
     };
@@ -8183,14 +8191,14 @@
     }
 
     var initializeMainButtons = function( painter ) {
-        var undoButton = topButton('Undo', 'undo', 'skybrush_button', 'sb_disabled',
+        var undoButton = topButton('Undo', 'sb_undo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.undo();
                     }
                 }
             ),
-            redoButton = topButton('Redo', 'redo', 'skybrush_button', 'sb_disabled',
+            redoButton = topButton('Redo', 'sb_redo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8223,23 +8231,29 @@
                 onDraw( updateUndoRedo );
 
 
+        /*
+         * Open / Close toggle
+         */
+
+        var openToggle = $a(
+                        '<div class="skybrush_open_toggle_text">^^</div>',
+                        'skybrush_header_button',
+                        'skybrush_open_toggle'
+                ).
+                leftclick( function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    painter.toggleGUIPane();
+                });
+
         /* finally, put it all togther */
 
-        var block = document.createElement( 'div' );
-        block.className = 'skybrush_gui_content_block';
+        var header = $('<div>').append( undoButton, redoButton );
 
-        block.appendChild( undoButton.get(0) );
-        block.appendChild( redoButton.get(0) );
+        var gui = new GUI([ openToggle, undoButton, redoButton ], 'main', false );
 
-        var container = document.createElement( 'div' );
-        container.className = 'skybrush_gui_content';
-        container.appendChild( block );
-
-        var dom = document.createElement( 'div' );
-        dom.className = 'skybrush_gui sb_main' ;
-        dom.appendChild( container );
-
-        painter.guiDom.append( dom );
+        painter.addGUI( gui );
     }
 
     var initializeSettings = function( painter ) {
@@ -9293,6 +9307,14 @@
      */
     var initializeShortcuts = function( painter, dontGrabCtrlR ) {
         var domObj = painter.dom.get(0);
+
+        painter.onCtrl( 187, function() {
+            console.log('kdkd');
+            painter.zoomIn();
+        });
+        painter.onCtrl( 189, function() {
+            painter.zoomOut();
+        });
 
         // make the dom focusable
         domObj.setAttribute('tabindex', 0);
@@ -10363,6 +10385,30 @@
     SkyBrush.prototype.getHeight = function() {
         return this.canvas.getHeight();
     };
+
+    SkyBrush.prototype.openGUIPane = function() {
+        this.guiDom.parent().ensureClass( 'sb_open' );
+        this.viewport.parent().ensureClass( 'sb_open' );
+
+        return this;
+    }
+
+    SkyBrush.prototype.closeGUIPane = function() {
+        this.guiDom.parent().removeClass( 'sb_open' );
+        this.viewport.parent().removeClass( 'sb_open' );
+
+        return this;
+    }
+
+    SkyBrush.prototype.toggleGUIPane = function() {
+        if ( this.viewport.parent().hasClass('sb_open') ) {
+            this.closeGUIPane();
+        } else {
+            this.openGUIPane();
+        }
+
+        return this;
+    }
 
     /**
      * Entirely removes any setup this currently has.

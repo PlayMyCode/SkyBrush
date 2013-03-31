@@ -293,9 +293,7 @@
             background: white;
             border: 2px solid #668;
             
-            -webkit-border-radius:4px;
-               -moz-border-radius:4px;
-                    border-radius:4px;
+            border-radius:4px;
             
             font-weight:bold;
             font-family:helvetica neue,arial,sans-serif;
@@ -449,6 +447,24 @@
         -webkit-overflow-scrolling: touch;
 
         white-space: nowrap;
+
+        -webkit-transform : translateY(160px);
+        -webkit-transition: -webkit-transform 120ms linear;
+           -moz-transform : translateY(160px);
+           -moz-transition: -moz-transform 120ms linear;
+            -ms-transform : translateY(160px);
+            -ms-transition: -ms-transform 120ms linear;
+             -o-transform : translateY(160px);
+             -o-transition: -moz-transform 120ms linear;
+                transform : translateY(160px);
+                transition: transform 120ms linear;
+    }
+    .skybrush_gui_pane.sb_open {
+        -webkit-transform: translateY(0);
+           -moz-transform: translateY(0);
+            -ms-transform: translateY(0);
+             -o-transform: translateY(0);
+                transform: translateY(0);
     }
         .skybrush_gui_pane_content {
             float: left;
@@ -466,15 +482,21 @@
             width: 100%;
 
             background: #3C667F;
+            border-top: 1px solid #204464;
         }
     .skybrush_viewport {
+        bottom: 32px;
         top: 0;
-        bottom: 192px;
 
         /* magical webkit speedup */
         -webkit-backface-visibility: hidden;
         -webkit-perspective: 1000;
         -webkit-transform: translateZ(0);
+
+        -webkit-transition: bottom 120ms linear;
+    }
+    .skybrush_viewport.sb_open {
+        bottom: 192px;
     }
         .skybrush_viewport_content {
             overflow: scroll;
@@ -866,6 +888,8 @@
     z-index: 11
 }
     .skybrush_gui_header {
+        position: relative;
+        
         left: 0;
         top: 0;
         right: 0;
@@ -876,7 +900,7 @@
         -moz-box-sizing: border-box;
              box-sizing: border-box;
         
-        padding: 7px 6px 4px 6px;
+        padding: 7px 12px 4px 6px;
         
         z-index: 1;
 
@@ -891,18 +915,19 @@
            -moz-transition: background 100ms linear;
                 transition: background 100ms linear;
 
-        border-right: 1px solid #305e70;
+        border-right: 1px solid #204464;
     }
         .skybrush_gui_header_text {
         }
-    .skybrush_gui_header:hover {
+    .skybrush_gui_header:hover,
+    .skybrush_header_button:hover {
         background: #4C769F;
     }
     .skybrush_gui_content {
         line-height: 135px;
         position: absolute;
         left: 0;
-        bottom: 0;
+        bottom: -1px;
         
         display: block;
         
@@ -1204,24 +1229,99 @@
         .skybrush_destination_alpha > input {
         }
 
-.skybrush_gui.sb_main {
-    padding-top: 32px;
-    height: 100%;
+.skybrush_gui.sb_gui_main {
 }
+        .skybrush_gui.sb_gui_main > .skybrush_gui_header:hover,
+        .skybrush_gui.sb_gui_main > .skybrush_gui_header {
+            background: #3C667F !important;
+        }
+    .skybrush_gui.sb_gui_main > .skybrush_gui_header {
+        width: 210px;
+    }
     .skybrush_gui.sb_main > .skybrush_gui_content {
         background: #9fbccF;
         border-right: 1px solid #79a;
     }
-    .skybrush_button.undo,
-    .skybrush_button.redo {
-        float: left;
-        clear: both;
+            .skybrush_header_button,
+            .skybrush_header_button:hover,
+            .skybrush_header_button:active,
+            .skybrush_header_button:focus,
+            .skybrush_header_button:visited {
+                color: white;
+                text-decoration: none;
+            }
+            .skybrush_header_button {
+                float: left;
+                clear: none;
+                padding: 0 12px;
+                height: 100%;
 
-        line-height: 48px;
-    }
-    .skybrush_button.undo {
-        margin-bottom: 12px;
-    }
+                text-align: center;
+
+                -webkit-transition: color 200ms linear, text-shadow 200ms linear;
+                   -moz-transition: color 200ms linear, text-shadow 200ms linear;
+                    -ms-transition: color 200ms linear, text-shadow 200ms linear;
+                     -o-transition: color 200ms linear, text-shadow 200ms linear;
+                        transition: color 200ms linear, text-shadow 200ms linear;
+            }
+            .skybrush_header_button.sb_disabled {
+                color: #163040;
+                border-color: #283f4f;
+                text-shadow: none;
+            }
+            .skybrush_open_toggle {
+            }
+                .skybrush_open_toggle_text {
+                    font-size: 25px;
+                    line-height: 14px;
+
+                    display: inline-block;
+
+                    -webkit-transform : translateY(5px) rotate( 0 );
+                    -webkit-transition: -webkit-transform 120ms linear;
+                       -moz-transform : translateY(5px) rotate( 0 );
+                       -moz-transition: -moz-transform 120ms linear;
+                        -ms-transform : translateY(5px) rotate( 0 );
+                        -ms-transition: -ms-transform 120ms linear;
+                         -o-transform : translateY(5px) rotate( 0 );
+                         -o-transition: -o-transform 120ms linear;
+                            transform : translateY(5px) rotate( 0 );
+                            transition: transform 120ms linear;
+                }
+                .skybrush_gui_pane.sb_open .skybrush_open_toggle_text {
+                    -webkit-transform: translateY(-2px) rotate( 180deg );
+                       -moz-transform: translateY(-2px) rotate( 180deg );
+                        -ms-transform: translateY(-2px) rotate( 180deg );
+                         -o-transform: translateY(-2px) rotate( 180deg );
+                            transform: translateY(-2px) rotate( 180deg );
+
+                    text-shadow: 0 -2px -1px rgba( 0, 0, 0, 0.7 );
+                }
+            .skybrush_open_toggle,
+            .skybrush_header_button.sb_undo,
+            .skybrush_header_button.sb_redo {
+                position: absolute;
+                left: 0;
+                bottom: 0;
+                height: 100%;
+                line-height: 32px;
+
+                padding-right: 0;
+                padding-left: 0;
+            }
+            .skybrush_open_toggle {
+                width: 40px;
+            }
+            .skybrush_header_button.sb_undo,
+            .skybrush_header_button.sb_redo {
+                width: 60px;
+            }
+            .skybrush_header_button.sb_undo {
+                left: 40px;
+            }
+            .skybrush_header_button.sb_redo {
+                left: 100px;
+            }
 
 .skybrush_gui.sb_gui_commands {
 }
