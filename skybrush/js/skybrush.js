@@ -4524,12 +4524,8 @@
                 addClass('skybrush_info_content');
 
         /* Finally, put it all together */
-        var topArrow = $('<div>').
-                addClass( 'skybrush_info_bar_wrap_top_arrow' );
-
         var wrap = $('<div>').
                 addClass( 'skybrush_info_bar_wrap' ).
-                append( topArrow ).
                 append( self.content );
 
         self.dom = $('<div>').
@@ -4540,19 +4536,8 @@
     };
 
     InfoBar.prototype.show = function( button ) {
-        var self = this;
-
-        var painterDom = self.dom.parents( '.skybrush' );
-        var left = button.offset().left - painterDom.offset().left;
-
-        // correct for width's
-        left += button.outerWidth()/2;
-        left -= self.dom.outerWidth()/2;
-
-        self.dom.translate( left, 0 );
-
         if ( ! this.isShown() ) {
-            self.dom.addClass( 'sb_show' );
+            this.dom.addClass( 'sb_show' );
         }
     };
 
@@ -8769,7 +8754,7 @@
         var commandsGUI = new GUI( 'Tools', 'commands' ).
                 append( commands );
 
-        var commandControlsGUI = new GUI( 'Settings', 'command_settings' ).
+        var commandControlsGUI = new GUI( 'Tool Settings', 'command_settings' ).
                 append( controlsWrap );
 
         painter.addGUI( commandsGUI, commandControlsGUI );

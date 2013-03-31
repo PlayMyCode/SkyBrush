@@ -451,26 +451,26 @@
     .skybrush_info_bar {
         z-index: 12;
         position: absolute;
-        top:  34px;
+        left: 12px;
+        bottom: 220px;
         
-        -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
-           -moz-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
-             -o-transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
-                transition: visibility 0s linear 100ms, opacity 100ms linear, height 100ms linear;
+        -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear;
+           -moz-transition: visibility 0s linear 100ms, opacity 100ms linear;
+             -o-transition: visibility 0s linear 100ms, opacity 100ms linear;
+                transition: visibility 0s linear 100ms, opacity 100ms linear;
             
         visibility:hidden;
         opacity:0;
-        height: 0;
+        height: auto;
     }
     .skybrush_info_bar.sb_show {
-        -webkit-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
-           -moz-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
-             -o-transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
-                transition: visibility 0s linear, opacity 100ms linear, height 100ms linear;
+        -webkit-transition: visibility 0s linear, opacity 100ms linear;
+           -moz-transition: visibility 0s linear, opacity 100ms linear;
+             -o-transition: visibility 0s linear, opacity 100ms linear;
+                transition: visibility 0s linear, opacity 100ms linear;
 
         visibility: visible;
         opacity: 1;
-        height: auto;
     }
         .skybrush_info_bar_wrap {
             position: relative;
@@ -492,22 +492,6 @@
             background: -ms-linear-gradient(top,  #295b75 0%,#4d758c 2%,#4d758c 34%,#3c667f 94%,#204f6b 100%); /* IE10+ */
             background: linear-gradient(top,  #295b75 0%,#4d758c 2%,#4d758c 34%,#3c667f 94%,#204f6b 100%); /* W3C */
         }
-            .skybrush_info_bar_wrap_top_arrow {
-                border: 0 solid transparent;
-                border-left-width: 15px;
-                border-right-width: 15px;
-                border-bottom: 14px solid #4D758C;
-
-                width: 0;
-                height: 0;
-
-                /* center it horizontally */
-                position: absolute;
-                left: 50%;
-                margin-left: -15px;
-
-                top: -13px;
-            }
             .skybrush_info_content,
             .skybrush_info_content > input,
             .skybrush_info_content > form > input {
