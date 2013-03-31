@@ -1025,6 +1025,13 @@
         border-bottom: 1px solid #305e70;
 
         font-size: 16px;
+
+        -webkit-transition: background 100ms linear;
+           -moz-transition: background 100ms linear;
+                transition: background 100ms linear;
+    }
+    .skybrush_gui_header:hover {
+        background: #4C769F;
     }
     .skybrush_gui_content {
         float: left;
