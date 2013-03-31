@@ -591,6 +591,8 @@
          */
         DEFAULT_COLOR = '#104662', // black
 
+        NUM_COLORS_IN_PALETTE_COLUMN = 5,
+
         /**
          * The colours present in the colour palette.
          *
@@ -1841,6 +1843,24 @@
         }
     };
 
+    var newGUIBlock = function() {
+        var div = document.createElement('div');
+        div.className = 'skybrush_gui_content_block';
+
+        for ( var i = 0; i < arguments.length; i++ ) {
+            var dom = arguments[i];
+
+            if ( dom.jquery ) {
+                div.appendChild( dom.get(0) );
+            } else {
+                div.appendChild( dom );
+            }
+        }
+        
+        return div;
+    }
+
+
     /**
      * @constructor
      * @private
@@ -1884,7 +1904,10 @@
         self.dragOffsetX = 0;
         self.dragOffsetY = 0;
 
-        header.text( name );
+        header.append(
+                $('<div class="skybrush_gui_header_text"></div>').
+                        text( name )
+        );
 
         if ( $.browser.msie ) {
             header.bind( 'selectstart', function() {return false;} );
@@ -1892,6 +1915,7 @@
 
         this.dom.append( header );
         this.dom.append( content );
+        this.content = content;
 
         // set later
         this.parent = nil;
@@ -1908,8 +1932,21 @@
      * @param dom The content for this GUI.
      * @return This GUI.
      */
+    /*
     GUI.prototype.content = function( dom ) {
         this.dom.children( '.skybrush_gui_content' ).empty().append( dom );
+
+        return this;
+    };
+*/
+
+    /**
+     * Adds an element to the GUI.
+     */
+    GUI.prototype.append = function() {
+        for ( var i = 0; i < arguments.length; i++ ) {
+            this.content.append( newGUIBlock(arguments[i]) );
+        }
 
         return this;
     };
@@ -8157,10 +8194,17 @@
         };
 
         // setup the default colors
-        for ( var i = 0; i < DEFAULT_COLORS.length; i++ ) {
-            var strColor = DEFAULT_COLORS[ i ];
+        var colorsDom = colors.get(0);
+        for ( var i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
+            if ( i > 0 ) {
+                colorsDom.appendChild( document.createElement('br') );
+            }
 
-            newColor( painter, colors.get(0), strColor );
+            for ( var j = i; j < DEFAULT_COLORS.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
+                var strColor = DEFAULT_COLORS[ j ];
+
+                newColor( painter, colorsDom, strColor );
+            }
         }
 
         /* 
@@ -8538,10 +8582,11 @@
                         );
 
         var colorGUI = new GUI( 'Palette', 'colors' ).
-                add( currentColor, destinationAlpha, mixer );
+                add( newGUIBlock(currentColor, destinationAlpha) ).
+                append( mixer );
         
         var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
-                add( colors ).
+                append( colors ).
                 close();
 
         painter.addGUI( colorGUI, swatchesGUI );
@@ -8721,8 +8766,9 @@
                 append( controlsHeaderText ).
                 append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
 
-        var commandsGUI = new GUI( 'Tools', 'commands' );
-        commandsGUI.add( commands, controlsHeader, controlsWrap );
+        var commandsGUI = new GUI( 'Tools', 'commands' ).
+                append( commands, controlsHeader, controlsWrap );
+
         painter.addGUI( commandsGUI );
 
         // hook up the selection changes directly into the SkyBrush it's self

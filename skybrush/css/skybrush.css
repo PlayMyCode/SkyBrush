@@ -266,11 +266,6 @@
     text-align: left;
 
     display: block;
-
-    /* magical webkit speedup */
-    -webkit-backface-visibility: hidden;
-    -webkit-perspective: 1000;
-    -webkit-transform: translateZ(0);
 }
 .skybrush_container {
     position: absolute;
@@ -284,14 +279,6 @@
         -moz-box-sizing: border-box;
              box-sizing: border-box;
 
-        /*
-         * A table is used, so that it automatically resizes
-         * the width correctly.
-         *
-         * That is because the menu bar is width + scrollbar,
-         * where scrollbar is an unknown value, as it's device independent.
-         */
-        display: table;
         width: 100%;
         height: 100%;
     }
@@ -596,24 +583,38 @@
                 }
     .skybrush_gui_pane,
     .skybrush_viewport {
-        display: table-cell;
-        height: 100%;
-        min-height: 100%;
+        width: 100%;
+        min-width: 100%;
+
+        position: absolute;
+        left: 0;
+        right: 0;
     }
     .skybrush_gui_pane {
         background: #ddd;
+        height: 192px;
+
+        bottom: 0;
+
+        overflow: scroll;
+        overflow-y: hidden
+        -webkit-overflow-scrolling: touch;
+
+        white-space: nowrap;
     }
         .skybrush_gui_pane_content {
-            overflow: hidden;
-            overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
-
+            float: left;
             height: 100%;
-            min-height: 100%;
+            min-width: 100%;
         }
     .skybrush_viewport {
-        width: 100%;
-        position: relative;
+        top: 0;
+        bottom: 192px;
+
+        /* magical webkit speedup */
+        -webkit-backface-visibility: hidden;
+        -webkit-perspective: 1000;
+        -webkit-transform: translateZ(0);
     }
         .skybrush_viewport_content {
             overflow: scroll;
@@ -969,7 +970,9 @@
  * These are the floating windows on top of SkyBrush.
  */
 .skybrush_gui {
-    width: 150px;
+    float: left;
+    clear: none;
+    height: 100%;
 
     background: transparent;
     overflow: hidden;
@@ -978,6 +981,8 @@
     margin : 0;
     
     z-index: 10;
+
+    position: relative;
 }
 
 /* Set correct cursor for components.
@@ -1001,11 +1006,13 @@
     z-index: 11
 }
     .skybrush_gui_header {
-        float: left;
-        clear: both;
-        display: block;
-        
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+
         width: 100%;
+        height: 32px;
         
         -moz-box-sizing: border-box;
              box-sizing: border-box;
@@ -1013,7 +1020,6 @@
         padding: 7px 6px 4px 6px;
         
         z-index: 1;
-        position: relative;
 
         background: #3C667F;
         color: white;
@@ -1021,36 +1027,44 @@
         text-transform: uppercase;
         text-shadow: 0 2px 1px rgba( 0, 0, 0, 0.7 );
 
-        border-top: 1px solid #333;
-        border-bottom: 1px solid #305e70;
-
         font-size: 16px;
 
         -webkit-transition: background 100ms linear;
            -moz-transition: background 100ms linear;
                 transition: background 100ms linear;
+
+        border-right: 1px solid #305e70;
     }
+        .skybrush_gui_header_text {
+        }
     .skybrush_gui_header:hover {
         background: #4C769F;
     }
     .skybrush_gui_content {
-        float: left;
-        clear: both;
+        line-height: 135px;
+        position: absolute;
+        left: 0;
+        top: 32px;
+        bottom: 0;
         
         display: block;
         
         z-index: 0;
         position: relative;
         
-        width: 100%;
         padding: 5px;
 
         -moz-box-sizing: border-box;
-        box-sizing: border-box;
+             box-sizing: border-box;
+
+        border-right: 1px solid #aaa;
+    }
+    .skybrush_gui:last-child > .skybrush_gui_header,
+    .skybrush_gui:last-child > .skybrush_gui_content {
+        border-right: none;
     }
     .skybrush_gui.sb_hide > .skybrush_gui_content {
-        height: 0;
-        padding: 0;
+        /* todo */
     }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
@@ -1075,6 +1089,12 @@
             -ms-text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
             text-shadow: 1px 1px 1px rgba( 0, 0, 0, 0.2 );
         }
+    .skybrush_gui_content_block {
+        display: inline-block;
+        vertical-align: middle;
+        padding: 0 4px;
+        line-height: normal;
+    }
 
 /**
  * The color picker.
@@ -1093,15 +1113,7 @@
         box-shadow: 1px 1px 7px rgba( 0, 0, 0, 0.25 );
     }
     .skybrush_colors_palette {
-        width: 140px;
-        float: left;
-        
-        position: relative;
-        
-        text-align: center;
-        
-        float: left;
-        clear: both;
+        vertical-align: middle;
         
         /* needed for border radius to work */
         overflow: hidden;
@@ -1144,8 +1156,7 @@
         width:  140px;
         height: 140px;
         position: relative;
-        
-        margin-bottom: 5px;
+        margin-right: 8px;
     }
         .skybrush_color_mixer_back,
         .skybrush_color_mixer_color_layer {
@@ -1188,8 +1199,8 @@
         }
         .skybrush_color_wheel_wrap {
             position: absolute;
-            right: 0;
-            bottom: 0;
+            right: -10px;
+            bottom: 9px;
             
             width : 77px;
             height: 77px;
@@ -1405,6 +1416,9 @@
             .sb_command_eraser > a {
                 background-position: -44px 0;
             }
+            .sb_command_rectangle {
+                clear: left;
+            }
             .sb_command_rectangle > a {
                 background-position: -44px -44px;
             }
@@ -1416,6 +1430,9 @@
             }
             .sb_command_fill > a {
                 background-position: -88px 0;
+            }
+            .sb_command_zoom {
+                clear: left;
             }
             .sb_command_zoom > a {
                 background-position: 0 -88px;
