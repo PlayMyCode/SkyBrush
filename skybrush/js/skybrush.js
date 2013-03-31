@@ -1920,13 +1920,11 @@
         self.dragOffsetX = 0;
         self.dragOffsetY = 0;
 
-        header.append(
-                $('<div class="skybrush_gui_header_text"></div>').
-                        text( name )
-        );
+        header.get(0).innerHTML = 
+                '<div class="skybrush_gui_header_text">' + name + '</div>' ;
 
         if ( $.browser.msie ) {
-            header.bind( 'selectstart', function() {return false;} );
+            header.bind( 'selectstart', function() { return false; } );
         }
 
         this.dom.append( header );
@@ -7768,9 +7766,8 @@
                     '</div>' +
                 '</div>'
         );
-        var topbarDom = $( '<div class="skybrush_topbar"></div>' );
 
-        container.append( topbarDom, dom );
+        container.append( dom );
 
         var $canvas = dom.find('canvas.skybrush_canvas_draw'),
             _this = this,
@@ -7833,9 +7830,10 @@
         this.commands = commands;
         this.pickerCommand = pickerCommand;
 
+        initializeMainButtons( _this );
+        //initializeSettings( _this );
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
-        initializeTopBar( _this, topbarDom, DEFAULT_ZOOM );
         initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
         _this.infoBar = new InfoBar( dom );
@@ -8143,6 +8141,508 @@
     /*
      * Private functions used by the SkyBrush.
      */
+
+    var topButton = function() {
+        var fun = nil,
+            args = nil;
+
+        for ( var i = arguments.length-1; i >= 0; i-- ) {
+            var arg = arguments[i];
+
+            if ( isFunction(arg) ) {
+                fun = arg;
+                
+                // this is the common case
+                if ( i === arguments.length-1 ) {
+                    args = Array.prototype.slice.call( arguments, 0, i );
+                } else if ( i === 0 ) {
+                    args = Array.prototype.slice.call( arguments, i );
+                } else {
+                    args = Array.prototype.slice.call( arguments, 0, i ).
+                            concat(
+                                    Array.prototype.slice.call( arguments, i+1 )
+                            );
+                }
+
+                break;
+            }
+        }
+
+        var button;
+        if ( args === nil ) {
+            button = $a.apply( nil, arguments );
+        } else {
+            button = $a.apply( nil, args );
+        }
+
+        if ( fun !== nil ) {
+            button.vclick( fun );
+        }
+
+        return button.killEvent( 'click', 'leftdown' );
+    }
+
+    var initializeMainButtons = function( painter ) {
+        var undoButton = topButton('Undo', 'undo', 'skybrush_button', 'sb_disabled',
+                function() {
+                    if ( ! $(this).hasClass('sb_disabled') ) {
+                        painter.undo();
+                    }
+                }
+            ),
+            redoButton = topButton('Redo', 'redo', 'skybrush_button', 'sb_disabled',
+                function() {
+                    painter.getInfoBar().hide();
+
+                    if ( ! $(this).hasClass('sb_disabled') ) {
+                        painter.redo();
+                    }
+                }
+            );
+
+        undoButton.attr( 'title', 'Undo | shortcut: ctrl+z' );
+        redoButton.attr( 'title', 'Redo | shortcut: ctrl+r or ctrl+y' );
+
+        var updateUndoRedo = function() {
+            if ( painter.hasUndo() ) {
+                undoButton.removeClass('sb_disabled');
+            } else {
+                undoButton.ensureClass('sb_disabled');
+            }
+
+            if ( painter.hasRedo() ) {
+                redoButton.removeClass('sb_disabled');
+            } else {
+                redoButton.ensureClass('sb_disabled');
+            }
+        };
+
+        painter.
+                onUndo( updateUndoRedo ).
+                onRedo( updateUndoRedo ).
+                onDraw( updateUndoRedo );
+
+
+        /* finally, put it all togther */
+
+        var block = document.createElement( 'div' );
+        block.className = 'skybrush_gui_content_block';
+
+        block.appendChild( undoButton.get(0) );
+        block.appendChild( redoButton.get(0) );
+
+        var container = document.createElement( 'div' );
+        container.className = 'skybrush_gui_content';
+        container.appendChild( block );
+
+        var dom = document.createElement( 'div' );
+        dom.className = 'skybrush_gui sb_main' ;
+        dom.appendChild( container );
+
+        painter.guiDom.append( dom );
+    }
+
+    var initializeSettings = function( painter ) {
+        var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        painter.getInfoBar().hide();
+
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.copy();
+                        }
+                    } ),
+            cut = topButton( 'Cut', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        painter.getInfoBar().hide();
+
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.cut();
+                        }
+                    } ),
+            paste = topButton('Paste', 'skybrush_button', 'sb_disabled',
+                    function() {
+                        painter.getInfoBar().hide();
+
+                        if ( ! $(this).hasClass('sb_disabled') ) {
+                            painter.paste();
+                        }
+                    } );
+
+         copy.attr( 'title', 'Copy Selection | shortcut: ctrl+c' );
+          cut.attr( 'title', 'Cut Selection | shortcut: ctrl+x' );
+        paste.attr( 'title', 'Paste Selection | shortcut: ctrl+v' );
+
+        painter.getCanvas().
+                onClip( function(clippingArea) {
+                    if ( clippingArea !== nil ) {
+                        copy.removeClass('sb_disabled');
+                         cut.removeClass('sb_disabled');
+                    } else {
+                        copy.ensureClass('sb_disabled');
+                         cut.ensureClass('sb_disabled');
+                    }
+                } ).
+                onCopy( function() {
+                    paste.removeClass( 'sb_disabled' );
+                } );
+
+        var copyButtons = $('<div>').addClass('skybrush_topbar_button_group').
+                 append( copy ).
+                 append( cut ).
+                 append( paste );
+
+        /* Resize & Scale */
+        var infoOption = function( name, onSuccess, extraComponents ) {
+            var isConstrained = false;
+
+            return topButton(name, 'skybrush_button',
+                    function() {
+                        var width  = painter.getCanvas().getWidth(),
+                            height = painter.getCanvas().getHeight();
+
+                        var widthInput  = $('<input type="number" value="' + width  + '">').
+                                    addClass( 'sb_width' ),
+                            heightInput = $('<input type="number" value="' + height + '">').
+                                    addClass( 'sb_height' ),
+                            constrain = $('<input type="checkbox">').
+                                    addClass( 'constrain' );
+
+                        constrain.prop( 'checked', isConstrained );
+
+                        /* Update the width/height in the other
+                         *  input, when the value changes in this one,
+                         *  if we're using 'constrain proportions'.
+                         */
+                        widthInput.keydown( function() {
+                            var $this = $(this);
+
+                            /* setTimeout is used because the input.val is
+                             * only updated after this has fully bubbled up.
+                             * So we run the code straight after.
+                             */
+                            if ( constrain.is(':checked') ) {
+                                setTimeout( function() {
+                                    var w = $this.val();
+
+                                    if ( ! isNaN(w) && w > 0 ) {
+                                        heightInput.val(
+                                                Math.round(height * (w/width))
+                                        );
+                                    }
+                                }, 1 );
+                            }
+                        } );
+                        heightInput.keydown( function() {
+                            var $this = $(this);
+
+                            if ( constrain.is(':checked') ) {
+                                setTimeout( function() {
+                                    var h = $this.val();
+
+                                    if ( ! isNaN(h) && h > 0 ) {
+                                        widthInput.val(
+                                                Math.round(width * (h/height))
+                                        );
+                                    }
+                                }, 1 );
+                            }
+                        } );
+
+                        /*
+                         * Reset the width/height when the user
+                         * turns the constrain property on.
+                         */
+                        constrain.change( function() {
+                            isConstrained = $(this).is(':checked');
+
+                            if ( isConstrained ) {
+                                widthInput.val( width );
+                                heightInput.val( height );
+                            }
+                        } );
+
+                        /*
+                         * This funky bit of syntax first creates an empty
+                         * jQuery collection (the $()), and then adds to
+                         * DOM elements to it.
+                         *
+                         * This allows us to operate on both width and height.
+                         * Just imagine it being like: [ widthInput, heightInput ].
+                         */
+                        $().add( widthInput ).add( heightInput ).
+                                attr( 'maxlength', 5 ).
+                                forceNumeric( false );
+
+                        var form = $('<form>');
+                        form.submit( function(ev) {
+                            ev.preventDefault();
+
+                            var $content = painter.getInfoBar().getContent();
+
+                            onSuccess.call(
+                                    this,
+                                    $content.find( '.sb_width'  ).val(),
+                                    $content.find( '.sb_height' ).val()
+                            );
+
+                            painter.getInfoBar().hide();
+                        } );
+
+                        var okButton = $('<input>').
+                                attr( 'type', 'submit' ).
+                                killEvent( 'click', 'mousedown' ).
+                                val( 'ok' ).
+                                click( function() {
+                                    form.submit();
+                                } );
+
+                        form.
+                                append( $('<div>Width:</div>').addClass( 'skybrush_info_label' ) ).
+                                append( widthInput ).
+                                append( $('<div>Height:</div>').addClass( 'skybrush_info_label' ) ).
+                                append( heightInput ).
+                                append( $('<div>Relative</div>').addClass( 'skybrush_info_label' ) ).
+                                append( constrain );
+
+                        if ( extraComponents ) {
+                            extraComponents(form);
+                        }
+
+                        form.append( okButton );
+
+                        painter.getInfoBar().
+                                setContent( form ).
+                                show( $(this) );
+                    });
+        };
+
+        var resize = infoOption(
+                'Canvas Size',
+                function( w, h ) {
+                    painter.resize( w, h );
+                }
+        );
+
+        var isSmooth = false;
+        var scale = infoOption(
+                'Image Size',
+                function( w, h ) {
+                    painter.scale( w, h, $(this).find('input.smooth').is(':checked') );
+                },
+                function( form ) {
+                    var smooth = $('<input type="checkbox">').addClass('smooth');
+
+                    smooth.prop( 'checked', isSmooth );
+                    smooth.change( function() {
+                        isSmooth = $(this).is(':checked');
+                    } );
+
+                    form.
+                            append( $('<div>Smooth</div>').addClass('skybrush_info_label') ).
+                            append( smooth );
+                }
+        );
+
+        var grid = topButton( 'Grid', 'grid', 'skybrush_button',
+                function(ev) {
+                    var grid = painter.getCanvas().getGrid(),
+                        width = $('<input>'),
+                            height = $('<input>');
+
+                    width.val( grid.getWidth() );
+                    height.val( grid.getHeight() );
+
+                    var updateSize = function() {
+                        setTimeout( function() {
+                            grid.setSize(
+                                    width.val(),
+                                    height.val()
+                            );
+                        }, 1 );
+                    };
+
+                    $().add( width ).add( height ).
+                            forceNumeric( false ).
+                            attr( 'type', 'number' ).
+                            keypress( updateSize ).
+                            click( updateSize ).
+                            change( updateSize );
+
+                    var offsetX = $('<input>'),
+                        offsetY = $('<input>');
+
+                    offsetX.val( grid.getOffsetX() );
+                    offsetY.val( grid.getOffsetY() );
+
+                    var updateOffset = function() {
+                        setTimeout( function() {
+                                grid.setOffset(
+                                        offsetX.val(),
+                                        offsetY.val()
+                                );
+                        }, 1 );
+                    };
+
+                    $().add( offsetX ).add( offsetY ).
+                            forceNumeric( false ).
+                            attr( 'type', 'number' ).
+
+                    keypress( updateOffset ).
+                    click( updateOffset ).
+                    change( updateOffset );
+
+                    var show = $('<input>').
+                            attr( 'type', 'checkbox' ).
+                            change( function() {
+                                if ( $(this).is(':checked') ) {
+                                    grid.show();
+                                } else {
+                                    grid.hide();
+                                }
+                            } );
+                    if ( grid.isShown() ) {
+                        show.attr('checked', 'checked');
+                    }
+
+                    painter.getInfoBar().setContent(
+                            $('<div>Width:</div>').addClass( 'skybrush_info_label' ),
+                            width,
+                            $('<div>Height:</div>').addClass( 'skybrush_info_label' ),
+                            height,
+
+                            $('<div>X Offset:</div>').addClass( 'skybrush_info_label' ),
+                            offsetX,
+                            $('<div>Y Offset:</div>').addClass( 'skybrush_info_label' ),
+                            offsetY,
+
+                            $('<div>Show</div>').addClass( 'skybrush_info_label' ),
+                            show
+                    ).show( $(this) );
+                }
+        );
+
+        /* Clear Canvas */
+        var crop = topButton('Crop', 'skybrush_button',
+                function() {
+                    painter.getInfoBar().hide();
+
+                    painter.getCanvas().crop();
+                }
+        );
+        crop.attr( 'title', 'Crop Image, ctrl+e' );
+
+        var clear = topButton('Clear', 'skybrush_button',
+                function() {
+                    painter.getInfoBar().hide();
+
+                    if ( ! $(this).hasClass('sb_disabled') ) {
+                        painter.getCanvas().clear();
+                    }
+                }
+        );
+        clear.attr( 'title', 'Clear Image, delete' );
+
+        var commonControls = $('<div>').
+                addClass( 'skybrush_topbar_button_group' ).
+                append( resize ).
+                append( scale ).
+                append( grid ).
+                append( clear ).
+                append( crop );
+
+        /* Build the Save / Load */
+
+        // TODO
+        // this needs to be replaced with a file upload, hooked into the HTML 5 File API
+        // see: https://developer.mozilla.org/en/Using_files_from_web_applications
+        // see: http://www.html5rocks.com/en/tutorials/file/dndfiles/
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            var load = topButton( 'Load', 'load', 'skybrush_button',
+                    function() {
+                        painter.getInfoBar().hide();
+
+                        // TODO
+                    }
+            );
+        }
+
+        /* Build the zoom control. */
+
+        var zoomSlider = $slider().
+                addClass('skybrush_zoom_bar').
+                limit( 0, MAX_ZOOM ).
+                val( MAX_ZOOM/2 ).
+                step( 1 ).
+                slide( function(ev, n, p) {
+                    painter.setZoomPercent( p, true, true );
+                    painter.getInfoBar().hide();
+                } );
+
+        var zoomLabel = $('<div>').
+                addClass( 'skybrush_zoom_label' );
+
+        painter.onZoom( function( zoom ) {
+            var zoomI = zoom * 100 ;
+
+            /*
+             * Round to 2 decimal places, if 2 are needed.
+             * Otherwise round to 1, or ensure the number
+             * has no decimals.
+             */
+            if ( zoomI < 100 && (zoomI - (zoomI|0)) > 0.1 ) {
+                zoomI = zoomI.toFixed( 1 );
+            } else {
+                zoomI |= 0;
+            }
+
+            zoomLabel.text( zoomI + '%' );
+            zoomSlider.setSlide( zoomToPercent(zoom) );
+        } );
+
+        var zoom = $('<div>').
+                addClass( 'skybrush_zoom_control' ).
+                addClass( 'skybrush_button' );
+
+        // the zoom in/out buttons
+        var zoomOutButton = topButton('+', 'skybrush_top_bar_zoom_in',
+                function() {
+                    zoomSlider.slideUp();
+                } );
+        var zoomInButton = topButton('-', 'skybrush_top_bar_zoom_out',
+                function() {
+                    zoomSlider.slideDown();
+                } );
+
+        zoom.
+                append( zoomInButton ).
+                append(
+                        $('<span class="skybrush_zoom_bar_wrap"></span>').
+                                append( zoomSlider )
+                ).
+                append( zoomOutButton );
+
+        if ( zoomSlider.isFake() ) {
+            zoom.addClass( 'sb_fake' );
+            zoomOutButton.addClass( 'sb_fake' );
+            zoomInButton.addClass( 'sb_fake' );
+        }
+
+        var zoomWrap = $('<div>').
+                addClass( 'skybrush_topbar_zoom_wrap' ).
+                append( zoom ).
+                append( zoomLabel );
+
+        topbar.
+                append( zoomWrap ).
+                append( undoRedo ).
+                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
+                append( copyButtons ).
+                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
+                append( commonControls );
+
+        zoomSlider.setSlide( zoomToPercent(defaultZoom) );
+    };
+
 
     /**
      * Sets up the colour GUI in the SkyBrush.
@@ -8785,508 +9285,6 @@
 
             painter.refreshCursor();
         } );
-    };
-
-    /**
-     * Creates and sets up the tob bar of SkyBrush.
-     *
-     * @param painter The parent SkyBrush app.
-     * @param defaultZoom The deafault zoom level, a value from: 1/MAX_ZOOM to MAX_ZOOM
-     */
-    var initializeTopBar = function( painter, topbar, defaultZoom ) {
-        var topButton = function() {
-            var fun = nil,
-                args = nil;
-
-            for ( var i = arguments.length-1; i >= 0; i-- ) {
-                var arg = arguments[i];
-
-                if ( isFunction(arg) ) {
-                    fun = arg;
-                    
-                    // this is the common case
-                    if ( i === arguments.length-1 ) {
-                        args = Array.prototype.slice.call( arguments, 0, i );
-                    } else if ( i === 0 ) {
-                        args = Array.prototype.slice.call( arguments, i );
-                    } else {
-                        args = Array.prototype.slice.call( arguments, 0, i ).
-                                concat(
-                                        Array.prototype.slice.call( arguments, i+1 )
-                                );
-                    }
-
-                    break;
-                }
-            }
-
-            var button;
-            if ( args === nil ) {
-                button = $a.apply( nil, arguments );
-            } else {
-                button = $a.apply( nil, args );
-            }
-
-            /*
-            button.vclick( function() {
-                painter.getInfoBar().hide();
-            } );
-            */
-
-            if ( fun !== nil ) {
-                button.vclick( fun );
-            }
-
-            return button.killEvent( 'click', 'leftdown' );
-        }
-
-        var hideInfoBar = function() {
-            painter.getInfoBar().hide();
-        };
-
-        var undoRedo = $('<div>').addClass('skybrush_topbar_button_group');
-        var undoButton = topButton('Undo', 'undo', 'skybrush_button', 'sb_disabled',
-                function() {
-                    hideInfoBar();
-
-                    if ( ! $(this).hasClass('sb_disabled') ) {
-                        painter.undo();
-                    }
-                }
-            ),
-            redoButton = topButton('Redo', 'redo', 'skybrush_button', 'sb_disabled',
-                function() {
-                    hideInfoBar();
-
-                    if ( ! $(this).hasClass('sb_disabled') ) {
-                        painter.redo();
-                    }
-                }
-            );
-
-        undoButton.attr( 'title', 'Undo | shortcut: ctrl+z' );
-        redoButton.attr( 'title', 'Redo | shortcut: ctrl+r or ctrl+y' );
-
-        var updateUndoRedo = function() {
-            if ( painter.hasUndo() ) {
-                undoButton.removeClass('sb_disabled');
-            } else {
-                undoButton.ensureClass('sb_disabled');
-            }
-
-            if ( painter.hasRedo() ) {
-                redoButton.removeClass('sb_disabled');
-            } else {
-                redoButton.ensureClass('sb_disabled');
-            }
-        };
-
-        painter.
-                onUndo( updateUndoRedo ).
-                onRedo( updateUndoRedo ).
-                onDraw( updateUndoRedo );
-
-        var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
-                    function() {
-                        hideInfoBar();
-
-                        if ( ! $(this).hasClass('sb_disabled') ) {
-                            painter.copy();
-                        }
-                    } ),
-            cut = topButton( 'Cut', 'skybrush_button', 'sb_disabled',
-                    function() {
-                        hideInfoBar();
-
-                        if ( ! $(this).hasClass('sb_disabled') ) {
-                            painter.cut();
-                        }
-                    } ),
-            paste = topButton('Paste', 'skybrush_button', 'sb_disabled',
-                    function() {
-                        hideInfoBar();
-
-                        if ( ! $(this).hasClass('sb_disabled') ) {
-                            painter.paste();
-                        }
-                    } );
-
-         copy.attr( 'title', 'Copy Selection | shortcut: ctrl+c' );
-          cut.attr( 'title', 'Cut Selection | shortcut: ctrl+x' );
-        paste.attr( 'title', 'Paste Selection | shortcut: ctrl+v' );
-
-        painter.getCanvas().
-                onClip( function(clippingArea) {
-                    if ( clippingArea !== nil ) {
-                        copy.removeClass('sb_disabled');
-                         cut.removeClass('sb_disabled');
-                    } else {
-                        copy.ensureClass('sb_disabled');
-                         cut.ensureClass('sb_disabled');
-                    }
-                } ).
-                onCopy( function() {
-                    paste.removeClass( 'sb_disabled' );
-                } );
-
-        undoRedo.append( undoButton ).
-                 append( redoButton );
-
-        var copyButtons = $('<div>').addClass('skybrush_topbar_button_group').
-                 append( copy ).
-                 append( cut ).
-                 append( paste );
-
-        /* Resize & Scale */
-        var infoOption = function( name, onSuccess, extraComponents ) {
-            var isConstrained = false;
-
-            return topButton(name, 'skybrush_button',
-                    function() {
-                        var width  = painter.getCanvas().getWidth(),
-                            height = painter.getCanvas().getHeight();
-
-                        var widthInput  = $('<input type="number" value="' + width  + '">').
-                                    addClass( 'sb_width' ),
-                            heightInput = $('<input type="number" value="' + height + '">').
-                                    addClass( 'sb_height' ),
-                            constrain = $('<input type="checkbox">').
-                                    addClass( 'constrain' );
-
-                        constrain.prop( 'checked', isConstrained );
-
-                        /* Update the width/height in the other
-                         *  input, when the value changes in this one,
-                         *  if we're using 'constrain proportions'.
-                         */
-                        widthInput.keydown( function() {
-                            var $this = $(this);
-
-                            /* setTimeout is used because the input.val is
-                             * only updated after this has fully bubbled up.
-                             * So we run the code straight after.
-                             */
-                            if ( constrain.is(':checked') ) {
-                                setTimeout( function() {
-                                    var w = $this.val();
-
-                                    if ( ! isNaN(w) && w > 0 ) {
-                                        heightInput.val(
-                                                Math.round(height * (w/width))
-                                        );
-                                    }
-                                }, 1 );
-                            }
-                        } );
-                        heightInput.keydown( function() {
-                            var $this = $(this);
-
-                            if ( constrain.is(':checked') ) {
-                                setTimeout( function() {
-                                    var h = $this.val();
-
-                                    if ( ! isNaN(h) && h > 0 ) {
-                                        widthInput.val(
-                                                Math.round(width * (h/height))
-                                        );
-                                    }
-                                }, 1 );
-                            }
-                        } );
-
-                        /*
-                         * Reset the width/height when the user
-                         * turns the constrain property on.
-                         */
-                        constrain.change( function() {
-                            isConstrained = $(this).is(':checked');
-
-                            if ( isConstrained ) {
-                                widthInput.val( width );
-                                heightInput.val( height );
-                            }
-                        } );
-
-                        /*
-                         * This funky bit of syntax first creates an empty
-                         * jQuery collection (the $()), and then adds to
-                         * DOM elements to it.
-                         *
-                         * This allows us to operate on both width and height.
-                         * Just imagine it being like: [ widthInput, heightInput ].
-                         */
-                        $().add( widthInput ).add( heightInput ).
-                                attr( 'maxlength', 5 ).
-                                forceNumeric( false );
-
-                        var form = $('<form>');
-                        form.submit( function(ev) {
-                            ev.preventDefault();
-
-                            var $content = painter.getInfoBar().getContent();
-
-                            onSuccess.call(
-                                    this,
-                                    $content.find( '.sb_width'  ).val(),
-                                    $content.find( '.sb_height' ).val()
-                            );
-
-                            painter.getInfoBar().hide();
-                        } );
-
-                        var okButton = $('<input>').
-                                attr( 'type', 'submit' ).
-                                killEvent( 'click', 'mousedown' ).
-                                val( 'ok' ).
-                                click( function() {
-                                    form.submit();
-                                } );
-
-                        form.
-                                append( $('<div>Width:</div>').addClass( 'skybrush_info_label' ) ).
-                                append( widthInput ).
-                                append( $('<div>Height:</div>').addClass( 'skybrush_info_label' ) ).
-                                append( heightInput ).
-                                append( $('<div>Relative</div>').addClass( 'skybrush_info_label' ) ).
-                                append( constrain );
-
-                        if ( extraComponents ) {
-                            extraComponents(form);
-                        }
-
-                        form.append( okButton );
-
-                        painter.getInfoBar().
-                                setContent( form ).
-                                show( $(this) );
-                    });
-        };
-
-        var resize = infoOption(
-                'Canvas Size',
-                function( w, h ) {
-                    painter.resize( w, h );
-                }
-        );
-
-        var isSmooth = false;
-        var scale = infoOption(
-                'Image Size',
-                function( w, h ) {
-                    painter.scale( w, h, $(this).find('input.smooth').is(':checked') );
-                },
-                function( form ) {
-                    var smooth = $('<input type="checkbox">').addClass('smooth');
-
-                    smooth.prop( 'checked', isSmooth );
-                    smooth.change( function() {
-                        isSmooth = $(this).is(':checked');
-                    } );
-
-                    form.
-                            append( $('<div>Smooth</div>').addClass('skybrush_info_label') ).
-                            append( smooth );
-                }
-        );
-
-        var grid = topButton( 'Grid', 'grid', 'skybrush_button',
-                function(ev) {
-                    var grid = painter.getCanvas().getGrid(),
-                        width = $('<input>'),
-                            height = $('<input>');
-
-                    width.val( grid.getWidth() );
-                    height.val( grid.getHeight() );
-
-                    var updateSize = function() {
-                        setTimeout( function() {
-                            grid.setSize(
-                                    width.val(),
-                                    height.val()
-                            );
-                        }, 1 );
-                    };
-
-                    $().add( width ).add( height ).
-                            forceNumeric( false ).
-                            attr( 'type', 'number' ).
-                            keypress( updateSize ).
-                            click( updateSize ).
-                            change( updateSize );
-
-                    var offsetX = $('<input>'),
-                        offsetY = $('<input>');
-
-                    offsetX.val( grid.getOffsetX() );
-                    offsetY.val( grid.getOffsetY() );
-
-                    var updateOffset = function() {
-                        setTimeout( function() {
-                                grid.setOffset(
-                                        offsetX.val(),
-                                        offsetY.val()
-                                );
-                        }, 1 );
-                    };
-
-                    $().add( offsetX ).add( offsetY ).
-                            forceNumeric( false ).
-                            attr( 'type', 'number' ).
-
-                    keypress( updateOffset ).
-                    click( updateOffset ).
-                    change( updateOffset );
-
-                    var show = $('<input>').
-                            attr( 'type', 'checkbox' ).
-                            change( function() {
-                                if ( $(this).is(':checked') ) {
-                                    grid.show();
-                                } else {
-                                    grid.hide();
-                                }
-                            } );
-                    if ( grid.isShown() ) {
-                        show.attr('checked', 'checked');
-                    }
-
-                    painter.getInfoBar().setContent(
-                            $('<div>Width:</div>').addClass( 'skybrush_info_label' ),
-                            width,
-                            $('<div>Height:</div>').addClass( 'skybrush_info_label' ),
-                            height,
-
-                            $('<div>X Offset:</div>').addClass( 'skybrush_info_label' ),
-                            offsetX,
-                            $('<div>Y Offset:</div>').addClass( 'skybrush_info_label' ),
-                            offsetY,
-
-                            $('<div>Show</div>').addClass( 'skybrush_info_label' ),
-                            show
-                    ).show( $(this) );
-                }
-        );
-
-        /* Clear Canvas */
-        var crop = topButton('Crop', 'skybrush_button',
-                function() {
-                    hideInfoBar();
-
-                    painter.getCanvas().crop();
-                }
-        );
-        crop.attr( 'title', 'Crop Image, ctrl+e' );
-
-        var clear = topButton('Clear', 'skybrush_button',
-                function() {
-                    hideInfoBar();
-
-                    if ( ! $(this).hasClass('sb_disabled') ) {
-                        painter.getCanvas().clear();
-                    }
-                }
-        );
-        clear.attr( 'title', 'Clear Image, delete' );
-
-        var commonControls = $('<div>').
-                addClass( 'skybrush_topbar_button_group' ).
-                append( resize ).
-                append( scale ).
-                append( grid ).
-                append( clear ).
-                append( crop );
-
-        /* Build the Save / Load */
-
-        // TODO
-        // this needs to be replaced with a file upload, hooked into the HTML 5 File API
-        // see: https://developer.mozilla.org/en/Using_files_from_web_applications
-        // see: http://www.html5rocks.com/en/tutorials/file/dndfiles/
-        if (window.File && window.FileReader && window.FileList && window.Blob) {
-            var load = topButton( 'Load', 'load', 'skybrush_button',
-                    function() {
-                        hideInfoBar();
-
-                        // TODO
-                    }
-            );
-        }
-
-        /* Build the zoom control. */
-
-        var zoomSlider = $slider().
-                addClass('skybrush_zoom_bar').
-                limit( 0, MAX_ZOOM ).
-                val( MAX_ZOOM/2 ).
-                step( 1 ).
-                slide( function(ev, n, p) {
-                    painter.setZoomPercent( p, true, true );
-                    hideInfoBar();
-                } );
-
-        var zoomLabel = $('<div>').
-                addClass( 'skybrush_zoom_label' );
-
-        painter.onZoom( function( zoom ) {
-            var zoomI = zoom * 100 ;
-
-            /*
-             * Round to 2 decimal places, if 2 are needed.
-             * Otherwise round to 1, or ensure the number
-             * has no decimals.
-             */
-            if ( zoomI < 100 && (zoomI - (zoomI|0)) > 0.1 ) {
-                zoomI = zoomI.toFixed( 1 );
-            } else {
-                zoomI |= 0;
-            }
-
-            zoomLabel.text( zoomI + '%' );
-            zoomSlider.setSlide( zoomToPercent(zoom) );
-        } );
-
-        var zoom = $('<div>').
-                addClass( 'skybrush_zoom_control' ).
-                addClass( 'skybrush_button' );
-
-        // the zoom in/out buttons
-        var zoomOutButton = topButton('+', 'skybrush_top_bar_zoom_in',
-                function() {
-                    zoomSlider.slideUp();
-                } );
-        var zoomInButton = topButton('-', 'skybrush_top_bar_zoom_out',
-                function() {
-                    zoomSlider.slideDown();
-                } );
-
-        zoom.
-                append( zoomInButton ).
-                append(
-                        $('<span class="skybrush_zoom_bar_wrap"></span>').
-                                append( zoomSlider )
-                ).
-                append( zoomOutButton );
-
-        if ( zoomSlider.isFake() ) {
-            zoom.addClass( 'sb_fake' );
-            zoomOutButton.addClass( 'sb_fake' );
-            zoomInButton.addClass( 'sb_fake' );
-        }
-
-        var zoomWrap = $('<div>').
-                addClass( 'skybrush_topbar_zoom_wrap' ).
-                append( zoom ).
-                append( zoomLabel );
-
-        topbar.
-                append( zoomWrap ).
-                append( undoRedo ).
-                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
-                append( copyButtons ).
-                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
-                append( commonControls );
-
-        zoomSlider.setSlide( zoomToPercent(defaultZoom) );
     };
 
     /*
