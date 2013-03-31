@@ -1277,23 +1277,24 @@
 
                     display: inline-block;
 
-                    -webkit-transform : translateY(5px) rotate( 0 );
                     -webkit-transition: -webkit-transform 120ms linear;
-                       -moz-transform : translateY(5px) rotate( 0 );
-                       -moz-transition: -moz-transform 120ms linear;
-                        -ms-transform : translateY(5px) rotate( 0 );
-                        -ms-transition: -ms-transform 120ms linear;
-                         -o-transform : translateY(5px) rotate( 0 );
-                         -o-transition: -o-transform 120ms linear;
-                            transform : translateY(5px) rotate( 0 );
-                            transition: transform 120ms linear;
+                       -moz-transition:    -moz-transform 120ms linear;
+                        -ms-transition:     -ms-transform 120ms linear;
+                         -o-transition:      -o-transform 120ms linear;
+                            transition:         transform 120ms linear;
+
+                    -webkit-transform: translateY(5px) rotate( 0 );
+                       -moz-transform: translateY(5px) rotate( 0 );
+                        -ms-transform: translateY(5px) rotate( 0 );
+                         -o-transform: translateY(5px) rotate( 0 );
+                            transform: translateY(5px) rotate( 0 );
                 }
                 .skybrush_gui_pane.sb_open .skybrush_open_toggle_text {
-                    -webkit-transform: translateY(-2px) rotate( 180deg );
-                       -moz-transform: translateY(-2px) rotate( 180deg );
-                        -ms-transform: translateY(-2px) rotate( 180deg );
-                         -o-transform: translateY(-2px) rotate( 180deg );
-                            transform: translateY(-2px) rotate( 180deg );
+                    -webkit-transform: translateY(-3px) rotate( 180deg );
+                       -moz-transform: translateY(-3px) rotate( 180deg );
+                        -ms-transform: translateY(-3px) rotate( 180deg );
+                         -o-transform: translateY(-3px) rotate( 180deg );
+                            transform: translateY(-3px) rotate( 180deg );
 
                     text-shadow: 0 -2px -1px rgba( 0, 0, 0, 0.7 );
                 }
