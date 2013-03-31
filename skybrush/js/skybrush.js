@@ -230,6 +230,10 @@
 
             var ctx = canvas.getContext( '2d' );
 
+            ctx.beginPath();
+            ctx.lineCap   = 'round';
+            ctx.lineWidth = 1;
+
             ctx.globalAlpha = 0.75;
 
             ctx.strokeStyle = ctx.fillStyle = '#fff';
@@ -615,17 +619,21 @@
      * @return A jQuery wrapped anchor tag.
      */
     var $a = function( text ) {
-        var anchor = $('<a href="#">' + text + '</a>');
+        var klass = '';
 
         for ( var i = 1; i < arguments.length; i++ ) {
-            var klass = arguments[i];
-
-            if ( klass ) {
-                anchor.addClass( klass );
-            }
+            klass += ' ' + arguments[i];
         }
 
-        return anchor;
+        var anchor = document.createElement( 'a' );
+        anchor.setAttribute( 'href', '#' );
+        anchor.className = klass;
+
+        if ( text ) {
+            anchor.innerHTML = text;
+        }
+
+        return $(anchor);
     };
 
     /**
@@ -760,8 +768,7 @@
                 sliderBar.runOnSlide();
             };
 
-            sliderBar = $a('', 'skybrush_slider_bar').
-                    addClass( 'sb_fake' ).
+            sliderBar = $a('', 'skybrush_slider_bar', 'sb_fake').
                     killEvent( 'click', 'leftdown' ).
                                 append( $('<div>').addClass('skybrush_slider_bar_inner') ).
                     append( slider ).
@@ -3330,8 +3337,8 @@
             // show the upscale when using positive zoom
             var scrollSize = viewport.scrollBarSize();
 
-            var viewWidth  = viewport.width()   - scrollSize.right,
-                viewHeight = viewport.height() - scrollSize.bottom;
+            var viewWidth    = viewport.width()   - scrollSize.right,
+                viewHeight   = viewport.height() - scrollSize.bottom;
             var canvasWidth  = $canvas.width(),
                 canvasHeight = $canvas.height();
 
@@ -5815,6 +5822,7 @@
                             caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
 
                             cursor: function( cursor, painter ) {
+                                console.log('brush set circle cursor');
                                 cursor.setCircle( this.size );
                             },
 
@@ -6754,6 +6762,10 @@
         }, false );
     }
 
+    var useNativeCursor = function( size ) {
+        return ( USE_NATIVE_CURSOR && size < MAX_NATIVE_CURSOR_SIZE );
+    }
+
     /**
      * Handles setting the cursor directly, with little management.
      *
@@ -6768,31 +6780,70 @@
      * BrushCursor.
      */
     var DirectCursor = function( viewport ) {
-        this.viewport = viewport;
+        var self = this;
 
-        this.cursorDataURL = nil;
-        this.cursorClass = nil;
+        self.viewport = viewport;
 
-        this.inScrollbar = false;
+        self.cursorDataURL = nil;
+        self.cursorClass = nil;
 
-        this.dom = $('<div class="skybrush_brush"></div>');
-        viewport.append( this.dom );
+        self.inScrollbar = false;
+
+        self.dom = $('<div class="skybrush_brush"></div>');
+        viewport.append( self.dom );
+
+        // sensible defaults, so they are never 'undefined'
+        self.lastX = 0;
+        self.lastY = 0;
+
+        self.lastLeft = 0;
+        self.lastTop  = 0;
+
+        self.fakeShown = false;
+
+        self.cssSetup = {
+                height: -1,
+                width : -1,
+                'background-position': ''
+        };
+
+        /**
+         * This is the size of the fake cursor.
+         *
+         * @type {number}
+         */
+        self.displaySize = 0;
+
+        // ensure it's all setup right!
+        self.setClass( DEFAULT_CURSOR );
     }
 
     /**
      * Cleares the items set on the cursor, so it's back to it's default state.
-     *
-     * Note that the internal data structures are *not* updated.
      */
     DirectCursor.prototype.clearCursor = function() {
+        this.clearCursorInner();
+
+        this.dom.hide();
+
+        this.fakeShown = false;
+        this.cursorDataURL = nil;
+        this.cursorClass = nil;
+
+        return this;
+    }
+
+    DirectCursor.prototype.clearCursorInner = function() {
         if ( this.cursorDataURL !== nil ) {
-            this.viewport.css( 'cursor', undefined );
-            this.cursorDataURL = nil;
+            this.viewport.css( 'cursor', '' );
         }
 
+        this.viewport.removeClass( NO_CURSOR_CSS );
+
         if ( this.cursorClass !== nil ) {
-            this.viewport.removeClass( this.cursorClass );
-            this.cursorClass = nil;
+            if ( this.cursorClass !== NO_CURSOR_CSS ) {
+                this.viewport.removeClass( this.cursorClass );
+            }
         }
 
         return this;
@@ -6802,64 +6853,83 @@
      * Sets the cursor to display the data url given. Only the url needs to be
      * given, i.e.
      *
-     *  cursor.setCursorURL( '/cursors/crosshair.cur' );
+     *  cursor.setCursorURL( '/cursors/crosshair.cur', size );
      *
      * This can also take a data url, but it only works if the browser actually
      * supports them.
      *
      * @param The data URI for the cursor.
-     * @param x Optional x offset for the cursor.
-     * @param y Optional y offset for the cursor.
+     * @param size, the size of the cursor when displayed.
      */
-    DirectCursor.prototype.setCursorURL = function( url, x, y ) {
-        if ( x === undefined ) {
-            x = 0;
-        }
-        if ( y === undefined ) {
-            y = 0;
-        }
+    DirectCursor.prototype.setCursorURL = function( url, size ) {
+console.log( 'set cursor url' );
+        url = this.calculateUrl( url, size );
 
-        url = 'url(' + url + ') ' + x + ' ' + y + ', auto' ;
-
-        if ( ! this.inScrollbar && url !== this.cursorDataURL ) {
-            this.clearCursor();
-
-            this.setCursorURLInner( url );
+        if ( ! this.inScrollbar ) {
+            this.setCursorURLInner( url, size );
         }
 
+        this.cursorClass = nil;
         this.cursorDataURL = url;
+        this.displaySize = size;
+        this.fakeShown = useNativeCursor( size );
 
         return this;
     }
 
-    DirectCursor.prototype.setCursorURLInner = function( url ) {
-        if ( USE_NATIVE_CURSOR ) {
+    DirectCursor.prototype.setCursorURLInner = function( url, size ) {
+        this.clearCursorInner();
+
+        if ( useNativeCursor(size) ) {
             this.viewport.css( 'cursor', url );
         } else {
-            this.dom.css(
-                    'background-image',
-                    'url(' + canvas.toDataURL() + ')'
-            );
+            console.log( 'set cursor inner' );
+            this.dom.show();
+            this.dom.css( 'background-image', url );
         }
+    }
 
-        return this;
+    /**
+     * @return True if the fake cursor, is currently visible, and false if not.
+     */
+    DirectCursor.prototype.isFakeShown = function() {
+        return this.fakeShown;
+    }
+
+    DirectCursor.prototype.calculateUrl = function( url, size ) {
+        if ( useNativeCursor(size) ) {
+            var x, y;
+
+            if ( size === undefined ) {
+                x = y = 0;
+            } else {
+                x = y = size/2;
+            }
+
+            return 'url(' + url + ') ' + x + ' ' + y + ', auto' ;
+        } else {
+            return 'url(' + url + ')' ;
+        }
     }
 
     /**
      * Adds the CSS class to the viewport, that the cursor is within.
      */
     DirectCursor.prototype.setClass = function( klass ) {
+console.log( 'set cursor class' );
         // ie cannot handle our cursors, so hide them
         if ( $.browser.msie ) {
             klass = DEFAULT_CURSOR;
         }
 
-        if ( ! this.inScrollbar && klass !== this.cursorClass ) {
+        if ( ! this.inScrollbar ) {
             this.clearCursor();
             this.viewport.addClass( klass );
         }
 
         this.cursorClass = klass;
+        this.cursorDataURL = nil;
+        this.fakeShown = false;
             
         return this;
     };
@@ -6880,7 +6950,7 @@
      */
     DirectCursor.prototype.enterScrollbar = function() {
         if ( ! this.inScrollbar ) {
-            this.clearCursor();
+            this.clearCursorInner();
             this.inScrollbar = true;
         }
 
@@ -6897,13 +6967,201 @@
             this.inScrollbar = false;
 
             if ( this.cursorClass ) {
+console.log( 'leave -> set class', this.cursorClass );
                 this.setClass( this.cursorClass );
             } else if ( this.cursorDataURL ) {
-                this.setCursorURLInner( this.cursorDataURL );
+console.log( 'leave -> set url', this.cursorDataURL !== nil );
+                this.setCursorURLInner( this.cursorDataURL, this.displaySize );
             }
         }
 
         return this;
+    };
+
+    DirectCursor.prototype.update = function( ev ) {
+        this.updateMove( ev.pageX, ev.pageY );
+        this.updateScrollbarCursor( ev );
+
+        return this;
+    };
+
+    /**
+     * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
+     * So when we move over the scroll bar, we turn off the custom cursor,
+     * and set it to the standard one.
+     *
+     * It then gets turned back, if we have moved out, and have an old
+     * cursor to set.
+     *
+     * @param ev The event for the mouse movement.
+     * @return true if we are overlapping the scrollbar, false if not.
+     */
+    DirectCursor.prototype.updateScrollbarCursor = function( ev ) {
+        var x = ev.pageX,
+            y = ev.pageY,
+            scrollBars = this.viewport.scrollBarSize();
+
+        // work out if we are on top of a scroll bar
+        if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
+            var pos = this.viewport.offset();
+
+            if (
+                    scrollBars.right > 0 &&
+                    pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
+            ) {
+                this.enterScrollbar();
+            } else if (
+                    scrollBars.bottom > 0 &&
+                    pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
+            ) {
+                this.enterScrollbar();
+            } else {
+                this.leaveScrollbar();
+            }
+        } else {
+            this.leaveScrollbar();
+        }
+
+        return this;
+    };
+
+    /**
+     * pageX and pageY are optional. If omitted, this will
+     * presume it is at the same location as the last time
+     * this was called.
+     */
+    DirectCursor.prototype.updateMove = function(pageX, pageY) {
+        var _this = this;
+
+        if ( _this.isFakeShown() ) {
+            if ( pageX === undefined || pageY === undefined ) {
+                pageX = _this.lastX;
+                pageY = _this.lastY;
+            }
+
+            var displaySize  = _this.displaySize,
+                displaySize2 = displaySize/2,
+                pos          = _this.viewport.offset(),
+                scrollBars   = _this.viewport.scrollBarSize();
+
+            var scrollX = _this.viewport.scrollLeft(),
+                scrollY = _this.viewport.scrollTop(),
+                viewportHeight = _this.viewport.height() - scrollBars.bottom,
+                viewportWidth  = _this.viewport.width()  - scrollBars.right;
+
+                /*
+                 * If the cursor is near the top or bottom edge,
+                 * then the cursor is obscured using 'background-position'.
+                 *
+                 * When this is true, it'll do it on the bottom,
+                 * and when false, it does this for the top edge.
+                 *
+                 * hideFromRight does the same, but on the x axis.
+                 */
+            var hideFromBottom = false,
+                hideFromRight  = false;
+
+            /*
+             * We have the location, in the middle, of the cursor on the screen.
+             * This is the 'fixed' position, where no scrolling taken into account.
+             *
+             * We then convert this into the top/left position,
+             * and then add on the scrolling.
+             */
+
+            var middleX = (pageX - pos.left),
+                middleY = (pageY - pos.top );
+
+            var left,
+                top,
+                width,
+                height;
+
+            /*
+             * Now translate from middle to top/left, for:
+             *  - if over the top edge
+             *  - if over the bottom edge
+             *  - if between those edges
+             */
+
+            if ( middleY-displaySize2 < 0 ) {
+                top    = 0;
+                height = displaySize + (middleY-displaySize2);
+            } else if ( middleY+displaySize2 > viewportHeight ) {
+                top = middleY-displaySize2;
+                height = viewportHeight - (middleY-displaySize2);
+
+                hideFromBottom = true;
+            } else {
+                top    = middleY - (displaySize2-1);
+                height = displaySize;
+            }
+
+            if ( middleX-displaySize2 < 0 ) {
+                left  = 0;
+                width = displaySize + (middleX-displaySize2);
+            } else if ( middleX+displaySize2 > viewportWidth ) {
+                left  = middleX-displaySize2;
+                width = viewportWidth - (middleX-displaySize2);
+
+                hideFromRight = true;
+            } else {
+                left  = middleX - (displaySize2-1);
+                width = displaySize;
+            }
+
+            top  += scrollY;
+            left += scrollX;
+
+            if ( left !== this.lastLeft || top !== this.lastTop ) {
+                _this.lastLeft = left;
+                _this.lastTop  = top;
+
+                _this.dom.translate( left, top );
+
+                _this.lastX = pageX;
+                _this.lastY = pageY;
+            }
+
+            /*
+             * Now alter the width/height,
+             * and the background position.
+             */
+
+            width  = Math.max( width , 0 );
+            height = Math.max( height, 0 );
+
+            var cssSetup = this.cssSetup;
+            if (
+                    height !== cssSetup.height ||
+                    width  !== cssSetup.width
+            ) {
+                var positionY = ! hideFromBottom ?
+                            -(displaySize-height) + 'px' :
+                             0 ;
+                var positionX = ! hideFromRight ?
+                            -(displaySize-width ) + 'px' :
+                             0 ;
+
+                var newBackPosition = positionX + ' ' + positionY;
+                if ( newBackPosition !== cssSetup['background-position'] ) {
+                    cssSetup['background-position'] = newBackPosition;
+                    _this.dom.css( 'background-position', newBackPosition );
+                }
+
+                if ( width !== cssSetup.width ) {
+                    cssSetup.width = width;
+                    _this.dom.width( width );
+                }
+
+                if ( height !== cssSetup.height ) {
+                    cssSetup.height = height;
+                    _this.dom.height( height );
+                }
+            }
+        }
+
+        return _this;
     };
 
     /**
@@ -6917,8 +7175,8 @@
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
             ctx.strokeRect(
-                    (middle-size2)+0.4,
-                    (middle-size2)+0.4,
+                    (middle-size2)+0.4 - 1,
+                    (middle-size2)+0.4 - 1,
                     size-0.8,
                     size-0.8
             );
@@ -6926,8 +7184,8 @@
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
             ctx.strokeRect(
-                    middle-size2,
-                    middle-size2,
+                    middle-size2 - 1,
+                    middle-size2 - 1,
                     size,
                     size
             );
@@ -6940,8 +7198,8 @@
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
             circlePath( ctx,
-                    (middle-size2)+0.7,
-                    (middle-size2)+0.7,
+                    (middle-size2)+0.7 - 1,
+                    (middle-size2)+0.7 - 1,
                     size-1.4,
                     size-1.4
             );
@@ -6950,8 +7208,8 @@
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
             circlePath( ctx,
-                    middle - size2,
-                    middle - size2,
+                    middle - size2 - 1,
+                    middle - size2 - 1,
                     size,
                     size
             );
@@ -6987,20 +7245,6 @@
 
         self.viewport = viewport;
 
-        // sensible defaults, so they are never 'undefined'
-        self.lastX = 0;
-        self.lastY = 0;
-
-        self.lastLeft = 0;
-        self.lastTop  = 0;
-
-        // initializes to no size
-        self.isHidden = false;
-        self.isReallyHidden = false;
-        self.isTouch = isTouch;
-
-        self.size = 1;
-
         /**
          * This is the brush size, at the current zoom level.
          *
@@ -7011,29 +7255,17 @@
          */
         self.zoomSize = 1;
 
-        /**
-         * This is the size of the canvas.
-         * It's essentially zoomSize + a couple of pixels.
-         *
-         * This is because just outside the brush, when it's rendered,
-         * you get some anti-aliasing. Without these extra couple of
-         * pixels, that gets cut off, and it's ugly.
-         *
-         * @type {number}
-         */
-        self.displaySize = 0;
-        self.cssSetup = {};
+        // initializes to no size
+        self.isHidden = false;
+        self.isReallyHidden = false;
+        self.isTouch = isTouch;
+
+        self.size = 1;
 
         self.shape = undefined;
 
         self.canvas = newCanvas( 1, 1 );
         self.cursorReplace = new events.Runner();
-
-        // ensure it's all setup right!
-        self.update( 0, 0 );
-        self.setSquare( 100 );
-
-        self.cursor.setClass( DEFAULT_CURSOR );
 
         if ( isTouch ) {
             self.hideTouch();
@@ -7041,55 +7273,15 @@
     };
 
     BrushCursor.prototype.setCrosshair = function() {
-        this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2 );
-        this.shape = null;
+console.log( 'brush set crosshair' );
+        this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE );
+        this.shape = nil;
 
         return this;
     };
 
     BrushCursor.prototype.onMove = function(ev) {
-        this.update( ev.pageX, ev.pageY );
-        this.handleScrollbarCursor( ev );
-
-        return this;
-    };
-
-    /**
-     * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
-     * So when we move over the scroll bar, we turn off the custom cursor,
-     * and set it to the standard one.
-     *
-     * It then gets turned back, if we have moved out, and have an old
-     * cursor to set.
-     *
-     * @param ev The event for the mouse movement.
-     * @return true if we are overlapping the scrollbar, false if not.
-     */
-    BrushCursor.prototype.handleScrollbarCursor = function( ev ) {
-        var x = ev.pageX,
-            y = ev.pageY,
-            scrollBars = this.viewport.scrollBarSize();
-
-        // work out if we are on top of a scroll bar
-        if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
-            var pos = this.viewport.offset();
-
-            if (
-                    scrollBars.right > 0 &&
-                    pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
-            ) {
-                this.cursor.enterScrollbar();
-            } else if (
-                    scrollBars.bottom > 0 &&
-                    pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
-            ) {
-                this.cursor.enterScrollbar();
-            } else {
-                this.cursor.leaveScrollbar();
-            }
-        } else {
-            this.cursor.leaveScrollbar();
-        }
+        this.cursor.update( ev );
 
         return this;
     };
@@ -7177,6 +7369,7 @@
             throw new Error( "undefined brush render given" );
         }
 
+console.log('brushcursor.setShape');
         this.shape = render;
         this.size = size;
 
@@ -7187,17 +7380,14 @@
             newSize = BRUSH_CURSOR_SMALL_RENDER_SIZE;
         }
 
-        if ( this.shape !== render || this.zoomSize !== newSize ) {
-            this.renderShape( render, newSize );
-
-            return this.update();
-        }
+console.log( 'brush cursor -> render!' );
+        this.renderShape( render, newSize );
 
         return this;
     };
 
     BrushCursor.prototype.renderShape = function( render, newSize ) {
-        if ( render !== null ) {
+        if ( render !== nil ) {
             this.zoomSize = newSize;
             this.shape = render;
 
@@ -7213,8 +7403,6 @@
                         canvasSize  = newSize + BRUSH_CURSOR_PADDING;
 
                     canvas.width = canvas.height = canvasSize;
-
-                    self.displaySize = canvasSize;
 
                     ctx.beginPath();
                     ctx.lineCap   = 'round';
@@ -7235,9 +7423,7 @@
                     ctx.globalAlpha = 0.6;
                     ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
 
-                    self.cursorReplace.run( function() {
-                        self.cursor.setCursorURL( canvas.toDataURL(), newSize/2, newSize/2 );
-                    } );
+                    self.cursor.setCursorURL( canvas.toDataURL(), newSize );
                 }
             }
         }
@@ -7255,6 +7441,7 @@
 
     BrushCursor.prototype.setCommandCursor = function( painter, command ) {
         var cursor = command.getCursor();
+console.log( 'brush.setCommandCursor', cursor );
 
         if ( ! cursor ) {
             this.cursor.setBlankCursor();
@@ -7269,149 +7456,10 @@
 
     BrushCursor.prototype.setClass = function( klass ) {
         this.cursor.setClass( klass );
-        this.shape = null;
+        this.shape = nil;
 
         return this;
     }
-
-    /**
-     * pageX and pageY are optional. If omitted, this will
-     * presume it is at the same location as the last time
-     * this was called.
-     */
-    BrushCursor.prototype.update = function(pageX, pageY) {
-        var _this = this;
-
-        if ( _this.isShown() ) {
-            if ( pageX === undefined || pageY === undefined ) {
-                pageX = _this.lastX;
-                pageY = _this.lastY;
-            }
-
-            var displaySize  = _this.displaySize,
-                displaySize2 = displaySize/2,
-                pos          = _this.viewport.offset(),
-                scrollBars   = _this.viewport.scrollBarSize();
-
-            var scrollX = _this.viewport.scrollLeft(),
-                scrollY = _this.viewport.scrollTop(),
-                viewportHeight = _this.viewport.height() - scrollBars.bottom,
-                viewportWidth  = _this.viewport.width()  - scrollBars.right;
-
-                /*
-                 * If the cursor is near the top or bottom edge,
-                 * then the cursor is obscured using 'background-position'.
-                 *
-                 * When this is true, it'll do it on the bottom,
-                 * and when false, it does this for the top edge.
-                 *
-                 * hideFromRight does the same, but on the x axis.
-                 */
-            var hideFromBottom = false,
-                hideFromRight  = false;
-
-            /*
-             * We have the location, in the middle, of the cursor on the screen.
-             * This is the 'fixed' position, where no scrolling taken into account.
-             *
-             * We then convert this into the top/left position,
-             * and then add on the scrolling.
-             */
-
-            var middleX = (pageX - pos.left),
-                middleY = (pageY - pos.top );
-
-            var left,
-                top,
-                width,
-                height;
-
-            /*
-             * Now translate from middle to top/left, for:
-             *  - if over the top edge
-             *  - if over the bottom edge
-             *  - if between those edges
-             */
-
-            if ( middleY-displaySize2 < 0 ) {
-                top    = 0;
-                height = displaySize + (middleY-displaySize2);
-            } else if ( middleY+displaySize2 > viewportHeight ) {
-                top = middleY-displaySize2;
-                height = viewportHeight - (middleY-displaySize2);
-
-                hideFromBottom = true;
-            } else {
-                top    = middleY - (displaySize2-1);
-                height = displaySize;
-            }
-
-            if ( middleX-displaySize2 < 0 ) {
-                left  = 0;
-                width = displaySize + (middleX-displaySize2);
-            } else if ( middleX+displaySize2 > viewportWidth ) {
-                left  = middleX-displaySize2;
-                width = viewportWidth - (middleX-displaySize2);
-
-                hideFromRight = true;
-            } else {
-                left  = middleX - (displaySize2-1);
-                width = displaySize;
-            }
-
-            top  += scrollY;
-            left += scrollX;
-
-            if ( left !== this.lastLeft || top !== this.lastTop ) {
-                _this.lastLeft = left;
-                _this.lastTop  = top;
-
-                //_this.dom.translate( left, top );
-
-                _this.lastX = pageX;
-                _this.lastY = pageY;
-            }
-
-            /*
-             * Now alter the width/height,
-             * and the background position.
-             */
-
-            width  = Math.max( width , 0 );
-            height = Math.max( height, 0 );
-
-            var cssSetup = this.cssSetup;
-            if (
-                    height !== cssSetup.height ||
-                    width  !== cssSetup.width
-            ) {
-                var positionY = ! hideFromBottom ?
-                            -(displaySize-height) + 'px' :
-                             0 ;
-                var positionX = ! hideFromRight ?
-                            -(displaySize-width ) + 'px' :
-                             0 ;
-
-                var newBackPosition = positionX + ' ' + positionY;
-                if ( newBackPosition !== cssSetup['background-position'] ) {
-                    cssSetup['background-position'] = newBackPosition;
-                    //_this.dom.css( 'background-position', newBackPosition );
-                }
-
-                if ( width !== cssSetup.width ) {
-                    cssSetup['width'] = width;
-                    //_this.dom.width( width );
-                }
-
-                if ( height !== cssSetup.height ) {
-                    cssSetup['height'] = height;
-                    //_this.dom.height( height );
-                }
-            }
-        }
-
-        return _this;
-    };
 
     /**
      * Handles translating the cursor urls to a new location.
@@ -7759,22 +7807,6 @@
                 _this.brushCursor.setZoom( zoom );
             } else {
                 _this.refreshCursor();
-            }
-        } );
-        _this.onSetCommand( function(command) {
-            var name = command.name.toLowerCase();
-
-            if (
-                      name == 'pencil' ||
-                    ( name == 'eraser' && !command.isAliased )
-            ) {
-            } else if (
-                      name == 'brush' ||
-                      name == 'webby' ||
-                    ( name == 'eraser' && command.isAliased )
-            ) {
-            } else {
-                _this.brushCursor.hide();
             }
         } );
 
