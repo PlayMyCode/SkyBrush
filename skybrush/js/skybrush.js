@@ -5697,7 +5697,7 @@
                 caption: 'Colour Picker | shortcut: k or hold Alt',
                 cursor: 'sb_cursor_picker',
 
-                onDownOnMove : function( canvas, x, y ) {
+                onDownOnMove : function( canvas, x, y, painter ) {
                     var rgb = canvas.colourPick( x, y );
 
                     if ( rgb !== nil ) {
