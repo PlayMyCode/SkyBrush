@@ -7429,10 +7429,22 @@ console.log( 'brush cursor -> render!' );
         }
     };
 
-    BrushCursor.prototype.setZoom = function( zoom ) {
+    /**
+     * Sets the zoom.
+     *
+     * The refresh parameter is optional, and defaults to true. When false,
+     * this will not do any kind of redrawing.
+     *
+     * That is useful, if you are planning to refresh yourself, after calling
+     * this.
+     * 
+     * @param zoom The new zoom value.
+     * @param refresh Optional, true if this should refresh, false if not. Defaults to true.
+     */
+    BrushCursor.prototype.setZoom = function( zoom, refresh ) {
         this.zoom = zoom;
 
-        if ( this.shape ) {
+        if ( this.shape && refresh !== false ) {
             this.setShape( this.shape, this.size );
         }
 
@@ -7803,11 +7815,8 @@ console.log( 'brush.setCommandCursor', cursor );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
-            if ( _this.brushCursor.isShown() ) {
-                _this.brushCursor.setZoom( zoom );
-            } else {
-                _this.refreshCursor();
-            }
+            _this.brushCursor.setZoom( zoom );
+            _this.refreshCursor();
         } );
 
         /* ## GUI related events ## */
