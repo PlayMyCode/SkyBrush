@@ -594,8 +594,8 @@
 
         bottom: 0;
 
-        overflow: scroll;
-        overflow-y: hidden
+        overflow: auto;
+        overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
 
         white-space: nowrap;
@@ -1064,7 +1064,7 @@
         -moz-box-sizing: border-box;
              box-sizing: border-box;
 
-        border-right: 1px solid #aaa;
+        border-right: 1px solid #c0c0c0;
     }
     .skybrush_gui:last-child > .skybrush_gui_header,
     .skybrush_gui:last-child > .skybrush_gui_content {
