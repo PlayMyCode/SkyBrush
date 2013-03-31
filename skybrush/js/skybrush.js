@@ -155,9 +155,112 @@
                 }
 
                 USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera );
+                MAX_NATIVE_CURSOR_SIZE = USE_NATIVE_CURSOR ?
+                        128 :
+                          0 ;
             }
         }
     })();
+
+    /**
+     * The functions used for rendering the custom cursors.
+     * These are functions, in the form:
+     *
+     *      ( ctx:Canvas:2DContext, canvas:HTMLCanvasElement, size:number ) ->
+     *
+     * They can draw to the canvas, but shouldn't resize it. The size is
+     * provided as advice, on how big they should render, and so may match the
+     * actual size of the canvas.
+     *
+     * These functions should also set their own colours, and alpha
+     * transparency, for when they draw.
+     */
+    var BRUSH_RENDER_FUNCTIONS = {
+        CROSSHAIR: (function() {
+            var renderCrossHair = function(ctx, canvas, size) {
+                // top middle line
+                ctx.moveTo( size/2, 0 );
+                ctx.lineTo( size/2, size/2-2 );
+
+                // bottom middle line
+                ctx.moveTo( size/2, size/2+2 );
+                ctx.lineTo( size/2, size );
+
+                // left line
+                ctx.moveTo( 0, size/2 );
+                ctx.lineTo( size/2-2, size/2 );
+
+                // right line
+                ctx.moveTo( size    , size/2 );
+                ctx.lineTo( size/2+2, size/2 );
+
+                ctx.stroke();
+
+                // a dot in the centre
+                ctx.fillRect( size/2-0.5, size/2-0.5, 1, 1 );
+            };
+
+            return function(ctx, canvas, size) {
+                ctx.globalAlpha = 0.75;
+
+                ctx.strokeStyle = ctx.fillStyle = '#fff';
+                ctx.translate( 0.2, 0.2 );
+                renderCrossHair( ctx, canvas, size );
+
+                ctx.strokeStyle = ctx.fillStyle = '#000';
+                ctx.translate( -0.4, -0.4 );
+                renderCrossHair( ctx, canvas, size );
+            };
+        })(),
+
+        SQUARE: function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 0.9;
+            ctx.strokeRect(
+                    (middle-size2)+0.4 - 1,
+                    (middle-size2)+0.4 - 1,
+                    size-0.8,
+                    size-0.8
+            );
+
+            ctx.strokeStyle = '#000';
+            ctx.globalAlpha = 1;
+            ctx.strokeRect(
+                    middle-size2 - 1,
+                    middle-size2 - 1,
+                    size,
+                    size
+            );
+        },
+
+        CIRCLE: function(ctx, canvas, size) {
+            var middle = canvas.width/2,
+                size2  = size/2;
+
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 0.9;
+            circlePath( ctx,
+                    (middle-size2)+0.7 - 1,
+                    (middle-size2)+0.7 - 1,
+                    size-1.4,
+                    size-1.4
+            );
+            ctx.stroke();
+
+            ctx.strokeStyle = '#000';
+            ctx.globalAlpha = 1;
+            circlePath( ctx,
+                    middle - size2 - 1,
+                    middle - size2 - 1,
+                    size,
+                    size
+            );
+            ctx.stroke();
+        }
+    }
 
     /**
      * @const
@@ -170,14 +273,16 @@
         DEFAULT_GRID_HEIGHT = 5, // pixels
 
         /*
-         * These are for using a native cursor,
-         * instead of background image.
+         * These are for decided if a native cursor should be used, or not. At
+         * the time of writing, this is banned on Opera and IE.
          *
-         * Although IE does not support cursor data uri's,
-         * it is the least laggy when using background-image.
+         * Although IE does not support cursor data uri's, it is the least
+         * laggy when using background-image.
+         *
+         * @see initializeJQuery 
          */
         USE_NATIVE_CURSOR = false,
-        MAX_NATIVE_CURSOR_SIZE = 128,
+        MAX_NATIVE_CURSOR_SIZE = 0,
 
         /**
          * @const
@@ -199,32 +304,10 @@
         /**
          * A data url, of a crosshair, for use as a cursor.
          *
-         * It's generated on the fly, when SkyBrush loads.
+         * It's generated once, to avoid generating it multiple times, during
+         * use.
          */
         CROSSHAIR_CURSOR_DATA_URL = (function() {
-            var renderCrossHair = function(ctx) {
-                // top middle line
-                ctx.moveTo( CROSSHAIR_CURSOR_SIZE/2, 0 );
-                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2-2 );
-
-                // bottom middle line
-                ctx.moveTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE/2+2 );
-                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2, CROSSHAIR_CURSOR_SIZE );
-
-                // left line
-                ctx.moveTo( 0, CROSSHAIR_CURSOR_SIZE/2 );
-                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2-2, CROSSHAIR_CURSOR_SIZE/2 );
-
-                // right line
-                ctx.moveTo( CROSSHAIR_CURSOR_SIZE    , CROSSHAIR_CURSOR_SIZE/2 );
-                ctx.lineTo( CROSSHAIR_CURSOR_SIZE/2+2, CROSSHAIR_CURSOR_SIZE/2 );
-
-                ctx.stroke();
-
-                // a dot in the centre
-                ctx.fillRect( CROSSHAIR_CURSOR_SIZE/2-0.5, CROSSHAIR_CURSOR_SIZE/2-0.5, 1, 1 );
-            };
-
             var canvas = document.createElement( 'canvas' );
             canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE;
 
@@ -234,15 +317,7 @@
             ctx.lineCap   = 'round';
             ctx.lineWidth = 1;
 
-            ctx.globalAlpha = 0.75;
-
-            ctx.strokeStyle = ctx.fillStyle = '#fff';
-            ctx.translate( 0.2, 0.2 );
-            renderCrossHair( ctx );
-
-            ctx.strokeStyle = ctx.fillStyle = '#000';
-            ctx.translate( -0.4, -0.4 );
-            renderCrossHair( ctx );
+            BRUSH_RENDER_FUNCTIONS.CROSSHAIR( ctx, canvas, CROSSHAIR_CURSOR_SIZE );
 
             return canvas.toDataURL();
         })(),
@@ -5729,9 +5804,9 @@
 
                             cursor: function( cursor, painter ) {
                                 if ( this.isChecked ) {
-                                    cursor.setCursor( brushRender.circle, this.size );
+                                    cursor.setCursor( BRUSH_RENDER_FUNCTIONS.CIRCLE, this.size );
                                 } else {
-                                    cursor.setCursor( brushRender.square, this.size );
+                                    cursor.setCursor( BRUSH_RENDER_FUNCTIONS.SQUARE, this.size );
                                 }
                             },
 
@@ -7164,58 +7239,6 @@ console.log( 'leave -> set url', this.cursorDataURL !== nil );
         return _this;
     };
 
-    /**
-     * 
-     */
-    var brushRender = {
-        square: function(ctx, canvas, size) {
-            var middle = canvas.width/2,
-                size2  = size/2;
-
-            ctx.strokeStyle = '#fff';
-            ctx.globalAlpha = 0.9;
-            ctx.strokeRect(
-                    (middle-size2)+0.4 - 1,
-                    (middle-size2)+0.4 - 1,
-                    size-0.8,
-                    size-0.8
-            );
-
-            ctx.strokeStyle = '#000';
-            ctx.globalAlpha = 1;
-            ctx.strokeRect(
-                    middle-size2 - 1,
-                    middle-size2 - 1,
-                    size,
-                    size
-            );
-        },
-
-        circle: function(ctx, canvas, size) {
-            var middle = canvas.width/2,
-                size2  = size/2;
-
-            ctx.strokeStyle = '#fff';
-            ctx.globalAlpha = 0.9;
-            circlePath( ctx,
-                    (middle-size2)+0.7 - 1,
-                    (middle-size2)+0.7 - 1,
-                    size-1.4,
-                    size-1.4
-            );
-            ctx.stroke();
-
-            ctx.strokeStyle = '#000';
-            ctx.globalAlpha = 1;
-            circlePath( ctx,
-                    middle - size2 - 1,
-                    middle - size2 - 1,
-                    size,
-                    size
-            );
-            ctx.stroke();
-        }
-    }
 
     /**
      * This differs from DirectCursor, in that this deals with the brush size,
@@ -7354,11 +7377,11 @@ console.log( 'brush set crosshair' );
     };
 
     BrushCursor.prototype.setCircle = function( size ) {
-        return this.setShape( brushRender.circle, size );
+        return this.setShape( BRUSH_RENDER_FUNCTIONS.CIRCLE, size );
     }
 
     BrushCursor.prototype.setSquare = function( size ) {
-        return this.setShape( brushRender.square, size );
+        return this.setShape( BRUSH_RENDER_FUNCTIONS.SQUARE, size );
     };
 
     /**
