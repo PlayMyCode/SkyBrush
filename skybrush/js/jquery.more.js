@@ -658,21 +658,31 @@
             
             if ( _this === document ) {
                 var $window = $(window);
+
                 return {
                         right  : ( this.height() > $window.height() ) ? scrollSize : 0,
                         bottom : ( this.width()  > $window.width()  ) ? scrollSize : 0
                 };
             } else {
-                // Scroll Height/Width includes differnt things in FF and other browsers
-                if ( $.browser.mozilla ) {
+                var overflowRight  = this.css('overflowX') === 'scroll' ,
+                    overflowBottom = this.css('overflowY') === 'scroll' ;
+
+                // don't check overflowScroll, as it can still be invalid
+                if ( overflowRight && overflowBottom ) {
                     return {
-                            right  : ( _this.scrollHeight > this.outerHeight() ) ? scrollSize : 0,
-                            bottom : ( _this.scrollWidth  > this.outerWidth()  ) ? scrollSize : 0
+                            right  : scrollSize,
+                            bottom : scrollSize
+                    };
+                // Scroll Height/Width includes differnt things in FF and other browsers
+                } else if ( $.browser.mozilla ) {
+                    return {
+                            right  : ( overflowRight  || _this.scrollHeight > this.outerHeight() ) ? scrollSize : 0,
+                            bottom : ( overflowBottom || _this.scrollWidth  > this.outerWidth()  ) ? scrollSize : 0
                     };
                 } else {
                     return {
-                            right  : ( _this.scrollHeight > this.innerHeight() ) ? scrollSize : 0,
-                            bottom : ( _this.scrollWidth  > this.innerWidth()  ) ? scrollSize : 0
+                            right  : ( overflowRight  || _this.scrollHeight > this.innerHeight() ) ? scrollSize : 0,
+                            bottom : ( overflowBottom || _this.scrollWidth  > this.innerWidth()  ) ? scrollSize : 0
                     };
                 }
             }
