@@ -1889,21 +1889,8 @@
 
         self.dom = $('<div>').
                 addClass( 'skybrush_gui' ).
-                addClass( GUI_CSS_PREFIX + klass ).
-                leftdown( function(ev) {
-                    var $this = $(this);
-
-                    // move this GUI to the front
-                    $this.siblings( '.skybrush_gui.sb_focus' ).removeClass( 'sb_focus' );
-                    $this.addClass( 'sb_focus' );
-
-                    var $target = $(ev.target);
-                    if ( ! $target.is('input') && ! $target.is('a') ) {
-                        ev.stopPropagation();
-                        return false;
-                    }
-                } );
-
+                addClass( GUI_CSS_PREFIX + klass );
+                
         var header  = $('<div>').addClass('skybrush_gui_header'),
             content = $('<div>').addClass('skybrush_gui_content');
 
@@ -7746,6 +7733,16 @@
         container.empty();
         container.ensureClass( 'skybrush' );
 
+        if ( $.browser.msie ) {
+            container.addClass( 'msie' );
+        } else if ( $.browser.webkit ) {
+            container.addClass( 'webkit' );
+        } else if ( $.browser.mozilla ) {
+            container.addClass( 'mozilla' );
+        } else if ( $.browser.opera ) {
+            container.addClass( 'opera' );
+        }
+
         if ( $.browser.iOS ) {
             container.ensureClass( 'sb_ios' );
         }
@@ -7764,8 +7761,11 @@
                             '<div class="skybrush_viewport_content"></div>' +
                         '</div>' +
                         '<div class="skybrush_gui_pane">' +
-                            '<div class="skybrush_gui_header_bar"></div>' +
-                            '<div class="skybrush_gui_pane_content"></div>' +
+                            '<div class="skybrush_gui_pane_scroll">' +
+                                '<div class="skybrush_gui_pane_content">' +
+                                    '<div class="skybrush_gui_header_bar"></div>' +
+                                '</div>' +
+                            '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>'
@@ -7834,7 +7834,7 @@
         this.commands = commands;
         this.pickerCommand = pickerCommand;
 
-        initializeMainButtons( _this );
+        initializeMainButtons( _this, dom.find('.skybrush_gui_pane') );
         //initializeSettings( _this );
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
@@ -8190,7 +8190,7 @@
         return button.killEvent( 'click', 'leftdown' );
     }
 
-    var initializeMainButtons = function( painter ) {
+    var initializeMainButtons = function( painter, wrap ) {
         var undoButton = topButton('Undo', 'sb_undo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
@@ -8251,9 +8251,14 @@
 
         var header = $('<div>').append( undoButton, redoButton );
 
+        /*
+         * This is a special gui, more special than the others,
+         * so he gets put aside on his own, to watch over toggling the panel
+         * open.
+         */
         var gui = new GUI([ openToggle, undoButton, redoButton ], 'main', false );
-
-        painter.addGUI( gui );
+        gui.setParent( painter );
+        wrap.append( gui.dom );
     }
 
     var initializeSettings = function( painter ) {
@@ -10387,14 +10392,14 @@
     };
 
     SkyBrush.prototype.openGUIPane = function() {
-        this.guiDom.parent().ensureClass( 'sb_open' );
+        this.guiDom.parents('.skybrush_gui_pane').ensureClass( 'sb_open' );
         this.viewport.parent().ensureClass( 'sb_open' );
 
         return this;
     }
 
     SkyBrush.prototype.closeGUIPane = function() {
-        this.guiDom.parent().removeClass( 'sb_open' );
+        this.guiDom.parents('.skybrush_gui_pane').removeClass( 'sb_open' );
         this.viewport.parent().removeClass( 'sb_open' );
 
         return this;
