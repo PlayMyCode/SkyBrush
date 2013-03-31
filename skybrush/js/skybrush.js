@@ -217,20 +217,22 @@
             var middle = canvas.width/2,
                 size2  = size/2;
 
+            // an outer square
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
             ctx.strokeRect(
-                    (middle-size2)+0.4 - 1,
-                    (middle-size2)+0.4 - 1,
+                    (middle-size2)+0.4,
+                    (middle-size2)+0.4,
                     size-0.8,
                     size-0.8
             );
 
+            // an outer square
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
             ctx.strokeRect(
-                    middle-size2 - 1,
-                    middle-size2 - 1,
+                    middle-size2,
+                    middle-size2,
                     size,
                     size
             );
@@ -240,21 +242,23 @@
             var middle = canvas.width/2,
                 size2  = size/2;
 
+            // an inner circle
             ctx.strokeStyle = '#fff';
             ctx.globalAlpha = 0.9;
             circlePath( ctx,
-                    (middle-size2)+0.7 - 1,
-                    (middle-size2)+0.7 - 1,
+                    (middle-size2)+0.7,
+                    (middle-size2)+0.7,
                     size-1.4,
                     size-1.4
             );
             ctx.stroke();
-
+            
+            // an outer circle
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
             circlePath( ctx,
-                    middle - size2 - 1,
-                    middle - size2 - 1,
+                    middle - size2,
+                    middle - size2,
                     size,
                     size
             );
@@ -330,7 +334,7 @@
          * @constant
          * @type {number}
          */
-        BRUSH_CURSOR_MINIMUM_SIZE = 6,
+        BRUSH_CURSOR_MINIMUM_SIZE = 5,
 
         /**
          * The number of pixels to add onto the brush canvas,
@@ -342,14 +346,6 @@
          * then just increase this value and it should get fixed.
          */
         BRUSH_CURSOR_PADDING = 2,
-
-        /**
-         * The size of the cursor when it is below the minimum size.
-         *
-         * @constant
-         * @type {number}
-         */
-        BRUSH_CURSOR_SMALL_RENDER_SIZE = 19,
 
         /**
          * If we are touch, or not.
@@ -5897,7 +5893,6 @@
                             caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
 
                             cursor: function( cursor, painter ) {
-                                console.log('brush set circle cursor');
                                 cursor.setCircle( this.size );
                             },
 
@@ -6910,6 +6905,7 @@
 
     DirectCursor.prototype.clearCursorInner = function() {
         if ( this.cursorDataURL !== nil ) {
+            this.dom.hide();
             this.viewport.css( 'cursor', '' );
         }
 
@@ -6937,7 +6933,6 @@
      * @param size, the size of the cursor when displayed.
      */
     DirectCursor.prototype.setCursorURL = function( url, size ) {
-console.log( 'set cursor url' );
         url = this.calculateUrl( url, size );
 
         if ( ! this.inScrollbar ) {
@@ -6947,7 +6942,7 @@ console.log( 'set cursor url' );
         this.cursorClass = nil;
         this.cursorDataURL = url;
         this.displaySize = size;
-        this.fakeShown = useNativeCursor( size );
+        this.fakeShown = ! useNativeCursor( size );
 
         return this;
     }
@@ -6958,7 +6953,7 @@ console.log( 'set cursor url' );
         if ( useNativeCursor(size) ) {
             this.viewport.css( 'cursor', url );
         } else {
-            console.log( 'set cursor inner' );
+            this.viewport.addClass( NO_CURSOR_CSS );
             this.dom.show();
             this.dom.css( 'background-image', url );
         }
@@ -6973,15 +6968,15 @@ console.log( 'set cursor url' );
 
     DirectCursor.prototype.calculateUrl = function( url, size ) {
         if ( useNativeCursor(size) ) {
-            var x, y;
+            /*
+             * The location is off by one,
+             * when applied as a cursor url.
+             *
+             * So I subtract 1, to correct.
+             */
+            var loc = size/2 - 1;
 
-            if ( size === undefined ) {
-                x = y = 0;
-            } else {
-                x = y = size/2;
-            }
-
-            return 'url(' + url + ') ' + x + ' ' + y + ', auto' ;
+            return 'url(' + url + ') ' + loc + ' ' + loc + ', auto' ;
         } else {
             return 'url(' + url + ')' ;
         }
@@ -6991,7 +6986,6 @@ console.log( 'set cursor url' );
      * Adds the CSS class to the viewport, that the cursor is within.
      */
     DirectCursor.prototype.setClass = function( klass ) {
-console.log( 'set cursor class' );
         // ie cannot handle our cursors, so hide them
         if ( $.browser.msie ) {
             klass = DEFAULT_CURSOR;
@@ -7042,10 +7036,8 @@ console.log( 'set cursor class' );
             this.inScrollbar = false;
 
             if ( this.cursorClass ) {
-console.log( 'leave -> set class', this.cursorClass );
                 this.setClass( this.cursorClass );
             } else if ( this.cursorDataURL ) {
-console.log( 'leave -> set url', this.cursorDataURL !== nil );
                 this.setCursorURLInner( this.cursorDataURL, this.displaySize );
             }
         }
@@ -7296,7 +7288,6 @@ console.log( 'leave -> set url', this.cursorDataURL !== nil );
     };
 
     BrushCursor.prototype.setCrosshair = function() {
-console.log( 'brush set crosshair' );
         this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE );
         this.shape = nil;
 
@@ -7392,18 +7383,16 @@ console.log( 'brush set crosshair' );
             throw new Error( "undefined brush render given" );
         }
 
-console.log('brushcursor.setShape');
         this.shape = render;
         this.size = size;
 
         var zoom = this.zoom;
 
         var newSize = Math.max( (size*zoom) | 0, 1 );
-        if ( newSize < BRUSH_CURSOR_MINIMUM_SIZE ) {
-            newSize = BRUSH_CURSOR_SMALL_RENDER_SIZE;
+        if ( newSize <= BRUSH_CURSOR_MINIMUM_SIZE ) {
+            newSize = BRUSH_CURSOR_MINIMUM_SIZE;
         }
 
-console.log( 'brush cursor -> render!' );
         this.renderShape( render, newSize );
 
         return this;
@@ -7418,7 +7407,7 @@ console.log( 'brush cursor -> render!' );
                 var self = this;
 
                 // draws a cross hair
-                if ( newSize <= BRUSH_CURSOR_SMALL_RENDER_SIZE ) {
+                if ( newSize <= BRUSH_CURSOR_MINIMUM_SIZE ) {
                     self.setCrosshair();
                 } else {
                     var canvas = self.canvas,
@@ -7431,7 +7420,7 @@ console.log( 'brush cursor -> render!' );
                     ctx.lineCap   = 'round';
                     ctx.lineWidth = 1;
 
-                    this.shape.call( self, ctx, canvas, newSize );
+                    this.shape( ctx, canvas, newSize );
 
                     var middle = canvas.width/2;
 
@@ -7446,7 +7435,7 @@ console.log( 'brush cursor -> render!' );
                     ctx.globalAlpha = 0.6;
                     ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   );
 
-                    self.cursor.setCursorURL( canvas.toDataURL(), newSize );
+                    self.cursor.setCursorURL( canvas.toDataURL(), canvas.width );
                 }
             }
         }
@@ -7476,7 +7465,6 @@ console.log( 'brush cursor -> render!' );
 
     BrushCursor.prototype.setCommandCursor = function( painter, command ) {
         var cursor = command.getCursor();
-console.log( 'brush.setCommandCursor', cursor );
 
         if ( ! cursor ) {
             this.cursor.setBlankCursor();
