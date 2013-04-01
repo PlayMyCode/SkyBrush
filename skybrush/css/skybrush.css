@@ -928,7 +928,7 @@
            -moz-transition: background 100ms linear;
                 transition: background 100ms linear;
 
-        border-right: 1px solid #204464;
+        border-left: 1px solid #204464;
     }
         .skybrush_gui_header_text {
         }
@@ -951,11 +951,10 @@
         -moz-box-sizing: border-box;
              box-sizing: border-box;
 
-        border-right: 1px solid #c0c0c0;
+        border-left: 1px solid #c0c0c0;
     }
     .skybrush_gui:last-child > .skybrush_gui_header,
     .skybrush_gui:last-child > .skybrush_gui_content {
-        border-right: none;
         padding-right: 16px
     }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
@@ -1254,11 +1253,12 @@
         }
     .skybrush_gui.sb_gui_main > .skybrush_gui_header {
         width: 210px;
+        border-left: none;
     }
     .skybrush_gui.sb_gui_main > .skybrush_gui_content {
         background: #ddd;
-        border-right: 1px solid #79a;
         height: 100%;
+        border-left: none;
     }
             .skybrush_header_button,
             .skybrush_header_button:hover,
