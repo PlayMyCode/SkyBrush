@@ -437,6 +437,39 @@
         left: 0;
         right: 0;
     }
+        .skybrush_viewport_zoom {
+            position: absolute;
+            top: 30px;
+            font-size: 36px;
+            font-weight 400;
+            text-align: center;
+
+            text-shadow: 1px 1px 2px rgba( 255, 255, 255, 0.3 );
+
+            z-index: 1000;
+
+            left: 50%;
+            margin-left: -100px;
+
+            width: 200px;
+
+            opacity: 0;
+            visibility: hidden;
+
+            -webkit-transition: visibility 0s linear 1000ms, opacity 1000ms linear;
+               -moz-transition: visibility 0s linear 1000ms, opacity 1000ms linear;
+                 -o-transition: visibility 0s linear 1000ms, opacity 1000ms linear;
+                    transition: visibility 0s linear 1000ms, opacity 1000ms linear;
+        }
+        .skybrush_viewport_zoom.sb_show {
+            opacity: 1;
+            visibility: visible;
+ 
+            -webkit-transition: visibility 0s linear, opacity 100ms linear;
+               -moz-transition: visibility 0s linear, opacity 100ms linear;
+                 -o-transition: visibility 0s linear, opacity 100ms linear;
+                    transition: visibility 0s linear, opacity 100ms linear;
+        }
     .skybrush_gui_pane {
         background: #ddd;
         height: 192px;
@@ -466,7 +499,7 @@
     }
         .skybrush_gui_pane_scroll {
             position: absolute;
-            left: 210px;
+            left: 220px;
             right: 0;
             top: 0;
             bottom: 0;
@@ -1252,7 +1285,7 @@
             background: #3C667F !important;
         }
     .skybrush_gui.sb_gui_main > .skybrush_gui_header {
-        width: 210px;
+        width: 220px;
         border-left: none;
     }
     .skybrush_gui.sb_gui_main > .skybrush_gui_content {
@@ -1291,10 +1324,20 @@
             }
             .skybrush_open_toggle {
             }
-                .skybrush_open_toggle_text {
+                .skybrush_open_toggle_text,
+                .sb_zoom_in,
+                .sb_zoom_out {
                     font-size: 25px;
                     line-height: 14px;
-
+                }
+                .skybrush_header_button.sb_zoom_out {
+                    -webkit-transform: translateY(-3px) rotate( 0 );
+                       -moz-transform: translateY(-3px) rotate( 0 );
+                        -ms-transform: translateY(-3px) rotate( 0 );
+                         -o-transform: translateY(-3px) rotate( 0 );
+                            transform: translateY(-3px) rotate( 0 );
+                }
+                .skybrush_open_toggle_text {
                     display: inline-block;
 
                     -webkit-transition: -webkit-transform 120ms linear;
@@ -1327,6 +1370,8 @@
                          transform: translateY(-1px) rotate( 180deg );
                 }
             .skybrush_open_toggle,
+            .skybrush_header_button.sb_zoom_in,
+            .skybrush_header_button.sb_zoom_out,
             .skybrush_header_button.sb_undo,
             .skybrush_header_button.sb_redo {
                 position: absolute;
@@ -1341,15 +1386,28 @@
             .skybrush_open_toggle {
                 width: 40px;
             }
+            .skybrush_header_button.sb_zoom_in,
+            .skybrush_header_button.sb_zoom_out {
+                width: 30px;
+            }
             .skybrush_header_button.sb_undo,
             .skybrush_header_button.sb_redo {
                 width: 60px;
             }
-            .skybrush_header_button.sb_undo {
+            .skybrush_open_toggle {
+                left: 0;
+            }
+            .skybrush_header_button.sb_zoom_out {
                 left: 40px;
             }
-            .skybrush_header_button.sb_redo {
+            .skybrush_header_button.sb_zoom_in {
+                left: 70px;
+            }
+            .skybrush_header_button.sb_undo {
                 left: 100px;
+            }
+            .skybrush_header_button.sb_redo {
+                left: 160px;
             }
 
 .skybrush_gui.sb_gui_commands {

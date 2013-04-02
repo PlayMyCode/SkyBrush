@@ -7758,6 +7758,7 @@
                 '<div class="skybrush_container">' +
                     '<div class="skybrush_wrap">' +
                         '<div class="skybrush_viewport">' +
+                            '<div class="skybrush_viewport_zoom"></div>' +
                             '<div class="skybrush_viewport_content"></div>' +
                         '</div>' +
                         '<div class="skybrush_gui_pane">' +
@@ -7834,7 +7835,9 @@
         this.commands = commands;
         this.pickerCommand = pickerCommand;
 
-        initializeMainButtons( _this, dom.find('.skybrush_gui_pane') );
+        var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
+
+        initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), zoomLabel );
         //initializeSettings( _this );
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
@@ -7869,6 +7872,14 @@
         _this.onZoom( function(zoom) {
             _this.brushCursor.setZoom( zoom );
             _this.refreshCursor();
+
+            var zoomStr = ( zoom * 100 ) + '%';
+
+            zoomLabel.text( zoomStr );
+            zoomLabel.ensureClass('sb_show');
+            setTimeout( function() {
+                zoomLabel.removeClass( 'sb_show' );
+            }, 120 );
         } );
 
         /* ## GUI related events ## */
@@ -8247,16 +8258,32 @@
                     painter.toggleGUIPane();
                 });
 
-        /* finally, put it all togther */
+        /*
+         * Zoom In / Out
+         */
 
-        var header = $('<div>').append( undoButton, redoButton );
+        var zoomIn = topButton('+', 'sb_zoom_in', 'skybrush_header_button',
+                function() {
+                    painter.zoomIn();
+                }
+            ),
+            zoomOut = topButton('-', 'sb_zoom_out', 'skybrush_header_button',
+                function() {
+                    painter.zoomOut();
+                }
+            );
+
+         zoomIn.attr( 'title', 'Zoom In | shortcut: ctrl+='  );
+        zoomOut.attr( 'title', 'Zoom Out | shortcut: ctrl+-' );
+
+        /* finally, put it all togther */
 
         /*
          * This is a special gui, more special than the others,
          * so he gets put aside on his own, to watch over toggling the panel
          * open.
          */
-        var gui = new GUI([ openToggle, undoButton, redoButton ], 'main', false );
+        var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false );
         gui.setParent( painter );
         wrap.append( gui.dom );
     }
