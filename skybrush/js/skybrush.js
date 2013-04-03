@@ -9002,16 +9002,6 @@
                 append( rgbForm ).
                         append( alphaWrap );
 
-                var controlsHeader = $('<div>').
-                        addClass( 'skybrush_controls_header' );
-                var controlsHeaderText = $('<div>').
-                        addClass( 'skybrush_controls_header_text' );
-                controlsHeaderText.text( 'SWATCHES' );
-
-                controlsHeader.
-                        append( controlsHeaderText ).
-                        append( $('<div>').addClass( 'skybrush_controls_header_line' ) );
-
                 var destinationAlpha = $('<div>').
                         addClass( 'skybrush_destination_alpha' ).
                         append(
