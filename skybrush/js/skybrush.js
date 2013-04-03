@@ -1939,22 +1939,9 @@
 
     GUI.prototype.setParent = function( parent ) {
         this.parent = parent;
-    };
-
-    /**
-     * Sets the content inside of this GUI.
-     * This will replace anything currently inside.
-     *
-     * @param dom The content for this GUI.
-     * @return This GUI.
-     */
-    /*
-    GUI.prototype.content = function( dom ) {
-        this.dom.children( '.skybrush_gui_content' ).empty().append( dom );
 
         return this;
     };
-*/
 
     /**
      * Adds an element to the GUI.
@@ -1973,7 +1960,7 @@
      * @param dom The jQuery object to add to this GUI.
      * @return This GUI.
      */
-    GUI.prototype.add = function() {
+    GUI.prototype.addContent = function() {
         for ( var i = 0; i < arguments.length; i++ ) {
             this.dom.children('.skybrush_gui_content').append( arguments[i] );
         }
@@ -7863,7 +7850,7 @@
         var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
 
         initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), zoomLabel );
-        //initializeSettings( _this );
+        initializeSettings( _this );
         initializeColors( _this, pickerCommand );
         initializeCommands( _this );
         initializeShortcuts( _this, (options.grab_ctrl_r === false) );
@@ -8285,19 +8272,10 @@
          zoomIn.attr( 'title', 'Zoom In | shortcut: ctrl+='  );
         zoomOut.attr( 'title', 'Zoom Out | shortcut: ctrl+-' );
 
-        /* finally, put it all togther */
-
         /*
-         * This is a special gui, more special than the others,
-         * so he gets put aside on his own, to watch over toggling the panel
-         * open.
+         * Copy + Paste
          */
-        var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false );
-        gui.setParent( painter );
-        wrap.append( gui.dom );
-    }
 
-    var initializeSettings = function( painter ) {
         var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
                     function() {
                         painter.getInfoBar().hide();
@@ -8346,6 +8324,21 @@
                  append( cut ).
                  append( paste );
 
+        /* finally, put it all togther */
+
+        /*
+         * This is a special gui, more special than the others,
+         * so he gets put aside on his own, to watch over toggling the panel
+         * open.
+         */
+        var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
+                setParent( painter ).
+                addContent( copyButtons );
+
+        wrap.append( gui.dom );
+    }
+
+    var initializeSettings = function( painter ) {
         /* Resize & Scale */
         var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
@@ -8604,6 +8597,12 @@
                 append( grid ).
                 append( clear ).
                 append( crop );
+
+        var gui = new GUI( 'Canvas', 'canvas' ).
+                addContent( resize, scale, grid, clear, crop ).
+                close();
+
+        painter.addGUI( gui );
     };
 
 
@@ -9030,12 +9029,11 @@
                         );
 
         var colorGUI = new GUI( 'Palette', 'colors' ).
-                add( newGUIBlock(currentColor, destinationAlpha) ).
+                addContent( newGUIBlock(currentColor, destinationAlpha) ).
                 append( mixer );
         
         var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
-                append( colors ).
-                close();
+                append( colors );
 
         painter.addGUI( colorGUI, swatchesGUI );
 
@@ -9248,7 +9246,6 @@
         var domObj = painter.dom.get(0);
 
         painter.onCtrl( 187, function() {
-            console.log('kdkd');
             painter.zoomIn();
         });
         painter.onCtrl( 189, function() {
@@ -10363,10 +10360,8 @@
 
     SkyBrush.prototype.toggleGUIPane = function() {
         if ( this.isGUIsShown() ) {
-            console.log( 'close gui pane' );
             this.closeGUIPane();
         } else {
-            console.log( 'open gui pane' );
             this.openGUIPane();
         }
 
