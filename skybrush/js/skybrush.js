@@ -1903,6 +1903,18 @@
             }
         } );
 
+        if ( clickableHeader !== false ) {
+            var darkenContent = $('<div>').addClass('skybrush_gui_darken');
+
+            darkenContent.leftclick( function(ev) {
+                if ( ! self.isOpen() ) {
+                    self.open();
+                }
+            });
+
+            this.dom.append( darkenContent );
+        }
+
         self.header = header;
         self.isDragged = false;
 
@@ -1918,8 +1930,7 @@
             header.bind( 'selectstart', function() { return false; } );
         }
 
-        this.dom.append( header );
-        this.dom.append( content );
+        this.dom.append( header, content );
         this.content = content;
 
         // set later
@@ -1971,7 +1982,11 @@
     };
 
     GUI.prototype.open = function() {
-        ths.dom.removeClass( 'sb_hide' );
+        if ( ! this.parent.isGUIsShown() ) {
+            this.parent.showGUIPane();
+        }
+
+        this.dom.removeClass( 'sb_hide' );
         
         return this;
     };
@@ -1982,8 +1997,17 @@
         return this;
     };
 
+    GUI.prototype.isOpen = function() {
+        return ! this.dom.hasClass( 'sb_hide' );
+    };
+
     GUI.prototype.toggleOpen = function() {
-        this.dom.toggleClass( 'sb_hide' );
+        if ( this.parent.isGUIsShown() ) {
+            this.dom.toggleClass( 'sb_hide' );
+        } else {
+            this.parent.showGUIPane();
+            this.dom.removeClass( 'sb_hide' );
+        }
 
         return this;
     };
@@ -7779,8 +7803,9 @@
             canvas, ctx;
 
         _this.dom = dom;
-        _this.guiDom   = this.dom.find( '.skybrush_gui_pane_content' );
-        _this.viewport = this.dom.find( '.skybrush_viewport_content' ).
+        _this.guiPane  = _this.dom.find( '.skybrush_gui_pane' );
+        _this.guiDom   = _this.guiPane.find( '.skybrush_gui_pane_content' );
+        _this.viewport = _this.dom.find( '.skybrush_viewport_content' ).
                 dblclick( function(ev) {
                     ev.stopPropagation();
                     ev.preventDefault();
@@ -7832,8 +7857,8 @@
          *
          * @const
          */
-        this.commands = commands;
-        this.pickerCommand = pickerCommand;
+        _this.commands = commands;
+        _this.pickerCommand = pickerCommand;
 
         var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
 
@@ -7866,16 +7891,24 @@
             }
         }
 
-        _this.brushCursor = new BrushCursor( this, _this.viewport, IS_TOUCH, cursorTranslator );
+        _this.brushCursor = new BrushCursor( _this, _this.viewport, IS_TOUCH, cursorTranslator );
 
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
             _this.brushCursor.setZoom( zoom );
             _this.refreshCursor();
 
-            var zoomStr = ( zoom * 100 ) + '%';
+            zoom *= 100;
 
-            zoomLabel.text( zoomStr );
+            /*
+             * check for a decimal place, and if it's there,
+             * remove the excess decimal places.
+             */
+            if ( (zoom|0) !== zoom ) {
+                zoom = zoom.toFixed(1);
+            }
+
+            zoomLabel.text( zoom + '%' );
             zoomLabel.ensureClass('sb_show');
             setTimeout( function() {
                 zoomLabel.removeClass( 'sb_show' );
@@ -7927,30 +7960,6 @@
      */
     SkyBrush.prototype.onResize = function( fun ) {
         this.events.add( 'resize', fun );
-    };
-
-    /**
-     * If a GUI dialogue is outside the screen, then it is moved
-     * so it's now on screen again.
-     *
-     * This is designed for when people resize the Window,
-     * to prevent them losing a GUI dialogue.
-     */
-    SkyBrush.prototype.repositionGUIs = function() {
-        var windowWidth = $(window).width();
-
-        this.guiDom.children( '.skybrush_gui' ).each( function() {
-            var gui = $(this),
-                pos = gui.offset();
-            var wx = pos.left + gui.width();
-
-            if ( wx > windowWidth ) {
-                gui.translate(
-                        pos.x - (wx-windowWidth),
-                        pos.y
-                );
-            }
-        } );
     };
 
     /**
@@ -8595,98 +8604,6 @@
                 append( grid ).
                 append( clear ).
                 append( crop );
-
-        /* Build the Save / Load */
-
-        // TODO
-        // this needs to be replaced with a file upload, hooked into the HTML 5 File API
-        // see: https://developer.mozilla.org/en/Using_files_from_web_applications
-        // see: http://www.html5rocks.com/en/tutorials/file/dndfiles/
-        if (window.File && window.FileReader && window.FileList && window.Blob) {
-            var load = topButton( 'Load', 'load', 'skybrush_button',
-                    function() {
-                        painter.getInfoBar().hide();
-
-                        // TODO
-                    }
-            );
-        }
-
-        /* Build the zoom control. */
-
-        var zoomSlider = $slider().
-                addClass('skybrush_zoom_bar').
-                limit( 0, MAX_ZOOM ).
-                val( MAX_ZOOM/2 ).
-                step( 1 ).
-                slide( function(ev, n, p) {
-                    painter.setZoomPercent( p, true, true );
-                    painter.getInfoBar().hide();
-                } );
-
-        var zoomLabel = $('<div>').
-                addClass( 'skybrush_zoom_label' );
-
-        painter.onZoom( function( zoom ) {
-            var zoomI = zoom * 100 ;
-
-            /*
-             * Round to 2 decimal places, if 2 are needed.
-             * Otherwise round to 1, or ensure the number
-             * has no decimals.
-             */
-            if ( zoomI < 100 && (zoomI - (zoomI|0)) > 0.1 ) {
-                zoomI = zoomI.toFixed( 1 );
-            } else {
-                zoomI |= 0;
-            }
-
-            zoomLabel.text( zoomI + '%' );
-            zoomSlider.setSlide( zoomToPercent(zoom) );
-        } );
-
-        var zoom = $('<div>').
-                addClass( 'skybrush_zoom_control' ).
-                addClass( 'skybrush_button' );
-
-        // the zoom in/out buttons
-        var zoomOutButton = topButton('+', 'skybrush_top_bar_zoom_in',
-                function() {
-                    zoomSlider.slideUp();
-                } );
-        var zoomInButton = topButton('-', 'skybrush_top_bar_zoom_out',
-                function() {
-                    zoomSlider.slideDown();
-                } );
-
-        zoom.
-                append( zoomInButton ).
-                append(
-                        $('<span class="skybrush_zoom_bar_wrap"></span>').
-                                append( zoomSlider )
-                ).
-                append( zoomOutButton );
-
-        if ( zoomSlider.isFake() ) {
-            zoom.addClass( 'sb_fake' );
-            zoomOutButton.addClass( 'sb_fake' );
-            zoomInButton.addClass( 'sb_fake' );
-        }
-
-        var zoomWrap = $('<div>').
-                addClass( 'skybrush_topbar_zoom_wrap' ).
-                append( zoom ).
-                append( zoomLabel );
-
-        topbar.
-                append( zoomWrap ).
-                append( undoRedo ).
-                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
-                append( copyButtons ).
-                append( $('<div>|</div>').addClass('skybrush_topbar_seperator') ).
-                append( commonControls );
-
-        zoomSlider.setSlide( zoomToPercent(defaultZoom) );
     };
 
 
@@ -9596,13 +9513,16 @@
          * This is so surrounding controls work ok.
          */
         if (
-                $target.parents('.skybrush').size() > 0 &&
+                $target.parents('.skybrush_viewport').size() > 0 &&
                 ( IS_TOUCH || ev.which === LEFT ) &&
                 ! $target.is('input, a, .sb_no_target') &&
                 ! ev.isInScrollBar(this.viewport)
         ) {
             if ( this.isDragging() ) {
                 processDrag( this, this.dragging.onStart, ev );
+            // hide the GUI pane, if it's been quickly opened
+            } else if ( this.isGUIsOverlapping() ) {
+                this.closeGUIPane();
             } else {
                 this.isPainting = true;
                 return this.runStartDraw( ev );
@@ -9686,6 +9606,7 @@
         for ( var i = 0; i < arguments.length; i++ ) {
             var gui = arguments[i];
             gui.setParent( this );
+
             this.guiDom.append( gui.dom );
         }
 
@@ -10418,24 +10339,44 @@
         return this.canvas.getHeight();
     };
 
+    /**
+     * Shows the GUI pane, but does not show it forever.
+     */
+    SkyBrush.prototype.showGUIPane = function() {
+        this.guiPane.ensureClass( 'sb_open' );
+
+        return this;
+    }
+
     SkyBrush.prototype.openGUIPane = function() {
-        this.guiDom.parents('.skybrush_gui_pane').ensureClass( 'sb_open' );
+        this.guiPane.ensureClass( 'sb_open' );
         this.viewport.parent().ensureClass( 'sb_open' );
 
         return this;
     }
 
     SkyBrush.prototype.closeGUIPane = function() {
-        this.guiDom.parents('.skybrush_gui_pane').removeClass( 'sb_open' );
+        this.guiPane.removeClass( 'sb_open' );
         this.viewport.parent().removeClass( 'sb_open' );
 
         return this;
     }
 
+    SkyBrush.prototype.isGUIsOverlapping = function() {
+        return this.guiPane.hasClass('sb_open') && 
+             ! this.viewport.parent().hasClass('sb_open');
+    }
+
+    SkyBrush.prototype.isGUIsShown = function() {
+        return this.guiPane.hasClass('sb_open');
+    }
+
     SkyBrush.prototype.toggleGUIPane = function() {
-        if ( this.viewport.parent().hasClass('sb_open') ) {
+        if ( this.isGUIsShown() ) {
+            console.log( 'close gui pane' );
             this.closeGUIPane();
         } else {
+            console.log( 'open gui pane' );
             this.openGUIPane();
         }
 

@@ -120,7 +120,9 @@
  * having no user select, and common reset properties.
  */
 .skybrush_viewport,
-.skybrush_viewport * {
+.skybrush_viewport *,
+.skybrush_gui_header,
+.skybrush_gui_header_bar {
     -webkit-user-select: none;
      -khtml-user-select: none;
        -moz-user-select: none;
@@ -915,6 +917,9 @@
 
     vertical-align: top;
 }
+.skybrush_gui.sb_hide {
+    width: 60px;
+}
 
 /* Set correct cursor for components.
  * 
@@ -968,6 +973,29 @@
     .skybrush_gui_header:hover,
     .skybrush_header_button:hover {
         background: #4C769F;
+    }
+    .skybrush_gui_darken {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+
+        visibility: hidden;
+
+        opacity: 0.4;
+        background: rgba( 0, 0, 0, 0.7 );
+
+        z-index: 1000;
+
+        pointer-events: none;
+
+        border-right: 1px solid #000;
+    }
+    .skybrush_gui.sb_hide > .skybrush_gui_darken {
+        visibility: visible;
+        pointer-events: auto;
+        cursor: pointer;
     }
     .skybrush_gui_content {
         line-height: 135px;
