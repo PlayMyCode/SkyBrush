@@ -7849,10 +7849,10 @@
 
         var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
 
-        initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), zoomLabel );
-        initializeSettings( _this );
-        initializeColors( _this, pickerCommand );
+        initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), pickerCommand );
+        initializeColors( _this );
         initializeCommands( _this );
+        initializeSettings( _this );
         initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
         _this.infoBar = new InfoBar( dom );
@@ -8157,7 +8157,7 @@
      * Private functions used by the SkyBrush.
      */
 
-    var topButton = function() {
+    var newButton = function() {
         var fun = nil,
             args = nil;
 
@@ -8197,15 +8197,15 @@
         return button.killEvent( 'click', 'leftdown' );
     }
 
-    var initializeMainButtons = function( painter, wrap ) {
-        var undoButton = topButton('Undo', 'sb_undo', 'skybrush_header_button', 'sb_disabled',
+    var initializeMainButtons = function( painter, wrap, pickerCommand ) {
+        var undoButton = newButton('Undo', 'sb_undo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.undo();
                     }
                 }
             ),
-            redoButton = topButton('Redo', 'sb_redo', 'skybrush_header_button', 'sb_disabled',
+            redoButton = newButton('Redo', 'sb_redo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8258,12 +8258,12 @@
          * Zoom In / Out
          */
 
-        var zoomIn = topButton('+', 'sb_zoom_in', 'skybrush_header_button',
+        var zoomIn = newButton('+', 'sb_zoom_in', 'skybrush_header_button',
                 function() {
                     painter.zoomIn();
                 }
             ),
-            zoomOut = topButton('-', 'sb_zoom_out', 'skybrush_header_button',
+            zoomOut = newButton('-', 'sb_zoom_out', 'skybrush_header_button',
                 function() {
                     painter.zoomOut();
                 }
@@ -8276,7 +8276,7 @@
          * Copy + Paste
          */
 
-        var copy = topButton('Copy', 'skybrush_button', 'sb_disabled',
+        var copy = newButton('Copy', 'skybrush_button', 'sb_disabled', 'sb_copy',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8284,7 +8284,7 @@
                             painter.copy();
                         }
                     } ),
-            cut = topButton( 'Cut', 'skybrush_button', 'sb_disabled',
+            cut = newButton( 'Cut', 'skybrush_button', 'sb_disabled', 'sb_cut',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8292,7 +8292,7 @@
                             painter.cut();
                         }
                     } ),
-            paste = topButton('Paste', 'skybrush_button', 'sb_disabled',
+            paste = newButton('Paste', 'skybrush_button', 'sb_disabled', 'sb_paste',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8324,6 +8324,61 @@
                  append( cut ).
                  append( paste );
 
+        /*
+         * The current colour icon, and colour picker 
+         */
+
+        var currentColorBack = document.createElement('div');
+        currentColorBack.className = 'skybrush_color_picker_current_color_back';
+
+        var currentColorShow = document.createElement('div');
+        currentColorShow.className = 'skybrush_color_picker_current_color';
+
+        painter.onSetColor( function(strCol) {
+            currentColorShow.style.background = strCol;
+        } );
+
+        painter.onSetAlpha( function(alpha) {
+            currentColorShow.style.opacity = alpha;
+        } );
+
+        // colour picker
+        var pickerCommandBack = document.createElement( 'div' );
+        pickerCommandBack.className = 'skybrush_command_back';
+
+        var picker = document.createElement('div');
+        picker.className = 'skybrush_gui_command ' + pickerCommand.getCSS();
+        picker.appendChild( pickerCommandBack );
+        picker.appendChild(
+                $a( '' ).
+                        attr( 'title', pickerCommand.getCaption() ).
+                        click( function(ev) {
+                                painter.setCommand( pickerCommand );
+
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                        }).
+                        get(0)
+        );
+        picker.setAttribute( 'data-command', pickerCommand );
+
+        painter.onSetCommand( function( command ) {
+            if ( command === picker.getAttribute('data-command') ) {
+                picker.classList.add( 'sb_selected' );
+            } else {
+                picker.classList.remove( 'sb_selected' );
+            }
+        } );
+
+        // colour info wrap
+        
+        var colourInfo = document.createElement('div');
+        colourInfo.className = 'skybrush_colour_info';
+
+        colourInfo.appendChild( currentColorBack );
+        colourInfo.appendChild( currentColorShow );
+        colourInfo.appendChild( picker );
+
         /* finally, put it all togther */
 
         /*
@@ -8333,7 +8388,7 @@
          */
         var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
                 setParent( painter ).
-                addContent( copyButtons );
+                addContent( copyButtons, colourInfo );
 
         wrap.append( gui.dom );
     }
@@ -8343,7 +8398,7 @@
         var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
 
-            return topButton(name, 'skybrush_button',
+            return newButton(name, 'skybrush_button',
                     function() {
                         var width  = painter.getCanvas().getWidth(),
                             height = painter.getCanvas().getHeight();
@@ -8491,7 +8546,7 @@
                 }
         );
 
-        var grid = topButton( 'Grid', 'grid', 'skybrush_button',
+        var grid = newButton( 'Grid', 'grid', 'skybrush_button',
                 function(ev) {
                     var grid = painter.getCanvas().getGrid(),
                         width = $('<input>'),
@@ -8570,7 +8625,7 @@
         );
 
         /* Clear Canvas */
-        var crop = topButton('Crop', 'skybrush_button',
+        var crop = newButton('Crop', 'skybrush_button',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8579,7 +8634,7 @@
         );
         crop.attr( 'title', 'Crop Image, ctrl+e' );
 
-        var clear = topButton('Clear', 'skybrush_button',
+        var clear = newButton('Clear', 'skybrush_button',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8599,8 +8654,7 @@
                 append( crop );
 
         var gui = new GUI( 'Canvas', 'canvas' ).
-                addContent( resize, scale, grid, clear, crop ).
-                close();
+                addContent( resize, scale, grid, clear, crop );
 
         painter.addGUI( gui );
     };
@@ -8869,60 +8923,8 @@
                 }
         );
 
-        /* Colour Picker */
-
-        var picker = $('<div>').
-                addClass( 'skybrush_gui_command' ).
-                addClass( pickerCommand.getCSS() ).
-                        append( $('<div>').addClass( 'skybrush_command_back' ) ).
-                        append(
-                                $a( '' ).
-                                        attr( 'title', pickerCommand.getCaption() ).
-                                        click( function(ev) {
-                                                painter.setCommand( pickerCommand );
-
-                                                ev.preventDefault();
-                                                ev.stopPropagation();
-                                        })
-                        );
-        picker.data( 'command', pickerCommand );
-
-        painter.onSetCommand( function( command ) {
-            if ( command == picker.data('command') ) {
-                picker.ensureClass( 'sb_selected' );
-            } else {
-                picker.removeClass('sb_selected');
-            }
-        } );
-
         /* Current Colour Info */
-
-        var currentColorShow = $('<div>').
-                addClass('skybrush_color_picker_current_color');
-        var rgbForm = $('<div>').addClass('skybrush_rgb_form');
-        var rgbCSSs = {
-                r : 'skybrush_rgb_r',
-                g : 'skybrush_rgb_g',
-                b : 'skybrush_rgb_b'
-        };
-
-        /**
-         * Grabs the RGB values in the form,
-         * and sets them as the current colour in the SkyBrush.
-         *
-         * This is used for when the RGB values have been altered,
-         * and they need to sync those values to the SkyBrush.
-         */
-        var syncRGBFormToCurrentColor = function() {
-            var r = getVal( rgbForm.find( '.skybrush_rgb_r' ), 255 ),
-                g = getVal( rgbForm.find( '.skybrush_rgb_g' ), 255 ),
-                b = getVal( rgbForm.find( '.skybrush_rgb_b' ), 255 );
-
-            painter.setColor(
-                    rgbToColor( r, g, b )
-            );
-        };
-
+        
         var getVal = function( input, max ) {
             var num = input.val();
 
@@ -8966,27 +8968,87 @@
                     append( input );
         };
 
-        for ( var name in rgbCSSs ) {
-            var css = rgbCSSs[ name ];
+        var rInput,
+            gInput,
+            bInput;
 
-            rgbForm.append(
-                    newInput(name, css, syncRGBFormToCurrentColor, false, 255)
+        /**
+         * Grabs the RGB values in the form,
+         * and sets them as the current colour in the SkyBrush.
+         *
+         * This is used for when the RGB values have been altered,
+         * and they need to sync those values to the SkyBrush.
+         */
+        var syncRGBFormToCurrentColor = function() {
+            var r = getVal( rInput, 255 ),
+                g = getVal( gInput, 255 ),
+                b = getVal( bInput, 255 );
+
+            painter.setColor(
+                    rgbToColor( r, g, b )
             );
-        }
-        var alphaInput = newInput('a', 'rgb_a', syncAlpha, true, 1.0 );
-        rgbForm.append( alphaInput );
+        };
+
+        var rWrap = newInput( 'r', 'skybrush_rgb_r', syncRGBFormToCurrentColor, false, 255 ),
+            gWrap = newInput( 'g', 'skybrush_rgb_g', syncRGBFormToCurrentColor, false, 255 ),
+            bWrap = newInput( 'b', 'skybrush_rgb_b', syncRGBFormToCurrentColor, false, 255 );
+
+        rInput = rWrap.find('input');
+        gInput = gWrap.find('input');
+        bInput = bWrap.find('input');
+
+        var aWrap = newInput('a', 'rgb_a', syncAlpha, true, 1.0 );
+        var aInput = aWrap.children('input');
+
+        var rgbForm = $('<div>').
+                addClass('skybrush_rgb_form').
+                append( rWrap, gWrap, bWrap, aWrap );
+
+        /*
+         * HSV Form 
+         */
+
+        var hInput,
+            sInput,
+            vInput;
+
+        var syncHSVFormToCurrentColor = function() {
+            // convert to 0.0 to 1.0 values
+            var h = getVal( hInput, 360 ) / 360.0,
+                s = getVal( sInput, 100 ) / 100.0,
+                v = getVal( vInput, 100 ) / 100.0;
+
+            painter.setColor(
+                    hsvToColor( h, s, v )
+            );
+        };
+
+        var hWrap = newInput( 'h', 'skybrush_rgb_h', syncHSVFormToCurrentColor, false, 360 ),
+            sWrap = newInput( 's', 'skybrush_rgb_s', syncHSVFormToCurrentColor, false, 100 ),
+            vWrap = newInput( 'v', 'skybrush_rgb_v', syncHSVFormToCurrentColor, false, 100 );
+
+        hInput = hWrap.find('input');
+        sInput = sWrap.find('input');
+        vInput = vWrap.find('input');
+
+        var hsvForm = $('<div>').
+                addClass( 'skybrush_hsv_form' ).
+                append( hWrap, sWrap, vWrap );
 
         /* Alpha Handling */
 
         var alphaBar = $('<div>').
                 addClass('skybrush_color_alpha_line');
+
         var alphaGradient = $('<div>').
                 addClass('skybrush_color_alpha_gradient');
+
         var alphaBar = $('<div>').
                 addClass('skybrush_color_alpha_bar').
                 append( alphaGradient ).
                 append( alphaBar ).
                 killEvent( 'click' );
+
         var alphaWrap = $('<div>').
                 addClass('skybrush_color_alpha_wrap').
                 append( alphaBar );
@@ -8995,38 +9057,36 @@
 
         var currentColor = $('<div>').
                 addClass('skybrush_color_picker').
-                append( $('<div>').addClass('skybrush_color_picker_current_color_back') ).
-                append( currentColorShow ).
-                        append( picker ).
-                append( rgbForm ).
-                        append( alphaWrap );
+                append( hsvForm, rgbForm ).
+                append( alphaWrap );
 
-                var destinationAlpha = $('<div>').
-                        addClass( 'skybrush_destination_alpha' ).
-                        append(
-                                $('<div>Paint Mode</div>').addClass( 'skybrush_command_control_label' )
-                        ).
-                        append(
-                                $('<input>').
-                                        attr( 'type', 'button' ).
-                                        addClass( 'skybrush_input_button' ).
-                                        val( 'Normal' ).
-                                        click( function(ev) {
-                                            var $this = $(this);
-                                            var mode = $this.val(),
-                                                c = painter.getCanvas();
+        var destinationAlpha = $('<div>').
+                addClass( 'skybrush_destination_alpha' ).
+                append(
+                        $('<div>Paint Mode</div>').
+                                addClass( 'skybrush_command_control_label' )
+                ).
+                append(
+                        $('<input>').
+                                attr( 'type', 'button' ).
+                                addClass( 'skybrush_input_button' ).
+                                val( 'Normal' ).
+                                click( function(ev) {
+                                    var $this = $(this);
+                                    var mode = $this.val(),
+                                        c = painter.getCanvas();
 
-                                            if ( mode == 'Normal' ) {
-                                                mode = 'Mask';
-                                                c.useDestinationAlpha();
-                                            } else {
-                                                mode = 'Normal';
-                                                c.useBlendAlpha();
-                                            }
+                                    if ( mode == 'Normal' ) {
+                                        mode = 'Mask';
+                                        c.useDestinationAlpha();
+                                    } else {
+                                        mode = 'Normal';
+                                        c.useBlendAlpha();
+                                    }
 
-                                            $this.val( mode );
-                                        } )
-                        );
+                                    $this.val( mode );
+                                } )
+                );
 
         var colorGUI = new GUI( 'Palette', 'colors' ).
                 addContent( newGUIBlock(currentColor, destinationAlpha) ).
@@ -9077,7 +9137,6 @@
             }
 
             // update the shown colour
-            currentColorShow.css('background', strColor);
             alphaBar.css('background', strColor);
 
             // convert #ff9933 colour into r, g, b values
@@ -9088,11 +9147,16 @@
                 g = (rgb >>  8) & 0xff,
                 b = rgb & 0xff ;
 
-            var rInput = rgbForm.find( '.skybrush_rgb_r' ),
-                gInput = rgbForm.find( '.skybrush_rgb_g' ),
-                bInput = rgbForm.find( '.skybrush_rgb_b' );
+            var hasRGBFocus =
+                    rInput.is(':focus') ||
+                    gInput.is(':focus') ||
+                    bInput.is(':focus') ;
+            var hasHSVFocus =
+                    hInput.is(':focus') ||
+                    sInput.is(':focus') ||
+                    vInput.is(':focus') ;
 
-            if ( ! (rInput.is(':focus') || gInput.is(':focus') || bInput.is(':focus')) ) {
+            if ( ! hasRGBFocus ) {
                 // and set the values
                 rInput.val( r ),
                 gInput.val( g ),
@@ -9107,6 +9171,11 @@
             // cache these for laterz
             saturation = hsv[1];
             value = hsv[2];
+
+            if ( ! hasHSVFocus ) {
+                sInput.val( Math.round(saturation * 100) );
+                vInput.val( Math.round(value * 100) );
+            }
 
             /* Update X/Y location of the overlay bars */
             var xVal = saturation, // saturation
@@ -9145,6 +9214,10 @@
 
             if ( saturation > 0 || hue === undefined ) {
                 updateHue( hsv[0] );
+
+                if ( ! hasHSVFocus ) {
+                    hInput.val( Math.round(hsv[0] * 360) );
+                }
             }
         } );
 
@@ -9154,12 +9227,9 @@
                     children( '.skybrush_color_alpha_line' ).
                     translate( 0, y );
  
-            currentColorShow.css('opacity', alpha);
-
-            var aInput = alphaInput.children('input');
             if ( ! aInput.is(':focus') ) {
                 // concat alpha down to just two decimal places
-                alphaInput.children('input').val( alpha.toFixed(2) );
+                aInput.val( alpha.toFixed(2) );
             }
         } );
     };

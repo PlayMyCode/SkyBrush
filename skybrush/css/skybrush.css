@@ -303,7 +303,9 @@
             font-size:12px;
             
             padding:2px 4px;
-            line-height:normal;
+            line-height: 38px;
+            height: 38px;
+
             display:inline-block;
             text-align:center;
             min-width:40px;
@@ -1191,7 +1193,7 @@
     .skybrush_color_alpha_wrap {
         float: right;
         
-        margin: 0 7px 0 0;
+        margin: 0 12px 0 0;
         width: 24px;
         height: 100%;
 
@@ -1227,40 +1229,18 @@
     .skybrush_color_picker {
         clear: both;
         
-        width: 140px;
         height: 90px;
         
         position: relative;
         
-        padding-top: 1px;
+        padding: 1px 9px 0;
         
         float: left;
         clear: both;
     }
-        .skybrush_color_picker_current_color_back,
-        .skybrush_color_picker_current_color {
-            float: left;
-            clear: both;
-            
-            width : 54px;
-            
-            display: block;
-            
-            position: absolute;
-            
-            /* matches padding of the parent colour_picker */
-            top: 6px;
-            bottom: 43px;
-        }
-        .skybrush_color_picker_current_color_back {
-            background: url(./../images/skybrush/canvas_back.png) repeat;
-        }
-        .skybrush_color_picker_current_color {
-            background: white;
-        }
-        .skybrush_rgb_form {
+        .skybrush_rgb_form,
+        .skybrush_hsv_form {
             float: right;
-            clear: right;
             margin: 1px 0 0 5px;
         }
             .skybrush_rgb_wrap {
@@ -1291,6 +1271,8 @@
         text-align: center;
 
         width: 100%;
+        
+        line-height: 32px;
 
         margin: 5px 0 5px 0;
     }
@@ -1315,11 +1297,20 @@
     .skybrush_gui.sb_gui_main > .skybrush_gui_header {
         width: 220px;
         border-left: none;
+
+        border-right: 1px solid #204464;
     }
     .skybrush_gui.sb_gui_main > .skybrush_gui_content {
-        background: #ddd;
-        height: 100%;
+        background: #fff;
         border-left: none;
+
+        border-right: 1px solid #c0c0c0;
+
+        position: absolute;
+        top: 32px;
+        bottom: 0;
+        left: 0;
+        right: 0;
     }
             .skybrush_header_button,
             .skybrush_header_button:hover,
@@ -1438,6 +1429,46 @@
                 left: 160px;
             }
 
+    .skybrush_colour_info {
+        position: absolute;
+        right: 16px;
+        top: 5px;
+        bottom: 5px;
+
+        width : 54px;
+    }
+        .skybrush_color_picker_current_color_back,
+        .skybrush_color_picker_current_color {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+
+            height: 48px;
+        }
+        .skybrush_color_picker_current_color_back {
+            background: url(./../images/skybrush/canvas_back.png) repeat;
+        }
+        .skybrush_color_picker_current_color {
+            background: white;
+        }
+        
+    .skybrush_button.sb_cut,
+    .skybrush_button.sb_copy,
+    .skybrush_button.sb_paste {
+        position: absolute;
+        left: 0;
+    }
+    .skybrush_button.sb_cut {
+        top: 4px;
+    }
+    .skybrush_button.sb_copy {
+        top: 55px;
+    }
+    .skybrush_button.sb_paste {
+        top: 107px;
+    }
+
 .skybrush_gui.sb_gui_commands {
 }
         .skybrush_gui.sb_gui_commands > .skybrush_gui_content > .skybrush_gui_header > .skybrush_controls_header_line {
@@ -1539,7 +1570,7 @@
             }
         .sb_command_picker {
             position: absolute;
-            bottom: -2px;
+            bottom: 0;
             left: 0;
 
             width:  56px;
@@ -1561,7 +1592,6 @@
     .skybrush_command_controls {
         float: left;
         clear: both;
-        width: 140px;
         margin: 3px 0 8px 0;
     }
         .skybrush_command_controls_inner {
