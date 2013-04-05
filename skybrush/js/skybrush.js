@@ -9242,33 +9242,37 @@
     var initializeCommands = function( painter ) {
         var commands = $('<div>').addClass('skybrush_commands_pane');
 
-        var controlsWrap = $('<div>').
-                addClass( 'skybrush_command_controls' );
+        var controlsWrap = document.createElement('div');
+        controlsWrap.className = 'skybrush_command_controls';
 
         for ( var i = 0; i < painter.commands.length; i++ ) {
             var c = painter.commands[i];
 
-            var command = $('<div>').addClass( 'skybrush_gui_command' ).addClass( c.css ).
-                    append( $('<div>').addClass( 'skybrush_command_back' ) ).
-                    append(
-                            $a( '' ).
-                                    vclick( function(ev) {
-                                        ev.preventDefault();
-                                        ev.stopPropagation();
+            var command = document.createElement( 'div' );
+            command.className = 'skybrush_gui_command ' + c.css;
+            command.__command = c;
 
-                                        painter.setCommand(
-                                            $(this).parent().data('command')
-                                        );
-                                    } ).
-                                    attr( 'title', c.getCaption() )
-                    );
+            var commandBack = document.createElement( 'div' );
+            commandBack.className = 'skybrush_command_back';
+            command.appendChild( commandBack );
 
-            command.data( 'command', c );
+            command.appendChild( 
+                    $a( '' ).
+                            vclick( function(ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+
+                                painter.setCommand( this.parentNode.__command );
+                            } ).
+                            attr( 'title', c.getCaption() ).
+                            get( 0 )
+            );
+
             commands.append( command );
 
             var cControls = c.createControlsDom( painter );
             if ( cControls ) {
-                controlsWrap.append( cControls );
+                controlsWrap.appendChild( cControls.get(0) );
             }
         }
 
@@ -9283,22 +9287,22 @@
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command, lastCommand) {
             commands.find( '.skybrush_gui_command' ).each( function() {
-                var _this = $(this);
-
-                if ( _this.data('command') == command ) {
-                    _this.addClass( 'sb_selected' );
-                } else if ( _this.hasClass('sb_selected') ) {
-                    _this.removeClass( 'sb_selected' );
+                if ( this.__command === command ) {
+                    this.classList.add( 'sb_selected' );
+                } else if ( this.classList.contains('sb_selected') ) {
+                    this.classList.remove( 'sb_selected' );
                 }
             } );
 
             var controls;
             if ( lastCommand !== nil ) {
                 controls = lastCommand.getControlsDom();
+
                 if ( controls !== nil ) {
                     controls.removeClass('sb_show')
                 }
             }
+
             controls = command.getControlsDom();
             if ( controls !== nil ) {
                 controls.addClass('sb_show')
