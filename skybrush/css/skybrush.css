@@ -480,6 +480,8 @@
                     transition: visibility 0s linear, opacity 100ms linear;
         }
     .skybrush_gui_pane {
+        z-index: 2; /* 1 more than the upscale */
+
         background: #ddd;
         height: 192px;
 
