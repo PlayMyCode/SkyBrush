@@ -1598,6 +1598,7 @@
             float: left;
             clear: both;
             width:  100%;
+            min-width: 147px;
             height: 100%;
 
             display: none;
@@ -1605,6 +1606,14 @@
         .skybrush_command_controls_inner.sb_show {
             display: block;
         }
+            .skybrush_command_no_controls {
+                width: 100%;
+                text-align: center;
+                color: #999;
+                font-style: italic;
+                line-height: 130px;
+                vertical-align: middle;
+            }
             .skybrush_command_controls_inner > .skybrush_control {
                 float: left;
                 clear: both;
@@ -1621,6 +1630,7 @@
             }
             input[type="range"].skybrush_slider_bar {
                 padding: 0;
+                cursor: pointer;
             }
             .skybrush.msie input[type="range"].skybrush_slider_bar {
                 top: -2px;

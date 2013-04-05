@@ -4885,17 +4885,17 @@
          * @param controlsSetup An array listing all of the commands for this control.
          */
         var Command = function( setup ) {
-            this.name    = setup.name     || '' ;
-            this.css = setup.css ?
+            this.name    = setup.name    || '' ;
+            this.caption = setup.caption || '' ;
+            this.cursor  = setup.cursor  || nil;
+            this.css     = setup.css ?
                     COMMAND_CSS_PREFIX + setup.css :
-                    '' ;
-            this.caption = setup.caption  || '' ;
-
-            this.cursor = setup.cursor    || nil;
+                    ''                             ;
 
             this.drawArea = nil;
 
             this.dom = nil;
+            this.domInitialized = false;
             this.controlsSetup = setup.controls;
 
             if ( setup.onDown ) {
@@ -4909,7 +4909,7 @@
             }
 
             if ( setup.onMoveOnUp ) {
-                this.onUp =
+                this.onUp   =
                 this.onMove =
                         setup.onMoveOnUp;
             }
@@ -4985,9 +4985,11 @@
                 if ( this.shiftDown ) {
                     painter.removeOnShift( this.shiftDown );
 
-                    // if changing whilst shift is down,
-                    // we call as though it was lifte,
-                    // so it's like it was released
+                    /*
+                     * If changing whilst shift is down,
+                     * we call as though it was lifte,
+                     * so it's like it was released.
+                     */
                     if ( painter.isShiftDown() ) {
                         this.shiftDown.call( painter, false );
                     }
@@ -5022,7 +5024,7 @@
          * @param A jQuery object for the control.
          */
         Command.prototype.getControl = function( name ) {
-            return this.getControlsDom().find( '.' + controlNameToCSSID(name) );
+            return this.getControlsDom().getElementsByClassName( controlNameToCSSID(name) )[0];
         };
 
         /**
@@ -5036,20 +5038,25 @@
              * Controls dom is loaded in a lazy way so painter
              * starts up a tad faster,
              */
-            if ( this.dom === nil && this.controlsSetup ) {
-                var dom = nil,
-                    controlsSetup = this.controlsSetup;
+            if ( ! this.domInitialized ) {
+                this.domInitialized = true;
 
-                dom = $('<div>').
-                        addClass( 'skybrush_command_controls_inner' );
+                var dom = document.createElement( 'div' );
+                dom.className = 'skybrush_command_controls_inner' ;
 
-                if ( controlsSetup instanceof Array ) {
+                var controlsSetup = this.controlsSetup;
+                if ( ! controlsSetup ) {
+                    dom.innerHTML = '<div class="skybrush_command_no_controls">no settings</div>';
+                } else if ( controlsSetup instanceof Array ) {
                     for ( var i = 0; i < controlsSetup.length; i++ ) {
-                        var cDom = newCommandControl( this, controlsSetup[i], painter );
-                        dom.append( cDom );
+                        dom.appendChild(
+                                newCommandControl( this, controlsSetup[i], painter ).get(0)
+                        );
                     }
                 } else {
-                    dom.append( newCommandControl( this, controlsSetup, painter ) );
+                    dom.appendChild(
+                            newCommandControl( this, controlsSetup, painter ).get(0)
+                    );
                 }
 
                 this.dom = dom;
@@ -7821,19 +7828,19 @@
         _this.isShiftDownFlag = false;
         _this.isAltDownFlag = false;
 
-        var commands = newCommands();
+        var allCommands = newCommands();
 
         /*
          * Pull out the colour picker command,
          * as we treat is seperately.
          */
         var pickerCommand = nil;
-        for ( var i = 0; i < commands.length; i++ ) {
-            var command = commands[i];
+        for ( var i = 0; i < allCommands.length; i++ ) {
+            var command = allCommands[i];
 
             if ( command.getName().toLowerCase() === 'picker' ) {
+                allCommands.splice( i, 1 );
                 pickerCommand = command;
-                commands.splice( i, 1 );
 
                 break;
             }
@@ -7844,14 +7851,14 @@
          *
          * @const
          */
-        _this.commands = commands;
+        _this.commands = allCommands;
         _this.pickerCommand = pickerCommand;
 
         var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
 
         initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), pickerCommand );
         initializeColors( _this );
-        initializeCommands( _this );
+        initializeCommands( _this, allCommands, pickerCommand );
         initializeSettings( _this );
         initializeShortcuts( _this, (options.grab_ctrl_r === false) );
 
@@ -7880,10 +7887,14 @@
 
         _this.brushCursor = new BrushCursor( _this, _this.viewport, IS_TOUCH, cursorTranslator );
 
+        _this.onSetCommand( function() {
+            this.refreshCursor();
+        });
+
         // update the cursor on zoom
         _this.onZoom( function(zoom) {
-            _this.brushCursor.setZoom( zoom );
-            _this.refreshCursor();
+            this.brushCursor.setZoom( zoom );
+            this.refreshCursor();
 
             zoom *= 100;
 
@@ -9239,14 +9250,15 @@
      *
      * @param painter The SkyBrush application.
      */
-    var initializeCommands = function( painter ) {
-        var commands = $('<div>').addClass('skybrush_commands_pane');
+    var initializeCommands = function( painter, commandsList, picker ) {
+        var commands = document.createElement( 'div' );
+        commands.className = 'skybrush_commands_pane';
 
         var controlsWrap = document.createElement('div');
         controlsWrap.className = 'skybrush_command_controls';
 
-        for ( var i = 0; i < painter.commands.length; i++ ) {
-            var c = painter.commands[i];
+        for ( var i = 0; i < commandsList.length; i++ ) {
+            var c = commandsList[i];
 
             var command = document.createElement( 'div' );
             command.className = 'skybrush_gui_command ' + c.css;
@@ -9268,13 +9280,12 @@
                             get( 0 )
             );
 
-            commands.append( command );
+            commands.appendChild( command );
 
-            var cControls = c.createControlsDom( painter );
-            if ( cControls ) {
-                controlsWrap.appendChild( cControls.get(0) );
-            }
+            controlsWrap.appendChild( c.createControlsDom(painter) );
         }
+
+        controlsWrap.appendChild( picker.createControlsDom(painter) );
 
         var commandsGUI = new GUI( 'Tools', 'commands' ).
                 append( commands );
@@ -9286,29 +9297,30 @@
 
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command, lastCommand) {
-            commands.find( '.skybrush_gui_command' ).each( function() {
-                if ( this.__command === command ) {
-                    this.classList.add( 'sb_selected' );
-                } else if ( this.classList.contains('sb_selected') ) {
-                    this.classList.remove( 'sb_selected' );
+            var commandDoms = commands.getElementsByClassName( '.skybrush_gui_command' );
+            for ( var i = 0; i < commandDoms.length; i++ ) {
+                var commandDom = commandDoms[i];
+
+                if ( commandDom.__command === command ) {
+                    commandDom.classList.add( 'sb_selected' );
+                } else if ( commandDom.classList.contains('sb_selected') ) {
+                    commandDom.classList.remove( 'sb_selected' );
                 }
-            } );
+            }
 
             var controls;
             if ( lastCommand !== nil ) {
                 controls = lastCommand.getControlsDom();
 
                 if ( controls !== nil ) {
-                    controls.removeClass('sb_show')
+                    controls.classList.remove('sb_show')
                 }
             }
 
             controls = command.getControlsDom();
             if ( controls !== nil ) {
-                controls.addClass('sb_show')
+                controls.classList.add('sb_show')
             }
-
-            painter.refreshCursor();
         } );
     };
 
