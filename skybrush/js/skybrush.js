@@ -8317,7 +8317,7 @@
          * Copy + Paste
          */
 
-        var copy = newButton('Copy', 'skybrush_button', 'sb_disabled',
+        var copy = newButton('Copy', 'skybrush_button', 'sb_disabled', 'sb_absolute',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8325,7 +8325,7 @@
                             painter.copy();
                         }
                     } ),
-            cut = newButton( 'Cut', 'skybrush_button', 'sb_disabled',
+            cut = newButton( 'Cut', 'skybrush_button', 'sb_disabled', 'sb_absolute',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8333,7 +8333,7 @@
                             painter.cut();
                         }
                     } ),
-            paste = newButton('Paste', 'skybrush_button', 'sb_disabled',
+            paste = newButton('Paste', 'skybrush_button', 'sb_disabled', 'sb_absolute',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8448,7 +8448,7 @@
         var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
 
-            return newButton(name, 'skybrush_button', 
+            return newButton(name, 'skybrush_button',  'sb_absolute',
                     function() {
                         var width  = painter.getCanvas().getWidth(),
                             height = painter.getCanvas().getHeight();
@@ -8596,7 +8596,7 @@
                 }
         );
 
-        var grid = newButton( 'Grid', 'skybrush_button',
+        var grid = newButton( 'Grid', 'skybrush_button', 'sb_absolute',
                 function(ev) {
                     var grid = painter.getCanvas().getGrid(),
                         width = $('<input>'),
@@ -8675,7 +8675,7 @@
         );
 
         /* Clear Canvas */
-        var crop = newButton('Crop', 'skybrush_button',
+        var crop = newButton('Crop', 'skybrush_button', 'sb_absolute',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8684,7 +8684,7 @@
         );
         crop.attr( 'title', 'Crop Image, ctrl+e' );
 
-        var clear = newButton('Clear', 'skybrush_button',
+        var clear = newButton('Clear', 'skybrush_button', 'sb_absolute',
                 function() {
                     painter.getInfoBar().hide();
 

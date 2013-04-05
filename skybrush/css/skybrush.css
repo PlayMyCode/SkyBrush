@@ -163,6 +163,12 @@
     margin: 0;
 }
 
+.sb_absolute {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
 /**
  * Common SkyBrush Controls.
  *
@@ -312,7 +318,6 @@
             text-transform: uppercase;
             cursor:pointer;
             text-shadow:0 1px 0 #fff;
-            position: relative;
             
             -webkit-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
                -moz-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
@@ -1001,13 +1006,15 @@
     }
     .skybrush_gui_content {
         line-height: 135px;
-        left: 0;
+
+        position: relative;
         bottom: -1px;
+
+        height: 100%;
         
         display: block;
         
         z-index: 0;
-        position: relative;
         
         padding: 5px;
 
@@ -1431,11 +1438,11 @@
 
     .skybrush_colour_info {
         position: absolute;
-        right: 16px;
-        top: 5px;
-        bottom: 5px;
+        right : 16px;
+        top   : 24px;
+        bottom: 57px;
 
-        width : 54px;
+        width : 84px;
     }
         .skybrush_color_picker_current_color_back,
         .skybrush_color_picker_current_color {
@@ -1453,18 +1460,17 @@
             background: white;
         }
         
-    .skybrush_button.sb_cut,
-    .skybrush_button.sb_copy,
-    .skybrush_button.sb_paste {
-        position: absolute;
-        left: 0;
-    }
+    .skybrush_button.sb_canvas_size,
+    .skybrush_button.sb_clear,
     .skybrush_button.sb_cut {
         top: 4px;
     }
+    .skybrush_button.sb_image_size,
+    .skybrush_button.sb_crop,
     .skybrush_button.sb_copy {
         top: 55px;
     }
+    .skybrush_button.sb_grid,
     .skybrush_button.sb_paste {
         top: 107px;
     }
@@ -1571,7 +1577,8 @@
         .sb_command_picker {
             position: absolute;
             bottom: 0;
-            left: 0;
+            left: 50%;
+            margin-left: -28px;
 
             width:  56px;
             height: 35px;
@@ -1695,6 +1702,20 @@
                 .skybrush_control.sb_control_toggle > .skybrush_command_control_label {
                     padding-top: 5px;
                 }
+
+.sb_gui_canvas {
+    width: 200px;
+}
+    .skybrush_button.sb_canvas_size,
+    .skybrush_button.sb_image_size,
+    .skybrush_button.sb_grid {
+        width: 85px;
+    }
+    .skybrush_button.sb_clear,
+    .skybrush_button.sb_crop {
+        left: 102px;
+        width: 60px;
+    }
 
 /*
  * The custom drawn mouse cursor,
