@@ -9645,9 +9645,11 @@
             if ( this.isDragging() ) {
                 processDrag( this, this.dragging.onStart, ev );
             // hide the GUI pane, if it's been quickly opened
-            } else if ( this.isGUIsOverlapping() ) {
-                this.closeGUIPane();
             } else {
+                if ( this.isGUIsOverlapping() ) {
+                    this.closeGUIPane();
+                }
+
                 this.isPainting = true;
                 return this.runStartDraw( ev );
             }
