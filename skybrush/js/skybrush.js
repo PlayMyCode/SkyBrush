@@ -3050,7 +3050,9 @@
          * including when the window size has changed.
          */
         painter.onResize( function() {
-            _this.updateCanvasSize();
+            setTimeout( function() {
+                _this.updateCanvasSize();
+            }, 0 );
         } );
 
         _this.grid    = new GridManager( viewport );
@@ -3058,7 +3060,7 @@
         _this.copyObj = new CopyManager( viewport );
 
         painter.onSetCommand( function( command ) {
-            if ( command.name.toLowerCase() != 'move' ) {
+            if ( command.name.toLowerCase() !== 'move' ) {
                 _this.endPaste();
             }
         } );
@@ -8401,10 +8403,10 @@
                         }).
                         get(0)
         );
-        picker.setAttribute( 'data-command', pickerCommand );
+        picker.__command = pickerCommand;
 
         painter.onSetCommand( function( command ) {
-            if ( command === picker.getAttribute('data-command') ) {
+            if ( command === picker.__command ) {
                 picker.classList.add( 'sb_selected' );
             } else {
                 picker.classList.remove( 'sb_selected' );
@@ -9346,7 +9348,7 @@
 
         // hook up the selection changes directly into the SkyBrush it's self
         painter.onSetCommand( function(command, lastCommand) {
-            var commandDoms = commands.getElementsByClassName( '.skybrush_gui_command' );
+            var commandDoms = commands.getElementsByClassName( 'skybrush_gui_command' );
             for ( var i = 0; i < commandDoms.length; i++ ) {
                 var commandDom = commandDoms[i];
 
