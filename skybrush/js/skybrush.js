@@ -581,6 +581,12 @@
          */
         MAX_BRUSH_SIZE = 50,
 
+        /**
+         * In some places, we need a function that just returns false.
+         * In those occasions, this can be used.
+         */
+        RETURN_FALSE = function() { return false },
+
         /*
          * WARNING! All colours _MUST_ be 6 values hex values!
          */
@@ -4650,18 +4656,18 @@
                 defaultField = command[ field ];
             }
 
-            var cDom = $('<div>').
-                    addClass( 'skybrush_control' ).
-                    addClass( CONTROL_CSS_PREFIX + type );
+            var cDom = document.createElement( 'div' );
+            cDom.className = 
+                    'skybrush_control '         +
+                    CONTROL_CSS_PREFIX + type   +
+                    ( (css !== undefined) ? 
+                            ' sb_' + css :
+                            '' ) ;
 
-            // Add CSS class if we have it
-            if ( css !== undefined ) {
-                cDom.addClass( 'sb_' + css );
-            }
-
-            var label = $('<div>').
-                    addClass('skybrush_command_control_label');
-            label.text( name );
+            var label = document.createElement('div');
+            label.className = 'skybrush_command_control_label';
+            label.innerHTML = name;
+            cDom.appendChild( label );
 
             var cssID = controlNameToCSSID( name );
 
@@ -4694,11 +4700,8 @@
                     checkbox.attr( 'checked', 'checked' );
                 }
 
-                cDom.
-                        append( label ).
-                        append( checkbox );
+                cDom.appendChild( checkbox.get(0) );
             } else if ( type == 'toggle' ) {
-                cDom.append( label );
                 var cssStates = control.css_options,
                         names = control.name_options;
 
@@ -4743,7 +4746,7 @@
                         }
                 } );
 
-                cDom.append( toggle );
+                cDom.appendChild( toggle.get(0) );
             } else if ( type === 'slider' ) {
                 var min  = control.min,
                     max  = control.max,
@@ -4803,10 +4806,8 @@
                 // initialize
                 val.val( defaultField );
 
-                cDom.
-                        append( label ).
-                        append( slider ).
-                        append( val );
+                cDom.appendChild( slider.get(0) );
+                cDom.appendChild(    val.get(0) );
 
                 // Slider must be updated in the future,
                 // after the reflow.
@@ -5050,12 +5051,12 @@
                 } else if ( controlsSetup instanceof Array ) {
                     for ( var i = 0; i < controlsSetup.length; i++ ) {
                         dom.appendChild(
-                                newCommandControl( this, controlsSetup[i], painter ).get(0)
+                                newCommandControl( this, controlsSetup[i], painter )
                         );
                     }
                 } else {
                     dom.appendChild(
-                            newCommandControl( this, controlsSetup, painter ).get(0)
+                            newCommandControl( this, controlsSetup, painter )
                     );
                 }
 
@@ -8168,55 +8169,84 @@
      * Private functions used by the SkyBrush.
      */
 
-    var newButton = function() {
-        var fun = nil,
-            args = nil;
+    var NOT_ALPHA_NUMERIC_LOWER = /[^a-z0-9_]+/g;
 
-        for ( var i = arguments.length-1; i >= 0; i-- ) {
+    var newButton = function() {
+        var dom = document.createElement( 'a' );
+        dom.setAttribute( 'href', '#' );
+        var $dom = $(dom);
+
+        var text  = '',
+            klass = '';
+
+        var expectText = true;
+
+        var i = 0;
+        for ( i = 0; i < arguments.length; i++ ) {
             var arg = arguments[i];
 
-            if ( isFunction(arg) ) {
-                fun = arg;
-                
-                // this is the common case
-                if ( i === arguments.length-1 ) {
-                    args = Array.prototype.slice.call( arguments, 0, i );
-                } else if ( i === 0 ) {
-                    args = Array.prototype.slice.call( arguments, i );
-                } else {
-                    args = Array.prototype.slice.call( arguments, 0, i ).
-                            concat(
-                                    Array.prototype.slice.call( arguments, i+1 )
-                            );
-                }
-
-                break;
+            if ( typeof arg === 'function' ) {
+                $dom.vclick( arg );
+            } else if ( expectText ) {
+                dom.innerHTML = text = arg;
+                expectText = false;
+            } else {
+                klass += ' ' + arg;
             }
         }
 
-        var button;
-        if ( args === nil ) {
-            button = $a.apply( nil, arguments );
-        } else {
-            button = $a.apply( nil, args );
+        if ( text !== '' ) {
+            var left  = 0,
+                right = text.length;
+
+            for ( ; left < right; left++ ) {
+                var c = text.charCodeAt( left );
+
+                if (
+                         c === 95 ||
+                        (c >= 65 && c <=  90) ||
+                        (c >= 97 && c <= 122) ||
+                        (c >= 48 && c <=  57)
+                ) {
+                    break;
+                }
+            }
+            
+            while ( right --> left ) {
+                var c = text.charCodeAt( right );
+
+                if (
+                         c === 95 ||
+                        (c >= 65 && c <=  90) ||
+                        (c >= 97 && c <= 122) ||
+                        (c >= 48 && c <=  57)
+                ) {
+                    break;
+                }
+            }
+
+            if ( (right-left) > 0 ) {
+                klass += ' sb_' + text.
+                        substring( left, right+1 ).
+                        toLowerCase().
+                        replace( NOT_ALPHA_NUMERIC_LOWER, '_' );
+            }
         }
 
-        if ( fun !== nil ) {
-            button.vclick( fun );
-        }
+        dom.className = klass;
 
-        return button.killEvent( 'click', 'leftdown' );
+        return $dom.killEvent( 'click', 'leftdown' );
     }
 
     var initializeMainButtons = function( painter, wrap, pickerCommand ) {
-        var undoButton = newButton('Undo', 'sb_undo', 'skybrush_header_button', 'sb_disabled',
+        var undoButton = newButton('Undo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     if ( ! $(this).hasClass('sb_disabled') ) {
                         painter.undo();
                     }
                 }
             ),
-            redoButton = newButton('Redo', 'sb_redo', 'skybrush_header_button', 'sb_disabled',
+            redoButton = newButton('Redo', 'skybrush_header_button', 'sb_disabled',
                 function() {
                     painter.getInfoBar().hide();
 
@@ -8287,7 +8317,7 @@
          * Copy + Paste
          */
 
-        var copy = newButton('Copy', 'skybrush_button', 'sb_disabled', 'sb_copy',
+        var copy = newButton('Copy', 'skybrush_button', 'sb_disabled',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8295,7 +8325,7 @@
                             painter.copy();
                         }
                     } ),
-            cut = newButton( 'Cut', 'skybrush_button', 'sb_disabled', 'sb_cut',
+            cut = newButton( 'Cut', 'skybrush_button', 'sb_disabled',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8303,7 +8333,7 @@
                             painter.cut();
                         }
                     } ),
-            paste = newButton('Paste', 'skybrush_button', 'sb_disabled', 'sb_paste',
+            paste = newButton('Paste', 'skybrush_button', 'sb_disabled',
                     function() {
                         painter.getInfoBar().hide();
 
@@ -8404,12 +8434,21 @@
         wrap.append( gui.dom );
     }
 
+    /**
+     * Sets up the 'Canvas' GUI pane,
+     * which has options like resize, scale, grid,
+     * clear, and crop.
+     */
     var initializeSettings = function( painter ) {
-        /* Resize & Scale */
+
+        /*
+         * Resize & Scale 
+         */
+
         var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
 
-            return newButton(name, 'skybrush_button',
+            return newButton(name, 'skybrush_button', 
                     function() {
                         var width  = painter.getCanvas().getWidth(),
                             height = painter.getCanvas().getHeight();
@@ -8557,7 +8596,7 @@
                 }
         );
 
-        var grid = newButton( 'Grid', 'grid', 'skybrush_button',
+        var grid = newButton( 'Grid', 'skybrush_button',
                 function(ev) {
                     var grid = painter.getCanvas().getGrid(),
                         width = $('<input>'),
@@ -8755,10 +8794,9 @@
             var strBackColor = hsvToColor( newHue, 1.0, 1.0 );
 
             // update the back of the mixer
-            colourBack.css({
-                    'border-top-color' :strBackColor,
-                    'border-left-color':strBackColor
-            });
+            colourBack.style.borderTopColor  = 
+            colourBack.style.borderLeftColor =
+                    strBackColor;
 
             /* Update the colour wheel */
 
@@ -8777,10 +8815,8 @@
 
         var mixerSize = COLOUR_MIXER_WIDTH;
 
-        var mixer = $('<div>').
-                addClass('skybrush_color_mixer');
-        var colourBack = $('<div>').
-                addClass('skybrush_color_mixer_back');
+        var colourBack = document.createElement('div');
+        colourBack.className = 'skybrush_color_mixer_back';
 
         var canvas = newCanvas( mixerSize, mixerSize ),
             ctx = canvas.ctx,
@@ -8831,11 +8867,12 @@
         var colourWheelCanvas = newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
         var wheelCtx = colourWheelCanvas.ctx;
         var wheelData = wheelCtx.getImageData( 0, 0, COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
-        var wheelLine = $(
-                '<div class="skybrush_color_wheel_line_outer">' +
-                    '<div class="skybrush_color_wheel_line"></div>' +
-                '</div>'
-        );
+
+        var wheelLineDom = document.createElement('div');
+        wheelLineDom.className = 'skybrush_color_wheel_line_outer';
+        wheelLineDom.innerHTML = '<div class="skybrush_color_wheel_line"></div>';
+
+        var wheelLine = $( wheelLineDom );
         data = wheelData.data;
 
         for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
@@ -8893,25 +8930,26 @@
 
         /* Combine Colour Mixer */
 
-        var colourWheelWrap = $('<div>').
-                addClass( 'skybrush_color_wheel_wrap' ).
-                append( colourWheel ).
-                append( wheelLine   );
+        var colourWheelWrap = document.createElement('div');
+        colourWheelWrap.className = 'skybrush_color_wheel_wrap';
+        colourWheelWrap.appendChild( colourWheel.get(0) );
+        colourWheelWrap.appendChild( wheelLine.get(0)   );
 
         var mixerHorizontal = $('<div>').
-                    addClass( 'skybrush_mixer_horizontal_line' ),
-            mixerVertical = $('<div>').
-                    addClass( 'skybrush_mixer_vertical_line' );
+                    addClass( 'skybrush_mixer_horizontal_line' ).
+                    forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
 
-        $().add( mixerHorizontal ).add( mixerVertical ).
-                forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
+        var mixerVertical = $('<div>').
+                    addClass( 'skybrush_mixer_vertical_line' ).
+                    forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
 
-        mixer.
-                append( colourBack ).
-                append( mixerFront.addClass( 'skybrush_color_mixer_color_layer' ) ).
-                append( mixerHorizontal ).
-                append( mixerVertical   ).
-                append( colourWheelWrap );
+        var mixer = document.createElement('div');
+        mixer.className = 'skybrush_color_mixer';
+        mixer.appendChild( colourBack               );
+        mixer.appendChild( mixerFront.addClass( 'skybrush_color_mixer_color_layer' ).get(0) );
+        mixer.appendChild( mixerHorizontal.get(0)   );
+        mixer.appendChild( mixerVertical.get(0)     );
+        mixer.appendChild( colourWheelWrap          );
 
         mixerFront.leftdrag(
                 function(ev) {
@@ -8953,9 +8991,9 @@
 
         /* Create the RGB lebel/inputs in the form. */
         var newInput = function( name, css, event, isDecimal, max ) {
-            var label = $('<div>').
-                    addClass('skybrush_rgb_label');
-            label.text( name );
+            var label = document.createElement('div');
+            label.className = 'skybrush_rgb_label';
+            label.innerHTML = name;
 
             var input = $('<input>').
                     addClass( css ).
@@ -8971,12 +9009,17 @@
                         $(this).val( getVal( $(this), max ) );
 
                         event.call( this, ev );
-                    });
+                    }).
+                    get(0);
 
-            return $('<div>').
-                    addClass( 'skybrush_rgb_wrap' ).
-                    append( label ).
-                    append( input );
+            var inputWrap = document.createElement( 'div' );
+            inputWrap.className = 'skybrush_rgb_wrap';
+            inputWrap.appendChild( label );
+            inputWrap.appendChild( input );
+
+            inputWrap.__input = input;
+
+            return inputWrap;
         };
 
         var rInput,
@@ -9004,16 +9047,19 @@
             gWrap = newInput( 'g', 'skybrush_rgb_g', syncRGBFormToCurrentColor, false, 255 ),
             bWrap = newInput( 'b', 'skybrush_rgb_b', syncRGBFormToCurrentColor, false, 255 );
 
-        rInput = rWrap.find('input');
-        gInput = gWrap.find('input');
-        bInput = bWrap.find('input');
+        rInput = $( rWrap.__input );
+        gInput = $( gWrap.__input );
+        bInput = $( bWrap.__input );
 
         var aWrap = newInput('a', 'rgb_a', syncAlpha, true, 1.0 );
-        var aInput = aWrap.children('input');
+        var aInput = $( aWrap.__input );
 
-        var rgbForm = $('<div>').
-                addClass('skybrush_rgb_form').
-                append( rWrap, gWrap, bWrap, aWrap );
+        var rgbForm = document.createElement( 'div' );
+        rgbForm.className = 'skybrush_rgb_form' ;
+        rgbForm.appendChild( rWrap );
+        rgbForm.appendChild( gWrap );
+        rgbForm.appendChild( bWrap );
+        rgbForm.appendChild( aWrap );
 
         /*
          * HSV Form 
@@ -9038,66 +9084,76 @@
             sWrap = newInput( 's', 'skybrush_rgb_s', syncHSVFormToCurrentColor, false, 100 ),
             vWrap = newInput( 'v', 'skybrush_rgb_v', syncHSVFormToCurrentColor, false, 100 );
 
-        hInput = hWrap.find('input');
-        sInput = sWrap.find('input');
-        vInput = vWrap.find('input');
+        hInput = $( hWrap.__input );
+        sInput = $( sWrap.__input );
+        vInput = $( vWrap.__input );
 
-        var hsvForm = $('<div>').
-                addClass( 'skybrush_hsv_form' ).
-                append( hWrap, sWrap, vWrap );
+        var hsvForm = document.createElement( 'div' );
+        hsvForm.className = 'skybrush_hsv_form' ;
+        hsvForm.appendChild( hWrap );
+        hsvForm.appendChild( sWrap );
+        hsvForm.appendChild( vWrap );
 
         /* Alpha Handling */
 
-        var alphaBar = $('<div>').
+        var alphaBarLine = $('<div>').
                 addClass('skybrush_color_alpha_line');
 
         var alphaGradient = $('<div>').
                 addClass('skybrush_color_alpha_gradient');
 
-        var alphaBar = $('<div>').
-                addClass('skybrush_color_alpha_bar').
-                append( alphaGradient ).
-                append( alphaBar ).
-                killEvent( 'click' );
+        var alphaBar = document.createElement('div');
+        alphaBar.className = 'skybrush_color_alpha_bar';
+        alphaBar.appendChild( alphaGradient.get(0) );
+        alphaBar.appendChild( alphaBarLine.get(0)  );
+        alphaBar.addEventListener( 'click', function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
 
-        var alphaWrap = $('<div>').
-                addClass('skybrush_color_alpha_wrap').
-                append( alphaBar );
+            return false;
+        } );
+
+        var alphaWrap = document.createElement('div');
+        alphaWrap.className = 'skybrush_color_alpha_wrap' ;
+        alphaWrap.appendChild( alphaBar );
 
         /* Put the GUI together */
 
-        var currentColor = $('<div>').
-                addClass('skybrush_color_picker').
-                append( hsvForm, rgbForm ).
-                append( alphaWrap );
+        var currentColor = document.createElement('div');
+        currentColor.className = 'skybrush_color_picker';
+        currentColor.appendChild( hsvForm );
+        currentColor.appendChild( rgbForm );
+        currentColor.appendChild( alphaWrap );
 
-        var destinationAlpha = $('<div>').
-                addClass( 'skybrush_destination_alpha' ).
-                append(
-                        $('<div>Paint Mode</div>').
-                                addClass( 'skybrush_command_control_label' )
-                ).
-                append(
-                        $('<input>').
-                                attr( 'type', 'button' ).
-                                addClass( 'skybrush_input_button' ).
-                                val( 'Normal' ).
-                                click( function(ev) {
-                                    var $this = $(this);
-                                    var mode = $this.val(),
-                                        c = painter.getCanvas();
+        var paintModeLabel = document.createElement('div');
+        paintModeLabel.className = 'skybrush_command_control_label';
+        paintModeLabel.innerHTML = 'Paint Mode';
 
-                                    if ( mode == 'Normal' ) {
-                                        mode = 'Mask';
-                                        c.useDestinationAlpha();
-                                    } else {
-                                        mode = 'Normal';
-                                        c.useBlendAlpha();
-                                    }
+        var destinationAlpha = document.createElement('div');
+        destinationAlpha.className = 'skybrush_destination_alpha';
+        destinationAlpha.appendChild( paintModeLabel );
+        destinationAlpha.appendChild(
+                $('<input>').
+                        attr( 'type', 'button' ).
+                        addClass( 'skybrush_input_button' ).
+                        val( 'Normal' ).
+                        click( function(ev) {
+                            var $this = $(this);
+                            var mode = $this.val(),
+                                c = painter.getCanvas();
 
-                                    $this.val( mode );
-                                } )
-                );
+                            if ( mode == 'Normal' ) {
+                                mode = 'Mask';
+                                c.useDestinationAlpha();
+                            } else {
+                                mode = 'Normal';
+                                c.useBlendAlpha();
+                            }
+
+                            $this.val( mode );
+                        } ).
+                        get(0)
+        );
 
         var colorGUI = new GUI( 'Palette', 'colors' ).
                 addContent( newGUIBlock(currentColor, destinationAlpha) ).
@@ -9110,14 +9166,13 @@
 
         /* Now generate the alpha gradient, now the canvas has reflowed */
 
-        var alphaCanvas = newCheckerboard(
-            alphaGradient.width(), alphaGradient.height(),
-            true
-        );
+        var $alphaCanvas = $(newCheckerboard(
+                alphaGradient.width(), 
+                alphaGradient.height(),
+                true
+        ));
 
-        var $alphaCanvas = $(alphaCanvas).
-                addClass('gradient');
-                $().add( $alphaCanvas ).add( alphaBar ).
+        $().add( $alphaCanvas ).add( alphaBar ).
                 leftdrag( function(ev) {
                     var pos = $alphaCanvas.offset(),
                           h = $alphaCanvas.height();
@@ -9132,9 +9187,10 @@
         /* Disable Selections on some components in IE */
 
         if ( $.browser.msie ) {
-            colourWheel.bind( 'selectstart', function() {return false;} );
-             mixerFront.bind( 'selectstart', function() {return false;} );
-               alphaBar.bind( 'selectstart', function() {return false;} );
+            colourWheel.bind( 'selectstart', RETURN_FALSE );
+             mixerFront.bind( 'selectstart', RETURN_FALSE );
+
+            alphaBar.addEventListener( 'selectstart', RETURN_FALSE );
         }
 
         /*
@@ -9142,13 +9198,8 @@
          */
 
         painter.onSetColor( function(strColor) {
-            if ( currentColor !== nil ) {
-                currentColor.removeClass( 'sb_show' );
-                currentColor = nil;
-            }
-
             // update the shown colour
-            alphaBar.css('background', strColor);
+            alphaBar.style.background = strColor;
 
             // convert #ff9933 colour into r, g, b values
             var hexStr = strColor.substring(1,7);
@@ -9156,7 +9207,7 @@
 
             var r = (rgb >> 16) & 0xff,
                 g = (rgb >>  8) & 0xff,
-                b = rgb & 0xff ;
+                b =  rgb & 0xff ;
 
             var hasRGBFocus =
                     rInput.is(':focus') ||
@@ -9233,10 +9284,8 @@
         } );
 
         painter.onSetAlpha( function( alpha ) {
-            var y = Math.floor( alpha*alphaBar.height() );
-            alphaBar.
-                    children( '.skybrush_color_alpha_line' ).
-                    translate( 0, y );
+            var y = Math.floor( alpha*alphaBar.clientHeight );
+            alphaBarLine.translate( 0, y );
  
             if ( ! aInput.is(':focus') ) {
                 // concat alpha down to just two decimal places
