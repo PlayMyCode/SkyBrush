@@ -44,6 +44,7 @@ Paste      | ctrl + v           | command + v
 Select All | ctrl + a           | command + a
 Crop       | ctrl + e           | command + e
 Delete     | delete             | delete
+Zoom In/Out| shift + mouse wheel| shift + mouse wheel
 
 ### Switch to Tool
 

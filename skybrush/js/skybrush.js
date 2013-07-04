@@ -67,6 +67,8 @@
  *
  * These commands do stuff:
  *
+ *  shift+mousewheel - zooms in and out
+ *
  *  delete - clears selection (or everything if no selection)
  *  ctrl+z - undo
  *  ctrl+r, ctrl+y - redo
@@ -7806,6 +7808,20 @@
                 dblclick( function(ev) {
                     ev.stopPropagation();
                     ev.preventDefault();
+                } ).
+                on( 'DOMMouseScroll mousewheel wheel', function(ev) {
+                    if ( ev.shiftKey ) {
+                        var scrollDir = ev.originalEvent.wheelDelta;
+
+                        if ( scrollDir < 0 ) {
+                            _this.zoomOut();
+                        } else if ( scrollDir > 0 ) {
+                            _this.zoomIn();
+                        }
+
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    }
                 } );
 
         _this.events = new events.Handler( _this );
@@ -7973,6 +7989,10 @@
      */
     SkyBrush.prototype.onCtrl = function( key, fun ) {
         var _this = this;
+
+        if ( !(fun instanceof Function) || (typeof fun !== 'function') ) {
+            throw new Error("Function expected for 'onCtrl'");
+        }
 
         if ( typeof key === 'string' ) {
             key = key.toLowerCase();
