@@ -4548,6 +4548,7 @@
     InfoBar.prototype.show = function( button ) {
         if ( ! this.isShown() ) {
             this.dom.addClass( 'sb_show' );
+            this.highlightFirstInput();
         }
     };
 
@@ -4568,6 +4569,24 @@
         }
     };
 
+    InfoBar.prototype.highlightFirstInput = function() {
+        /*
+         * Grabs the first textual input box, and gives it focus.
+         *
+         * Changing the value is to undo any highlighting,
+         * selection of all of the text,
+         * which some browsers may do.
+         */
+        this.content.
+                find( 'input[type="text"], input[type="number"]' ).
+                first().
+                focus().
+                each( function() {
+                    var $this = $( this );
+                    $this.val( $this.val() );
+                } );
+    };
+
     InfoBar.prototype.setContent = function() {
         this.content.empty();
         this.confirm = nil;
@@ -4575,6 +4594,8 @@
         for ( var i = 0; i < arguments.length; i++ ) {
             this.content.append( arguments[i] );
         }
+
+        this.highlightFirstInput();
 
         return this;
     };
