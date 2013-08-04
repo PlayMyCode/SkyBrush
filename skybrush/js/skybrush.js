@@ -10522,12 +10522,16 @@
         this.guiPane.ensureClass( 'sb_open' );
         this.viewport.parent().ensureClass( 'sb_open' );
 
+        this.canvas.updateCanvasSize();
+
         return this;
     }
 
     SkyBrush.prototype.closeGUIPane = function() {
         this.guiPane.removeClass( 'sb_open' );
         this.viewport.parent().removeClass( 'sb_open' );
+
+        this.canvas.updateCanvasSize();
 
         return this;
     }
