@@ -8054,9 +8054,12 @@
      * By default, keys are enabled.
      *
      * @param enabled True to enable, false to disable.
+     * @return This SkyBrush instance.
      */
     SkyBrush.prototype.enableKeys = function(enabled) {
         this.keysEnabled = enabled;
+
+        return this;
     };
 
     /**
