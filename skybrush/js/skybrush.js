@@ -8056,7 +8056,7 @@
      * @param enabled True to enable, false to disable.
      * @return This SkyBrush instance.
      */
-    SkyBrush.prototype.enableKeys = function(enabled) {
+    SkyBrush.prototype.setKeysEnabled = function(enabled) {
         this.keysEnabled = enabled;
 
         return this;
