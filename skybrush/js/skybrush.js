@@ -157,6 +157,7 @@
                 }
 
                 USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera );
+                TOUCH_PIXEL_CONTENT = ( $.browser.mozilla && parseInt($.browser.version) < 23);
                 MAX_NATIVE_CURSOR_SIZE = USE_NATIVE_CURSOR ?
                         128 :
                           0 ;
@@ -289,6 +290,17 @@
          */
         USE_NATIVE_CURSOR = false,
         MAX_NATIVE_CURSOR_SIZE = 0,
+
+        /**
+         * When true, pixel content will be touched, in order to avoid issues
+         * with the canvas failing to be updated when drawn to.
+         *
+         * This fixes an old FireFox bug, when drawing to non-visible canvases,
+         * where the content failed to be drawn in time.
+         *
+         * By default, this is false.
+         */
+        TOUCH_PIXEL_CONTENT = false,
 
         /**
          * @const
@@ -2039,7 +2051,7 @@
         first.ctx.drawImage( firstCanvas, 0, 0 );
 
         // flush drawing changes if browser is badly written
-        if ( $.browser.mozilla ) {
+        if ( TOUCH_PIXEL_CONTENT ) {
             first.ctx.getImageData( 0, 0, 1, 1 );
         }
 
@@ -2078,9 +2090,10 @@
         // In Firefox we touch the canvas pixel data directly to force it to draw.
         // If we don't, then the items are drawn later on to a future canvas.
         // Seems like a Firefox bug.
-        if ( $.browser.mozilla ) {
+        if ( TOUCH_PIXEL_CONTENT ) {
             var data = undoCanvas.ctx.getImageData( 0, 0, 1, 1 ).data;
         }
+
         this.canvases[ this.undoIndex ] = undoCanvas;
     };
 
