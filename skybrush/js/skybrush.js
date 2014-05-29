@@ -84,8 +84,6 @@
  *
  * @param window The browser Window.
  * @param document The document HTML Dom document.
- * @param nil A shorthand name for null, MUST PASS IN NULL!
- * @param undefined, NEVER PASS IN A VALUE FOR THIS PARAMETER!
  */
 
 /*
@@ -130,7 +128,7 @@
  * internally has no zoom applied to it, but externally it
  * does.
  */
-(function(window, document, nil, undefined) {
+(function(window, document) {
     /**
      * We create this, to reference jQuery later.
      */
@@ -1490,7 +1488,7 @@
 
             sData = sData.data,
             oData = oData ? oData.data :
-                    nil ;
+                    null ;
 
         var endX = startX + destW,
             endY = startY + destH;
@@ -1530,7 +1528,7 @@
          */
         if ( window.Uint8ClampedArray !== undefined && sData.buffer !== undefined ) {
             sData = new Int32Array( sData.buffer );
-            if ( oData !== nil ) {
+            if ( oData !== null ) {
                 oData = new Int32Array( oData.buffer );
             }
 
@@ -1954,7 +1952,7 @@
         this.content = content;
 
         // set later
-        this.parent = nil;
+        this.parent = null;
     };
 
     GUI.prototype.setParent = function( parent ) {
@@ -2064,7 +2062,7 @@
      * @return canvas The canvas to use for the future.
      */
     UndoStack.prototype.add = function( canvas, drawInfo ) {
-        var undoCanvas = nil;
+        var undoCanvas = null;
 
         // ensure we have space
         if ( this.undoIndex === this.size ) {
@@ -2141,7 +2139,7 @@
 
             return canvas;
         } else {
-            return nil;
+            return null;
         }
     };
 
@@ -2153,7 +2151,7 @@
             this.undoIndex++;
             return this.canvases[ this.undoIndex ];
         } else {
-            return nil;
+            return null;
         }
     };
 
@@ -2759,7 +2757,7 @@
                     h: self.h
             };
         } else {
-            return nil;
+            return null;
         }
     };
 
@@ -2833,7 +2831,7 @@
     var CopyManager = function( viewport ) {
         ViewOverlay.call( this, viewport, 'skybrush_copy' );
 
-        this.copy = nil;
+        this.copy = null;
 
         this.copyX = 0;
         this.copyY = 0;
@@ -2899,7 +2897,7 @@
             h = Math.min( h, canvas.height );
         }
 
-        if ( this.copy == nil ) {
+        if ( this.copy == null ) {
             this.copy = newCanvas( w, h );
         } else {
             this.copy.width  = w,
@@ -2914,7 +2912,7 @@
     };
 
     CopyManager.prototype.hasCopy = function() {
-        return this.copy !== nil;
+        return this.copy !== null;
     };
 
     CopyManager.prototype.getCopy = function() {
@@ -3016,7 +3014,7 @@
 
         _this.events = new events.Handler( _this );
         _this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY );
-        _this.clipping = nil;
+        _this.clipping = null;
 
         _this.isUpscaleShown = false;
 
@@ -3032,7 +3030,7 @@
             $overlay.bind( 'selectstart', function() { return false; } );
         }
 
-        _this.lazyUpscaleTimeout = nil;
+        _this.lazyUpscaleTimeout = null;
 
         _this.width  = _this.canvas.width,
         _this.height = _this.canvas.height,
@@ -3049,11 +3047,11 @@
                 });
 
         /* Prevent Scrolling if we're scrolling using the viewport. */
-        var scrollTop = nil;
+        var scrollTop = null;
         $(window).scroll( function(ev) {
-            if ( scrollTop !== nil) {
+            if ( scrollTop !== null) {
                 $(window).scrollTop( scrollTop );
-                scrollTop = nil;
+                scrollTop = null;
             }
         } );
         viewport.scroll( function(ev) {
@@ -3193,7 +3191,7 @@
                     * then we also work out the smallest update area.
                     */
                     var clip = _this.clipping;
-                    if ( clip !== nil ) {
+                    if ( clip !== null ) {
                         if (
                                 ux > clip.x + clip.w ||
                                 uy > clip.y + clip.h ||
@@ -3409,7 +3407,7 @@
     CanvasManager.prototype.clearUpscaleWorkers = function() {
         for ( var i = 0; i < this.upscaleWorkersLength; i++ ) {
             clearTimeout( this.upscaleWorkers[i] );
-            this.upscaleWorkers[i] = nil;
+            this.upscaleWorkers[i] = null;
         }
 
         this.upscaleWorkersLength = 0;
@@ -3656,7 +3654,7 @@
             ctx = _this.canvas.ctx,
             overCtx = _this.overlay.ctx;
 
-        if ( _this.clipping !== nil ) {
+        if ( _this.clipping !== null ) {
             var ctxSetup = backupCtx( ctx );
             ctx.restore();
             restoreCtx( ctx, ctxSetup );
@@ -3665,7 +3663,7 @@
             overCtx.restore();
             restoreCtx( overCtx, ctxSetup );
 
-            _this.clipping = nil;
+            _this.clipping = null;
         }
 
         _this.events.run( 'onClip', _this.clipping );
@@ -3967,7 +3965,7 @@
 
                     ctx.getImageData(x, y, w, h),   // src
                     x, y, w, h,                     // src  x, y, w, h
-                    includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : nil,
+                    includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : null,
 
                     ( ctx.globalCompositeOperation == 'source-atop' ) // bitmask pixels
             );
@@ -4128,7 +4126,7 @@
         if ( x >= 0 && x < this.width && y >= 0 && y < this.height ) {
             return this.canvas.ctx.getImageData( x, y, 1, 1 ).data;
         } else {
-            return nil;
+            return null;
         }
     };
 
@@ -4195,7 +4193,7 @@
      */
     CanvasManager.prototype.setImage = function( image, width, height ) {
         /*
-         * If width or height are 0, undefined or nil,
+         * If width or height are 0, undefined or null,
          * then image.width and image.height are used.
          * Otherwise width and height are used.
          */
@@ -4239,7 +4237,7 @@
     CanvasManager.prototype.undoRedo = function( name ) {
         var canvas = this.undos[name]();
 
-        if ( canvas !== nil ) {
+        if ( canvas !== null ) {
             this.drawSafe( function() {
                 if (
                         canvas.width  != this.canvas.width ||
@@ -4337,14 +4335,14 @@
         // check for a marquee selection
         // and otherwise use the visible area
         var selection = self.marquee.getSelection();
-        if ( selection === nil ) {
+        if ( selection === null ) {
             selection = self.getDrawnArea();
         } else {
             // remove the marquee, since it is selecting everything
             self.marquee.clear();
         }
 
-        if ( selection !== nil ) {
+        if ( selection !== null ) {
             var x = selection.x,
                 y = selection.y,
                 w2 = selection.w,
@@ -4417,7 +4415,7 @@
             }
 
             if ( y <= minY ) {
-                return nil;
+                return null;
             } else if ( hasAlpha ) {
                 break;
             } else {
@@ -4459,7 +4457,7 @@
             }
 
             if ( x <= minX ) {
-                return nil;
+                return null;
             } else if ( hasAlpha ) {
                 break;
             } else {
@@ -4478,7 +4476,7 @@
                     h: maxY-minY
             };
         } else {
-            return nil;
+            return null;
         }
     };
 
@@ -4541,7 +4539,7 @@
     var InfoBar = function( viewport ) {
         var self = this;
 
-        self.confirm = nil;
+        self.confirm = null;
 
         self.content = $('<div>').
                 addClass('skybrush_info_content');
@@ -4602,7 +4600,7 @@
 
     InfoBar.prototype.setContent = function() {
         this.content.empty();
-        this.confirm = nil;
+        this.confirm = null;
 
         for ( var i = 0; i < arguments.length; i++ ) {
             this.content.append( arguments[i] );
@@ -4926,14 +4924,14 @@
         var Command = function( setup ) {
             this.name    = setup.name    || '' ;
             this.caption = setup.caption || '' ;
-            this.cursor  = setup.cursor  || nil;
+            this.cursor  = setup.cursor  || null;
             this.css     = setup.css ?
                     COMMAND_CSS_PREFIX + setup.css :
                     ''                             ;
 
-            this.drawArea = nil;
+            this.drawArea = null;
 
-            this.dom = nil;
+            this.dom = null;
             this.domInitialized = false;
             this.controlsSetup = setup.controls;
 
@@ -4961,8 +4959,8 @@
                 this.onUp = setup.onUp;
             }
 
-            this.whenAttached = setup.onAttach || nil;
-            this.whenDetached = setup.onDetach || nil;
+            this.whenAttached = setup.onAttach || null;
+            this.whenDetached = setup.onDetach || null;
 
             var onShift = setup.onShift;
             if ( onShift ) {
@@ -4972,7 +4970,7 @@
                     onShift.call( self, isShiftDown, this );
                 };
             } else {
-                this.shiftDown = nil;
+                this.shiftDown = null;
             }
 
             this.isInAttach = false;
@@ -5116,7 +5114,7 @@
 
         Command.prototype.popDrawArea = function() {
             var t = this.drawArea;
-            this.drawArea = nil;
+            this.drawArea = null;
 
             return t;
         };
@@ -5124,7 +5122,7 @@
         Command.prototype.addDrawArea = function( x, y, w, h, buffer ) {
             var da = this.drawArea;
 
-            if ( da !== nil ) {
+            if ( da !== null ) {
                 buffer = buffer || 1;
 
                 if ( h === undefined ) {
@@ -5784,14 +5782,14 @@
                 onDownOnMove : function( canvas, x, y, painter ) {
                     var rgb = canvas.colourPick( x, y );
 
-                    if ( rgb !== nil ) {
+                    if ( rgb !== null ) {
                         painter.setColor( rgbToColor(rgb[0], rgb[1], rgb[2]) );
                         painter.setAlpha( rgb[3] / 255.0 );
                     }
                 }
         });
 
-        var eraserSwitch   = nil,
+        var eraserSwitch   = null,
             switchToEraser = function( shiftDown, painter ) {
                 if ( shiftDown ) {
                     eraserSwitch = this;
@@ -5923,7 +5921,7 @@
                             onShift: function( shiftDown, painter ) {
                                 if ( eraserSwitch && ! shiftDown ) {
                                     painter.setCommand( eraserSwitch );
-                                    eraserSwitch = nil;
+                                    eraserSwitch = null;
                                 }
                             }
                     } );
@@ -6459,12 +6457,12 @@
                                 h = canvas.height;
 
                             var clip = canvas.getClip();
-                            var clipX = ( clip === nil ) ? 0 : clip.x,
-                                clipY = ( clip === nil ) ? 0 : clip.y,
-                                clipW = ( clip === nil ) ? w : clip.w,
-                                clipH = ( clip === nil ) ? h : clip.h,
-                                clipX2 = ( clip === nil ) ? w : clip.x + clip.w,
-                                clipY2 = ( clip === nil ) ? h : clip.y + clip.h ;
+                            var clipX = ( clip === null ) ? 0 : clip.x,
+                                clipY = ( clip === null ) ? 0 : clip.y,
+                                clipW = ( clip === null ) ? w : clip.w,
+                                clipH = ( clip === null ) ? h : clip.h,
+                                clipX2 = ( clip === null ) ? w : clip.x + clip.w,
+                                clipY2 = ( clip === null ) ? h : clip.y + clip.h ;
 
                             if ( x < clipX || y < clipY || x >= clipX2 || y >= clipY2 ) {
                                 return;
@@ -6938,8 +6936,8 @@
 
         self.viewport = viewport;
 
-        self.cursorDataURL = nil;
-        self.cursorClass = nil;
+        self.cursorDataURL = null;
+        self.cursorClass = null;
 
         self.inScrollbar = false;
 
@@ -6981,21 +6979,21 @@
         this.dom.hide();
 
         this.fakeShown = false;
-        this.cursorDataURL = nil;
-        this.cursorClass = nil;
+        this.cursorDataURL = null;
+        this.cursorClass = null;
 
         return this;
     }
 
     DirectCursor.prototype.clearCursorInner = function() {
-        if ( this.cursorDataURL !== nil ) {
+        if ( this.cursorDataURL !== null ) {
             this.dom.hide();
             this.viewport.css( 'cursor', '' );
         }
 
         this.viewport.removeClass( NO_CURSOR_CSS );
 
-        if ( this.cursorClass !== nil ) {
+        if ( this.cursorClass !== null ) {
             if ( this.cursorClass !== NO_CURSOR_CSS ) {
                 this.viewport.removeClass( this.cursorClass );
             }
@@ -7023,7 +7021,7 @@
             this.setCursorURLInner( url, size );
         }
 
-        this.cursorClass = nil;
+        this.cursorClass = null;
         this.cursorDataURL = url;
         this.displaySize = size;
         this.fakeShown = ! useNativeCursor( size );
@@ -7081,7 +7079,7 @@
         }
 
         this.cursorClass = klass;
-        this.cursorDataURL = nil;
+        this.cursorDataURL = null;
         this.fakeShown = false;
             
         return this;
@@ -7340,7 +7338,7 @@
         self.cursor = new DirectCursor( viewport );
         self.painter = painter;
 
-        self.cursorTranslator = translator || nil;
+        self.cursorTranslator = translator || null;
 
         self.viewport = viewport;
 
@@ -7373,7 +7371,7 @@
 
     BrushCursor.prototype.setCrosshair = function() {
         this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE );
-        this.shape = nil;
+        this.shape = null;
 
         return this;
     };
@@ -7483,7 +7481,7 @@
     };
 
     BrushCursor.prototype.renderShape = function( render, newSize ) {
-        if ( render !== nil ) {
+        if ( render !== null ) {
             this.zoomSize = newSize;
             this.shape = render;
 
@@ -7563,7 +7561,7 @@
 
     BrushCursor.prototype.setClass = function( klass ) {
         this.cursor.setClass( klass );
-        this.shape = nil;
+        this.shape = null;
 
         return this;
     }
@@ -7864,7 +7862,7 @@
         _this.keysEnabled = true;
 
         // initialized laterz
-        _this.command = nil;
+        _this.command = null;
 
         _this.isDraggingFlag = false;
         _this.dragging = {
@@ -7877,7 +7875,7 @@
 
         // A flag for skipping either 'shift' or 'alt' events,
         // so only one of them is ever active at any time.
-        _this.shiftOrAltSkip = nil;
+        _this.shiftOrAltSkip = null;
         _this.isShiftDownFlag = false;
         _this.isAltDownFlag = false;
 
@@ -7887,7 +7885,7 @@
          * Pull out the colour picker command,
          * as we treat is seperately.
          */
-        var pickerCommand = nil;
+        var pickerCommand = null;
         for ( var i = 0; i < allCommands.length; i++ ) {
             var command = allCommands[i];
 
@@ -7917,7 +7915,7 @@
 
         _this.infoBar = new InfoBar( dom );
 
-        var cursorTranslator = nil;
+        var cursorTranslator = null;
         /*
          * Deal with the image translation options.
          * 
@@ -8032,7 +8030,7 @@
             key = key.toLowerCase();
         }
 
-        return _this.onKeyInteraction( nil, function(ev) {
+        return _this.onKeyInteraction( null, function(ev) {
             if (
                     ( ev.ctrlKey || ev.metaKey ) && (
                             (typeof key === 'number' && key === ev.keyCode) ||
@@ -8117,7 +8115,7 @@
             key = b;
             callback = c;
         } else {
-            event = nil;
+            event = null;
             key = a;
             callback = b;
         }
@@ -8407,7 +8405,7 @@
 
         painter.getCanvas().
                 onClip( function(clippingArea) {
-                    if ( clippingArea !== nil ) {
+                    if ( clippingArea !== null ) {
                         copy.removeClass('sb_disabled');
                          cut.removeClass('sb_disabled');
                     } else {
@@ -8804,7 +8802,7 @@
         var colors = $( colorsDom ).
                 killEvent( 'click', 'mousedown' ).
                 leftclick( (function() {
-                    var currentColorBorder = nil;
+                    var currentColorBorder = null;
 
                     return function(ev) {
                         var target = ev.target;
@@ -8817,7 +8815,7 @@
                         if ( $this.hasClass('skybrush_colors_palette_color') ) {
                             painter.setColor( $this.data('color') );
 
-                            if ( currentColorBorder !== nil ) {
+                            if ( currentColorBorder !== null ) {
                                 currentColorBorder.removeClass( 'sb_show' );
                             }
 
@@ -9417,16 +9415,16 @@
             }
 
             var controls;
-            if ( lastCommand !== nil ) {
+            if ( lastCommand !== null ) {
                 controls = lastCommand.getControlsDom();
 
-                if ( controls !== nil ) {
+                if ( controls !== null ) {
                     controls.classList.remove('sb_show')
                 }
             }
 
             controls = command.getControlsDom();
-            if ( controls !== nil ) {
+            if ( controls !== null ) {
                 controls.classList.add('sb_show')
             }
         } );
@@ -9542,7 +9540,7 @@
         bindCommand( 'k', 'picker' );
 
         /* On Alt behaviour - switch to colour picker */
-        var pickerSwitchCommand = nil;
+        var pickerSwitchCommand = null;
         painter.onAlt( function(isAlt) {
             if ( isAlt ) {
                 if ( pickerSwitchCommand !== painter.pickerCommand ) {
@@ -9550,13 +9548,13 @@
                     painter.setCommand( painter.pickerCommand );
                 }
             } else {
-                if ( pickerSwitchCommand !== nil ) {
+                if ( pickerSwitchCommand !== null ) {
                     // they might have switched whilst alt is still down
                     if ( painter.command === painter.pickerCommand ) {
                         painter.setCommand( pickerSwitchCommand );
                     }
 
-                    pickerSwitchCommand = nil;
+                    pickerSwitchCommand = null;
                 }
             }
         } );
@@ -9810,7 +9808,7 @@
     SkyBrush.prototype.getGUI = function( klass ) {
         var gui = this.guiDom.children( '.skybrush_gui.' + klass );
 
-        return gui.size() > 0 ? gui : nil ;
+        return gui.size() > 0 ? gui : null ;
     };
 
     // Canvas 2D Context properties we are interested in storing/restoring
@@ -10143,7 +10141,7 @@
              * for that particular corner case.
              */
             if ( this.shiftOrAltSkip === flagName ) {
-                this.shiftOrAltSkip = nil;
+                this.shiftOrAltSkip = null;
 
                 /*
                  * In theory, we should just return, with no
@@ -10333,7 +10331,7 @@
      *      skybrush.getCommand( 'pencil' );
      *
      * @param name Optional, finds the command listed in SkyBrush.
-     * @return The currently set command, or nil if you call it before any command is set.
+     * @return The currently set command, or null if you call it before any command is set.
      */
     SkyBrush.prototype.getCommand = function( name ) {
         if ( name ) {
@@ -10350,7 +10348,7 @@
                     }
                 }
 
-                return nil;
+                return null;
             }
         } else {
             return this.command;
@@ -10589,4 +10587,4 @@
     };
 
     window['SkyBrush'] = SkyBrush;
-})( window, document, null );
+})( window, document );
