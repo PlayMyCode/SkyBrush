@@ -6430,12 +6430,26 @@
                             }
                         ]
                 } ),
+
+                /*
+                 * This code uses a 'flood fill' like algorithm to fill the
+                 * pixels. However flood fill algorithms tend to search for an
+                 * exact colour, and then replace it.
+                 *
+                 * Due to the support of tolerance and alpha mixing, it is
+                 * possible for a replaced colour to still remain within the
+                 * target tolerance of coloures we are looking for. This would
+                 * result in the pixel being coloured 2 or more times.
+                 *
+                 * To prevent this, the algorithm must track what pixels it has
+                 * altered so far.
+                 */
                 new Command( {
                         name: 'Fill',
                         css : 'fill',
                         caption: 'Fill Colour | shortcut: f',
 
-                        onDown: function( canvas, x, y ) {
+                        onDown: function( canvas, mouseX, mouseY ) {
                             var ctx = canvas.getDirectContext(),
                                 tolerance = this.tolerance;
 
@@ -6446,78 +6460,97 @@
                             var srcR = rgb[0],
                                 srcG = rgb[1],
                                 srcB = rgb[2];
-                            var srcRAlpha = srcR*alpha,
-                                srcGAlpha = srcG*alpha,
-                                srcBAlpha = srcB*alpha;
+                            var srcRAlpha = srcR * alpha,
+                                srcGAlpha = srcG * alpha,
+                                srcBAlpha = srcB * alpha;
 
-                            // floor the location
-                            x |= 0;
-                            y |= 0;
-                            var w = canvas.width,
-                                h = canvas.height;
+                            // Floor the location, and make it clear to the VM
+                            // that these values are integers (the |0 code).
+                            mouseX = mouseX|0;
+                            mouseY = mouseY|0;
 
-                            var clip = canvas.getClip();
-                            var clipX = ( clip === null ) ? 0 : clip.x,
-                                clipY = ( clip === null ) ? 0 : clip.y,
-                                clipW = ( clip === null ) ? w : clip.w,
-                                clipH = ( clip === null ) ? h : clip.h,
-                                clipX2 = ( clip === null ) ? w : clip.x + clip.w,
-                                clipY2 = ( clip === null ) ? h : clip.y + clip.h ;
+                            var w = canvas.width |0,
+                                h = canvas.height|0;
 
-                            if ( x < clipX || y < clipY || x >= clipX2 || y >= clipY2 ) {
+                            var clip   = canvas.getClip();
+                            var clipX  = ( clip === null ? 0 : clip.x          )|0,
+                                clipY  = ( clip === null ? 0 : clip.y          )|0,
+                                clipW  = ( clip === null ? w : clip.w          )|0,
+                                clipH  = ( clip === null ? h : clip.h          )|0,
+                                clipX2 = ( clip === null ? w : clip.x + clip.w )|0,
+                                clipY2 = ( clip === null ? h : clip.y + clip.h )|0 ;
+
+                            // if the target is outside of the clip area, then quit!
+                            if ( mouseX < clipX || mouseY < clipY || mouseX >= clipX2 || mouseY >= clipY2 ) {
                                 return;
-                            } else {
-                                // used for the update area at the end,
-                                // default to where it was clicked to begin with
-                                var minX = x,
-                                    maxX = x,
-                                    minY = y,
-                                    maxY = y;
 
+                            } else {
                                 // get the pixel data out
                                 var ctxData = ctx.getImageData( clipX, clipY, clipW, clipH );
                                 var data = ctxData.data;
+                                
+                                /*
+                                 * From here on, all x and y values should have
+                                 * the clipX/Y removed from them.
+                                 *
+                                 * So they extend from 0 to clipW/H.
+                                 */
+
+                                // used for the update area at the end,
+                                // default to where it was clicked to begin with
+                                var minX = mouseX-clipX,
+                                    maxX = mouseX-clipX,
+                                    minY = mouseY-clipY,
+                                    maxY = mouseY-clipY;
 
                                 /**
                                  * If the given x/y location is valid (0 or greater, < w/h),
                                  * and it hasn't already been used in 'done',
                                  * then it's added to the xs/ys arrays.
                                  *
-                                 * @param x
-                                 * @param y
-                                 * @param w
-                                 * @param h
-                                 * @param xs
-                                 * @param ys
-                                 * @param done
+                                 * @param fromI
+                                 * @param toX
+                                 * @param toY
+                                 * @param clipW
+                                 * @param clipH
+                                 * @param seenPixels
                                  */
-                                var store = function( x, y, clipX, clipY, clipX2, clipY2, xs, ys, done ) {
-                                    if ( x >= clipX && y >= clipY && x < clipX2 && y < clipY2 ) {
-                                        var row = done[x];
+                                var store = function( fromI, toX, toY, clipW, clipH, seenPixels ) {
+                                    if ( 0 <= toX && toX < clipW && 0 <= toY && toY < clipH ) {
+                                        var toI = toY*clipW + toX;
 
-                                        if ( row === undefined || row[y] !== true ) {
-                                            xs.push(x);
-                                            ys.push(y);
+                                        if ( seenPixels[toI] === 0 ) {
+                                            seenPixels[fromI] = toI + 1;
 
-                                            if ( row === undefined ) {
-                                                row = [];
-                                                done[x] = row;
-                                            }
-
-                                            row[y] = true;
+                                            return toI;
                                         }
                                     }
+
+                                    return fromI;
                                 };
 
-                                /* Management variables, for maintaining what is, and isn't, drawn. */
-                                var xs = [],
-                                    ys = [];
-                                var done = [];
-                                store( x, y, clipX, clipY, clipX2, clipY2, xs, ys, done );
+                                /**
+                                 * The pixels we have seen so far, and it also
+                                 * stores the next pixel to process.
+                                 *
+                                 * This is the 2D array of pixels flattened
+                                 * into a flat 1D array.
+                                 *
+                                 * As 0 is a valid index, and the array fills
+                                 * with 0's by default, we add 1 when storing
+                                 * and remove 1 when retrieving.
+                                 *
+                                 * This means -1 is a pixel with no next address,
+                                 * and 0 means 'go to the pixel at 0'.
+                                 */
+                                var seenPixels = new Int32Array( clipW * clipH );
 
-                                var dataI = ((x-clipX) + (y-clipY)*clipW)*4;
+                                var currentI = mouseY*clipW + mouseX;
+                                var needleI = currentI ;
 
-                                var startR = data[dataI],
+                                var dataI = currentI * 4 ;
+
+                                var startR = data[dataI  ],
                                     startG = data[dataI+1],
                                     startB = data[dataI+2],
                                     startA = data[dataI+3];
@@ -6539,22 +6572,22 @@
                                     maxA = Math.min( 255, startA+tolerance );
 
                                 // fills pixels with the given colour if they are within tolerence
-                                while ( xs.length > 0 ) {
-                                    var nextX = xs.shift(),
-                                        nextY = ys.shift();
+                                do {
+                                    var x = (currentI % clipW)|0;
+                                    var y = ((currentI-x) / clipW)|0;
 
-                                    if ( nextX < minX ) {
-                                        minX = nextX;
-                                    } else if ( nextX > maxX ) {
-                                        maxX = nextX;
+                                    if ( x < minX ) {
+                                        minX = x;
+                                    } else if ( x > maxX ) {
+                                        maxX = x;
                                     }
-                                    if ( nextY < minY ) {
-                                        minY = nextY;
-                                    } else if ( nextY > maxY ) {
-                                        maxY = nextY;
+                                    if ( y < minY ) {
+                                        minY = y;
+                                    } else if ( y > maxY ) {
+                                        maxY = y;
                                     }
 
-                                    var i = ((nextX-clipX) + (nextY-clipY)*clipW) * 4;
+                                    var i = currentI * 4;
                                     var r = data[i],
                                         g = data[i+1],
                                         b = data[i+2],
@@ -6603,18 +6636,20 @@
                                             data[i+2] = ((( srcBAlpha + b*a*invAlpha ) / outA ) + 0.5 ) | 0;
                                         }
 
-                                        store( nextX-1, nextY  , clipX, clipY, clipX2, clipY2, xs, ys, done );
-                                        store( nextX+1, nextY  , clipX, clipY, clipX2, clipY2, xs, ys, done );
-                                        store( nextX  , nextY-1, clipX, clipY, clipX2, clipY2, xs, ys, done );
-                                        store( nextX  , nextY+1, clipX, clipY, clipX2, clipY2, xs, ys, done );
+                                        needleI = store( needleI, x-1, y  , clipW, clipH, seenPixels );
+                                        needleI = store( needleI, x+1, y  , clipW, clipH, seenPixels );
+                                        needleI = store( needleI, x  , y-1, clipW, clipH, seenPixels );
+                                        needleI = store( needleI, x  , y+1, clipW, clipH, seenPixels );
                                     }
-                                }
+
+                                    currentI = seenPixels[ currentI ] - 1;
+                                } while ( currentI !== -1 && currentI !== needleI );
 
                                 var diffX = (maxX-minX) + 1,
                                     diffY = (maxY-minY) + 1;
 
-                                ctx.putImageData( ctxData, clipX, clipY, minX-clipX, minY-clipY, diffX, diffY );
-                                this.setDrawArea( minX, minY, diffX, diffY );
+                                ctx.putImageData( ctxData, clipX, clipY, minX, minY, diffX, diffY );
+                                this.setDrawArea( minX+clipX, minY+clipY, diffX, diffY );
                             }
                         },
 
