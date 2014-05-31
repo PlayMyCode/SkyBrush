@@ -705,375 +705,24 @@
      *
      * @type {Array.<string>}
      */
-    var INT_TO_HEX = [];
-    for ( var i = 0; i <= 255; i++ ) {
-        var hex = i.toString(16);
-
-        // writes out a two letter hex value
-        INT_TO_HEX.push( (i < 16) ? ('0' + hex) : hex )
-    }
-
-    /**
-     * Creates a new JQuery wrapped Anchor, and returns it,
-     * but with lots of defaults set.
-     *
-     * These include '#' for the href, and to prevent the default action
-     * of following the link.
-     *
-     * You can also pass in more CSS classes after the 'text' parameter.
-     *
-     * @param text The text to appear on this anchor.
-     * @return A jQuery wrapped anchor tag.
-     */
-    var $a = function( text ) {
-        var klass = '';
-
-        for ( var i = 1; i < arguments.length; i++ ) {
-            klass += ' ' + arguments[i];
-        }
-
-        var anchor = document.createElement( 'a' );
-        anchor.setAttribute( 'href', '#' );
-        anchor.className = klass;
-
-        if ( text ) {
-            anchor.innerHTML = text;
-        }
-
-        return $(anchor);
-    };
-
-    /**
-     * A generic, reusable, horizontal slider.
-     *
-     * You can use the 'slide' method to attach functions to be called when this
-     * slides.
-     *
-     * You can also add any classes to it.
-     *
-     * ASCII art impression of control:
-     *
-     *   -------[]---
-     *
-     * This will use the input 'range' type where available.
-     * 
-     * @return A jQuery object (a div), which is pre-built and setup as a slider.
-     */
-    /*
-     * Ok, so how does this work? Either a HTML5 input range or a custom
-     * slider gets generated.
-     * 
-     * This then has an API directly pasted onto the object which is the
-     * most *basic* API possible. Direct getters and setters, and visual
-     * cues, that's it.
-     * 
-     * They both have a more complex API built on top, which is the API
-     * that does the 'slideUp', 'slideDown', setting and running of slide
-     * events.
-     * 
-     * The idea is to push the clever code up the stack, so it's shared,
-     * and keep the lower code where it's different as basic as possible.
-     */
-    var $slider = function() {
-        var sliderBar;
-
-        if ( $.support.input.range ) {
-            sliderBar = $('<input>').
-                    addClass( 'skybrush_slider_bar' ).
-                    attr( 'type', 'range' ).
-
-                    // default min/max/step values
-                    attr( 'min', 0 ).
-                    attr( 'max', 1 ).
-                    attr( 'step', 1/NUM_SLIDE_INCREMENTS ).
-                    change( function() {
-                        sliderBar.runOnSlide();
-                    });
-
-            sliderBar.getStep = function() {
-                return Number( this.attr('step') );
-            };
-            sliderBar.setStep = function( step ) {
-                this.attr('step', step );
-            };
-
-            sliderBar.getMin = function() {
-                return Number( this.attr('min') );
-            };
-            sliderBar.getMax = function() {
-                return Number( this.attr('max') );
-            };
-            sliderBar.setMin = function( min ) {
-                this.attr( 'min', min );
-            };
-            sliderBar.setMax = function( max ) {
-                this.attr( 'max', max );
-            };
-
-            sliderBar.isFake = function() {
-                return false;
-            };
-
-            sliderBar.getVal = function() {
-                return Number( this.val() );
-            };
-        } else {
-            var slider = $a('', 'skybrush_slider_bar_slider').
-                    killEvent( 'click', 'leftdown' ).
-                    leftdown( function(ev) {
-                        var $this = $(this);
-
-                        $this.data('is_sliding', true);
-                    } );
-
-            slider.data( 'is_sliding', false );
-
-            // stop sliding
-            $(document).leftup( function(ev) {
-                slider.data( 'is_sliding', false );
-            } );
-
-            /**
-             * A helper sliding function.
-             *
-             * It handles the maths, and the movement, of sliding the slider up
-             * or down $this, it's sliding bar.
-             *
-             * Things have to be passed in as it's a tad low level,
-             * and designed to avoid some repetition when used (like finding the slider).
-             */
-            var slideTo = function( $this, slider, slideUp) {
-                var sliderX = slider.position().left,
-                    w = $this.width();
-                var slideInc = w / NUM_SLIDE_INCREMENTS;
-                var nowX = sliderX % slideInc;
-                var onTheStep = nowX == 0;
-
-                // work out the distance from the next mark, in the positive diretion (slide up)
-                var normalizedDist = nowX / slideInc;
-
-                var newX = sliderX - nowX;
-
-                if ( slideUp ) {
-                    newX += slideInc;
-
-                    if ( !onTheStep ) {
-                        // skip the next mark, if we are really close to it
-                        if ( (1-normalizedDist) < SLIDER_ERROR ) {
-                            newX += slideInc;
-                        }
-                    }
-                // slide down + skip next down mark
-                } else if ( onTheStep || normalizedDist < SLIDER_ERROR ) {
-                    newX -= slideInc;
-                }
-
-                newX = Math.limit( newX, 0, w );
-                var p = newX / w;
-                
-                sliderBar.percent( newX / w );
-                sliderBar.runOnSlide();
-            };
-
-            sliderBar = $a('', 'skybrush_slider_bar', 'sb_fake').
-                    killEvent( 'click', 'leftdown' ).
-                                append( $('<div>').addClass('skybrush_slider_bar_inner') ).
-                    append( slider ).
-
-                    // zoom in/out when you click on the slider bar
-                    click( function(ev) {
-                        var $this = $(this);
-                        var slider = $this.children('.skybrush_slider_bar_slider');
-
-                        if ( ! slider.data('is_sliding') ) {
-                            var mx = ev.pageX - $this.offset().left;
-                            var sliderX = slider.position().left;
-                            slideTo( $this, slider, (mx > sliderX) );
-                        }
-                    } ).
-
-                    /*
-                     * Browsers that support touch,
-                     * also support proper sliders.
-                     *
-                     * So this should never be hit by a touch browser
-                     * (hopefully).
-                     */
-                    mousemove( function(ev) {
-                        var $this = $(this);
-                        var slider = $this.children('.skybrush_slider_bar_slider');
-
-                        if ( slider.data('is_sliding') ) {
-                            var thisWidth = $this.width();
-                            
-                            var x = Math.limit(
-                                    ev.offset($this).left,
-                                    0,
-                                    thisWidth
-                            );
-
-                            sliderBar.percent( x / thisWidth );
-                            sliderBar.runOnSlide();
-                        }
-                    } );
-
-            sliderBar.setPercent = function( p ) {
-                p = Math.limit( p, 0.0, 1.0 );
-                this.percentVal = p;
-
-                var x = this.width() * p ;
-                this.
-                        children('.skybrush_slider_bar_slider').
-                        translate( x, 0 );
-
-                return this;
-            };
-
-            sliderBar.setPercentVal = function( val ) {
-                val = Math.round( val-this.minVal, this.increment );
-
-                return this.setPercent(
-                        rangeToPercent(
-                                val,
-                                this.minVal,
-                                this.maxVal
-                        )
-                );
-            };
-
-            sliderBar.percent = function( p ) {
-                if ( arguments.length === 0 ) {
-                    return this.percentVal;
-                } else {
-                    sliderBar.setPercentVal(
-                          percentToRange( p, sliderBar.getMin(), sliderBar.getMax() )
-                    );
-                }
-            };
-
-            sliderBar.percentVal = 0;
-
-            /* The common interface */
-
-            sliderBar.getVal = function() {
-                return percentToRange( this.percentVal, this.minVal, this.maxVal );
-            };
-
-            sliderBar.val = function( val ) {
-                if ( arguments.length === 0 ) {
-                    return percentToRange( this.percentVal, this.minVal, this.maxVal );
-                } else {
-                    return this.setPercentVal( val );
-                }
-            };
-
-            sliderBar.getStep = function() {
-                return this.increment;
-            };
-            sliderBar.setStep = function( step ) {
-                this.increment = step;
-            };
-
-            sliderBar.getMin = function() {
-                return this.minVal;
-            };
-            sliderBar.getMax = function() {
-                return this.maxVal;
-            };
-            sliderBar.setMin = function( min ) {
-                this.minVal = min;
-            };
-            sliderBar.setMax = function( max ) {
-                this.maxVal = max;
-            };
-
-            sliderBar.isFake = function() {
-                return true;
-            };
-        }
-
-        /*
-         * The common sliding code.
-         * 
-         * This code is built on top of both the HTML5 and
-         * my own sliders.
-         */
-
-        sliderBar.limit = function( min, max ) {
-            this.setMin( min );
-            this.setMax( max );
-
-            return this;
-        };
-
-        sliderBar.min = function( min ) {
-            if ( arguments.length === 0 ) {
-                return this.getMin();
-            } else {
-                this.setMin( min );
-                return this;
-            }
-        };
-
-        sliderBar.max = function( max ) {
-            if ( arguments.length === 0 ) {
-                return this.getMax();
-            } else {
-                this.setMax( max );
-                return this;
-            }
-        };
-
-        sliderBar.step = function( step ) {
-            if ( arguments.length === 0 ) {
-                return this.getStep();
-            } else {
-                this.setStep( step );
-                return this;
-            }
-        };
-
-        /**
-         * Allows adding slide events, run when this slides.
-         */
-        sliderBar.slide = function(f) {
-            return this.bind( 'on_slide', f );
-        };
-        
-        sliderBar.setSlide = function(p) {
-            return this.val(
-                    percentToRange(
-                            Math.limit( p, 0.0, 1.0 ),
-                            this.getMin(),
-                            this.getMax()
-                    )
-            );
-        };
-
-        sliderBar.runOnSlide = function() {
-            var val = this.getVal(),
-                min = this.getMin(),
-                max = this.getMax();
-
-            var p = rangeToPercent( val, min, max );
-
-            this.trigger( 'on_slide', [val, p] );
-        };
-
-        sliderBar.slideUp = function() {
-            this.val( this.getVal() + this.getStep() );
-            this.runOnSlide();
-        };
-
-        sliderBar.slideDown = function() {
-            this.val( this.getVal() - this.getStep() );
-            this.runOnSlide();
-        };
-
-        sliderBar.limit( 0, 1 ).step( NUM_SLIDE_INCREMENTS );
-
-        return sliderBar;
-    };
+    var INT_TO_HEX = [
+            '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '0a', '0b', '0c', '0d', '0e', '0f', 
+            '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f',
+            '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2a', '2b', '2c', '2d', '2e', '2f',
+            '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '3a', '3b', '3c', '3d', '3e', '3f',
+            '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '4a', '4b', '4c', '4d', '4e', '4f',
+            '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '5a', '5b', '5c', '5d', '5e', '5f',
+            '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '6a', '6b', '6c', '6d', '6e', '6f',
+            '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '7a', '7b', '7c', '7d', '7e', '7f',
+            '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '8a', '8b', '8c', '8d', '8e', '8f',
+            '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '9a', '9b', '9c', '9d', '9e', '9f',
+            'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'aa', 'ab', 'ac', 'ad', 'ae', 'af',
+            'b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'ba', 'bb', 'bc', 'bd', 'be', 'bf',
+            'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'ca', 'cb', 'cc', 'cd', 'ce', 'cf',
+            'd0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'da', 'db', 'dc', 'dd', 'de', 'df',
+            'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'e9', 'ea', 'eb', 'ec', 'ed', 'ee', 'ef',
+            'f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'fa', 'fb', 'fc', 'fd', 'fe', 'ff'
+    ]
 
     /**
      * Takes the percentage value (a number in the range [0.0, 1.0]),
@@ -1087,7 +736,7 @@
      */
     var percentToRange = function( p, min, max ) {
         return (max-min)*p + min;
-    };
+    }
 
     /**
      * You give it a value, and this returns a 'percent',
@@ -1102,8 +751,8 @@
      * @return The percent result.
      */
     var rangeToPercent = function( n, min, max ) {
-        return (n-min) / (max-min);
-    };
+        return ( n - min ) / ( max - min );
+    }
 
     /**
      * Converts an RGB color value to HSV. Conversion formula
@@ -1142,44 +791,62 @@
     }
 
     /**
-     * Converts an HSV color value to RGB. Conversion formula
-     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
-     * Assumes h, s, and v are contained in the set [0, 1] and
-     * returns r, g, and b in the set [0, 255].
+     * Converts a given differences in x and y,
+     * into an angle (i.e. Math.atan2( yDiff, xDiff ) ),
+     * and then into a hue of the range: 0.0 to 1.0.
      *
+     * @param yDiff:int
+     * @param xDiff:int
+     * @return:double The angle as a hue.
+     */
+    function atan2ToHue( yDiff, xDiff ) {
+        return ( Math.atan2( yDiff, xDiff ) + Math.PI ) / ( Math.PI*2 );
+    }
+
+    /**
      * @param   {number} h       The hue
      * @param   {number} s       The saturation
      * @param   {number} v       The value
-     * @return  {Array.<number>} The RGB representation
+     * @return  {number}         The red component, in the RGB colour model.
      */
-    function hsvToRGB(h, s, v){
-        var r, g, b;
+    function hsvToR(h, s, v){
+        var iMod = (((h*6)|0) % 6)|0;
 
-        var i = (h *  6)|0;
-        var f =  h *  6 - i;
-        var p =  v * (1 - s);
-        var q =  v * (1 - f * s);
-        var t =  v * (1 - (1 - f) * s);
-
-        var iMod = i % 6;
-
-               if ( iMod === 0 ) { r = v, g = t, b = p;
-        } else if ( iMod === 1 ) { r = q, g = v, b = p;
-        } else if ( iMod === 2 ) { r = p, g = v, b = t;
-        } else if ( iMod === 3 ) { r = p, g = q, b = v;
-        } else if ( iMod === 4 ) { r = t, g = p, b = v;
-        } else   /* iMod === 5 */{ r = v, g = p, b = q;
+        if ( iMod === 0 ) {
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
+        } else if ( iMod === 1 ) {
+            return ((
+                    // q
+                    v * (1 - (h*6-((h*6)|0)) * s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 2 ) {
+            return ((
+                    // p
+                    v*(1-s))
+            *255 + 0.5)|0;
+        } else if ( iMod === 3 ) {
+            return ((
+                    // p
+                    v*(1-s)
+            )*255 + 0.5)|0;
+        } else if ( iMod === 4 ) {
+            return ((
+                    // t
+                    (v * (1 - (1-(h*6-((h*6)|0))) * s))
+            )*255 + 0.5)|0;
+        } else /* iMod === 5 */{
+            return ((
+                    // v
+                    v
+            )*255 + 0.5)|0;
         }
-
-        return [
-                (r*255 + 0.5)|0,
-                (g*255 + 0.5)|0,
-                (b*255 + 0.5)|0
-        ];
     }
 
     function hsvToB(h, s, v){
-        var iMod = ((h*6)|0) % 6;
+        var iMod = (((h*6)|0) % 6)|0;
 
         if ( iMod === 0 ) {
             return ((
@@ -1215,7 +882,7 @@
     }
 
     function hsvToG(h, s, v){
-        var iMod = ((h*6)|0) % 6;
+        var iMod = (((h*6)|0) % 6)|0;
 
         if ( iMod === 0 ) {
             return ((
@@ -1251,45 +918,40 @@
     }
 
     /**
+     * Converts an HSV color value to RGB. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+     * Assumes h, s, and v are contained in the set [0, 1] and
+     * returns r, g, and b in the set [0, 255].
+     *
      * @param   {number} h       The hue
      * @param   {number} s       The saturation
      * @param   {number} v       The value
-     * @return  {number}         The red component, in the RGB colour model.
+     * @return  {Array.<number>} The RGB representation
      */
-    function hsvToR(h, s, v){
-        var iMod = ((h*6)|0) % 6;
+    function hsvToRGB(h, s, v){
+        var r, g, b;
 
-        if ( iMod === 0 ) {
-            return ((
-                    // v
-                    v
-            )*255 + 0.5)|0;
-        } else if ( iMod === 1 ) {
-            return ((
-                    // q
-                    v * (1 - (h*6-((h*6)|0)) * s)
-            )*255 + 0.5)|0;
-        } else if ( iMod === 2 ) {
-            return ((
-                    // p
-                    v*(1-s))
-            *255 + 0.5)|0;
-        } else if ( iMod === 3 ) {
-            return ((
-                    // p
-                    v*(1-s)
-            )*255 + 0.5)|0;
-        } else if ( iMod === 4 ) {
-            return ((
-                    // t
-                    (v * (1 - (1-(h*6-((h*6)|0))) * s))
-            )*255 + 0.5)|0;
-        } else /* iMod === 5 */{
-            return ((
-                    // v
-                    v
-            )*255 + 0.5)|0;
+        var i = (h *  6)|0;
+        var f =  h *  6 - i;
+        var p =  v * (1 - s);
+        var q =  v * (1 - f * s);
+        var t =  v * (1 - (1 - f) * s);
+
+        var iMod = i % 6;
+
+               if ( iMod === 0 ) { r = v, g = t, b = p;
+        } else if ( iMod === 1 ) { r = q, g = v, b = p;
+        } else if ( iMod === 2 ) { r = p, g = v, b = t;
+        } else if ( iMod === 3 ) { r = p, g = q, b = v;
+        } else if ( iMod === 4 ) { r = t, g = p, b = v;
+        } else   /* iMod === 5 */{ r = v, g = p, b = q;
         }
+
+        return [
+                (r*255 + 0.5)|0,
+                (g*255 + 0.5)|0,
+                (b*255 + 0.5)|0
+        ];
     }
 
     /**
@@ -1877,6 +1539,369 @@
         }
     };
 
+    /**
+     * Creates a new JQuery wrapped Anchor, and returns it,
+     * but with lots of defaults set.
+     *
+     * These include '#' for the href, and to prevent the default action
+     * of following the link.
+     *
+     * You can also pass in more CSS classes after the 'text' parameter.
+     *
+     * @param text The text to appear on this anchor.
+     * @return A jQuery wrapped anchor tag.
+     */
+    var $a = function( text ) {
+        var klass = '';
+
+        for ( var i = 1; i < arguments.length; i++ ) {
+            klass += ' ' + arguments[i];
+        }
+
+        var anchor = document.createElement( 'a' );
+        anchor.setAttribute( 'href', '#' );
+        anchor.className = klass;
+
+        if ( text ) {
+            anchor.innerHTML = text;
+        }
+
+        return $(anchor);
+    };
+
+    /**
+     * A generic, reusable, horizontal slider.
+     *
+     * You can use the 'slide' method to attach functions to be called when this
+     * slides.
+     *
+     * You can also add any classes to it.
+     *
+     * ASCII art impression of control:
+     *
+     *   -------[]---
+     *
+     * This will use the input 'range' type where available.
+     * 
+     * @return A jQuery object (a div), which is pre-built and setup as a slider.
+     */
+    /*
+     * Ok, so how does this work? Either a HTML5 input range or a custom
+     * slider gets generated.
+     * 
+     * This then has an API directly pasted onto the object which is the
+     * most *basic* API possible. Direct getters and setters, and visual
+     * cues, that's it.
+     * 
+     * They both have a more complex API built on top, which is the API
+     * that does the 'slideUp', 'slideDown', setting and running of slide
+     * events.
+     * 
+     * The idea is to push the clever code up the stack, so it's shared,
+     * and keep the lower code where it's different as basic as possible.
+     */
+    var $slider = function() {
+        var sliderBar;
+
+        if ( $.support.input.range ) {
+            sliderBar = $('<input>').
+                    addClass( 'skybrush_slider_bar' ).
+                    attr( 'type', 'range' ).
+
+                    // default min/max/step values
+                    attr( 'min', 0 ).
+                    attr( 'max', 1 ).
+                    attr( 'step', 1/NUM_SLIDE_INCREMENTS ).
+                    change( function() {
+                        sliderBar.runOnSlide();
+                    });
+
+            sliderBar.getStep = function() {
+                return Number( this.attr('step') );
+            };
+            sliderBar.setStep = function( step ) {
+                this.attr('step', step );
+            };
+
+            sliderBar.getMin = function() {
+                return Number( this.attr('min') );
+            };
+            sliderBar.getMax = function() {
+                return Number( this.attr('max') );
+            };
+            sliderBar.setMin = function( min ) {
+                this.attr( 'min', min );
+            };
+            sliderBar.setMax = function( max ) {
+                this.attr( 'max', max );
+            };
+
+            sliderBar.isFake = function() {
+                return false;
+            };
+
+            sliderBar.getVal = function() {
+                return Number( this.val() );
+            };
+        } else {
+            var slider = $a('', 'skybrush_slider_bar_slider').
+                    killEvent( 'click', 'leftdown' ).
+                    leftdown( function(ev) {
+                        var $this = $(this);
+
+                        $this.data('is_sliding', true);
+                    } );
+
+            slider.data( 'is_sliding', false );
+
+            // stop sliding
+            $(document).leftup( function(ev) {
+                slider.data( 'is_sliding', false );
+            } );
+
+            /**
+             * A helper sliding function.
+             *
+             * It handles the maths, and the movement, of sliding the slider up
+             * or down $this, it's sliding bar.
+             *
+             * Things have to be passed in as it's a tad low level,
+             * and designed to avoid some repetition when used (like finding the slider).
+             */
+            var slideTo = function( $this, slider, slideUp) {
+                var sliderX = slider.position().left,
+                    w = $this.width();
+                var slideInc = w / NUM_SLIDE_INCREMENTS;
+                var nowX = sliderX % slideInc;
+                var onTheStep = nowX == 0;
+
+                // work out the distance from the next mark, in the positive diretion (slide up)
+                var normalizedDist = nowX / slideInc;
+
+                var newX = sliderX - nowX;
+
+                if ( slideUp ) {
+                    newX += slideInc;
+
+                    if ( !onTheStep ) {
+                        // skip the next mark, if we are really close to it
+                        if ( (1-normalizedDist) < SLIDER_ERROR ) {
+                            newX += slideInc;
+                        }
+                    }
+                // slide down + skip next down mark
+                } else if ( onTheStep || normalizedDist < SLIDER_ERROR ) {
+                    newX -= slideInc;
+                }
+
+                newX = Math.limit( newX, 0, w );
+                var p = newX / w;
+                
+                sliderBar.percent( newX / w );
+                sliderBar.runOnSlide();
+            };
+
+            sliderBar = $a('', 'skybrush_slider_bar', 'sb_fake').
+                    killEvent( 'click', 'leftdown' ).
+                                append( $('<div>').addClass('skybrush_slider_bar_inner') ).
+                    append( slider ).
+
+                    // zoom in/out when you click on the slider bar
+                    click( function(ev) {
+                        var $this = $(this);
+                        var slider = $this.children('.skybrush_slider_bar_slider');
+
+                        if ( ! slider.data('is_sliding') ) {
+                            var mx = ev.pageX - $this.offset().left;
+                            var sliderX = slider.position().left;
+                            slideTo( $this, slider, (mx > sliderX) );
+                        }
+                    } ).
+
+                    /*
+                     * Browsers that support touch,
+                     * also support proper sliders.
+                     *
+                     * So this should never be hit by a touch browser
+                     * (hopefully).
+                     */
+                    mousemove( function(ev) {
+                        var $this = $(this);
+                        var slider = $this.children('.skybrush_slider_bar_slider');
+
+                        if ( slider.data('is_sliding') ) {
+                            var thisWidth = $this.width();
+                            
+                            var x = Math.limit(
+                                    ev.offset($this).left,
+                                    0,
+                                    thisWidth
+                            );
+
+                            sliderBar.percent( x / thisWidth );
+                            sliderBar.runOnSlide();
+                        }
+                    } );
+
+            sliderBar.setPercent = function( p ) {
+                p = Math.limit( p, 0.0, 1.0 );
+                this.percentVal = p;
+
+                var x = this.width() * p ;
+                this.
+                        children('.skybrush_slider_bar_slider').
+                        translate( x, 0 );
+
+                return this;
+            };
+
+            sliderBar.setPercentVal = function( val ) {
+                val = Math.round( val-this.minVal, this.increment );
+
+                return this.setPercent(
+                        rangeToPercent(
+                                val,
+                                this.minVal,
+                                this.maxVal
+                        )
+                );
+            };
+
+            sliderBar.percent = function( p ) {
+                if ( arguments.length === 0 ) {
+                    return this.percentVal;
+                } else {
+                    sliderBar.setPercentVal(
+                          percentToRange( p, sliderBar.getMin(), sliderBar.getMax() )
+                    );
+                }
+            };
+
+            sliderBar.percentVal = 0;
+
+            /* The common interface */
+
+            sliderBar.getVal = function() {
+                return percentToRange( this.percentVal, this.minVal, this.maxVal );
+            };
+
+            sliderBar.val = function( val ) {
+                if ( arguments.length === 0 ) {
+                    return percentToRange( this.percentVal, this.minVal, this.maxVal );
+                } else {
+                    return this.setPercentVal( val );
+                }
+            };
+
+            sliderBar.getStep = function() {
+                return this.increment;
+            };
+            sliderBar.setStep = function( step ) {
+                this.increment = step;
+            };
+
+            sliderBar.getMin = function() {
+                return this.minVal;
+            };
+            sliderBar.getMax = function() {
+                return this.maxVal;
+            };
+            sliderBar.setMin = function( min ) {
+                this.minVal = min;
+            };
+            sliderBar.setMax = function( max ) {
+                this.maxVal = max;
+            };
+
+            sliderBar.isFake = function() {
+                return true;
+            };
+        }
+
+        /*
+         * The common sliding code.
+         * 
+         * This code is built on top of both the HTML5 and
+         * my own sliders.
+         */
+
+        sliderBar.limit = function( min, max ) {
+            this.setMin( min );
+            this.setMax( max );
+
+            return this;
+        };
+
+        sliderBar.min = function( min ) {
+            if ( arguments.length === 0 ) {
+                return this.getMin();
+            } else {
+                this.setMin( min );
+                return this;
+            }
+        };
+
+        sliderBar.max = function( max ) {
+            if ( arguments.length === 0 ) {
+                return this.getMax();
+            } else {
+                this.setMax( max );
+                return this;
+            }
+        };
+
+        sliderBar.step = function( step ) {
+            if ( arguments.length === 0 ) {
+                return this.getStep();
+            } else {
+                this.setStep( step );
+                return this;
+            }
+        };
+
+        /**
+         * Allows adding slide events, run when this slides.
+         */
+        sliderBar.slide = function(f) {
+            return this.bind( 'on_slide', f );
+        };
+        
+        sliderBar.setSlide = function(p) {
+            return this.val(
+                    percentToRange(
+                            Math.limit( p, 0.0, 1.0 ),
+                            this.getMin(),
+                            this.getMax()
+                    )
+            );
+        };
+
+        sliderBar.runOnSlide = function() {
+            var val = this.getVal(),
+                min = this.getMin(),
+                max = this.getMax();
+
+            var p = rangeToPercent( val, min, max );
+
+            this.trigger( 'on_slide', [val, p] );
+        };
+
+        sliderBar.slideUp = function() {
+            this.val( this.getVal() + this.getStep() );
+            this.runOnSlide();
+        };
+
+        sliderBar.slideDown = function() {
+            this.val( this.getVal() - this.getStep() );
+            this.runOnSlide();
+        };
+
+        sliderBar.limit( 0, 1 ).step( NUM_SLIDE_INCREMENTS );
+
+        return sliderBar;
+    };
+
+
     var newGUIBlock = function() {
         var div = document.createElement('div');
         div.className = 'skybrush_gui_content_block';
@@ -2208,7 +2233,7 @@
     var newCheckerboard = function( w, h, gradientAlpha ) {
         var canvas = newCanvas( w, h );
         var ctx = canvas.ctx;
-        var ctxData = ctx.getImageData( 0, 0, w, h );
+        var ctxData = ctx.createImageData( w, h );
         var data = ctxData.data;
 
         for ( var y = 0; y < h; y++ ) {
@@ -4792,6 +4817,47 @@
                     defaultField = Math.max( 1, min );
                 }
 
+                var onValueChange = function( self ) {
+                    setTimeout( function() {
+                        var n = self.value;
+
+                        if ( n && n >= 1 ) {
+                            n = Math.round( n );
+                            slider.setSlide( n / max );
+
+                            command[ field ] = n;
+
+                            if ( callback ) {
+                                callback.call( command, n, painter );
+                            }
+
+                            if ( isCursor ) {
+                                painter.refreshCursor( command );
+                            }
+                        }
+                    }, 0 );
+                }
+
+                var handleInputChange = function(ev) {
+                    // key up, and key down
+                    if ( ev.keyCode === 38 ) {
+                        var val = parseFloat( this.value );
+
+                        if ( val < max ) {
+                            this.value = '' + Math.min( max, val + step );
+                        }
+
+                    } else if ( ev.keyCode === 40 ) {
+                        var val = parseFloat( this.value );
+
+                        if ( val > min ) {
+                            this.value = '' + Math.max( min, val - step );
+                        }
+                    }
+
+                    onValueChange( this );
+                };
+
                 var val = $('<input>').
                         addClass( 'skybrush_input' ).
                         attr( 'type', 'number' ).
@@ -4799,28 +4865,8 @@
                         attr( 'min', min ).
                         attr( 'max', max ).
                         forceNumeric( false ).
-                        keydown( function() {
-                            var $this = $(this);
-
-                            setTimeout( function() {
-                                var n = $this.val();
-
-                                if ( n && n >= 1 ) {
-                                    n = Math.round( n );
-                                    slider.setSlide( n / max );
-
-                                    command[ field ] = n;
-
-                                    if ( callback ) {
-                                        callback.call( command, n, painter );
-                                    }
-
-                                    if ( isCursor ) {
-                                        painter.refreshCursor( command );
-                                    }
-                                }
-                            }, 0 );
-                        } );
+                        keydown( handleInputChange ).
+                        change( handleInputChange );
 
                 var slider = $slider().
                         addClass( cssID ).
@@ -6449,209 +6495,212 @@
                         css : 'fill',
                         caption: 'Fill Colour | shortcut: f',
 
-                        onDown: function( canvas, mouseX, mouseY ) {
-                            var ctx = canvas.getDirectContext(),
-                                tolerance = this.tolerance;
+                        onDown: (function() {
+                            /**
+                             * If the given x/y location is valid (0 or greater, < w/h),
+                             * and it hasn't already been used in 'done',
+                             * then it's added to the xs/ys arrays.
+                             *
+                             * @param fromI
+                             * @param toX
+                             * @param toY
+                             * @param clipW
+                             * @param clipH
+                             * @param seenPixels
+                             */
+                            var store = function( fromI, toX, toY, clipW, clipH, seenPixels ) {
+                                if ( 0 <= toX && toX < clipW && 0 <= toY && toY < clipH ) {
+                                    var toI = toY*clipW + toX;
 
-                            var alpha = ctx.globalAlpha,
-                                destAlpha = (ctx.globalCompositeOperation == 'source-atop');
-                            var invAlpha = 1-alpha;
-                            var rgb = canvas.getRGB();
-                            var srcR = rgb[0],
-                                srcG = rgb[1],
-                                srcB = rgb[2];
-                            var srcRAlpha = srcR * alpha,
-                                srcGAlpha = srcG * alpha,
-                                srcBAlpha = srcB * alpha;
+                                    if ( seenPixels[toI] === 0 ) {
+                                        seenPixels[fromI] = toI + 1;
 
-                            // Floor the location, and make it clear to the VM
-                            // that these values are integers (the |0 code).
-                            mouseX = mouseX|0;
-                            mouseY = mouseY|0;
-
-                            var w = canvas.width |0,
-                                h = canvas.height|0;
-
-                            var clip   = canvas.getClip();
-                            var clipX  = ( clip === null ? 0 : clip.x          )|0,
-                                clipY  = ( clip === null ? 0 : clip.y          )|0,
-                                clipW  = ( clip === null ? w : clip.w          )|0,
-                                clipH  = ( clip === null ? h : clip.h          )|0,
-                                clipX2 = ( clip === null ? w : clip.x + clip.w )|0,
-                                clipY2 = ( clip === null ? h : clip.y + clip.h )|0 ;
-
-                            // if the target is outside of the clip area, then quit!
-                            if ( mouseX < clipX || mouseY < clipY || mouseX >= clipX2 || mouseY >= clipY2 ) {
-                                return;
-
-                            } else {
-                                // get the pixel data out
-                                var ctxData = ctx.getImageData( clipX, clipY, clipW, clipH );
-                                var data = ctxData.data;
-                                
-                                /*
-                                 * From here on, all x and y values should have
-                                 * the clipX/Y removed from them.
-                                 *
-                                 * So they extend from 0 to clipW/H.
-                                 */
-
-                                // used for the update area at the end,
-                                // default to where it was clicked to begin with
-                                var minX = mouseX-clipX,
-                                    maxX = mouseX-clipX,
-                                    minY = mouseY-clipY,
-                                    maxY = mouseY-clipY;
-
-                                /**
-                                 * If the given x/y location is valid (0 or greater, < w/h),
-                                 * and it hasn't already been used in 'done',
-                                 * then it's added to the xs/ys arrays.
-                                 *
-                                 * @param fromI
-                                 * @param toX
-                                 * @param toY
-                                 * @param clipW
-                                 * @param clipH
-                                 * @param seenPixels
-                                 */
-                                var store = function( fromI, toX, toY, clipW, clipH, seenPixels ) {
-                                    if ( 0 <= toX && toX < clipW && 0 <= toY && toY < clipH ) {
-                                        var toI = toY*clipW + toX;
-
-                                        if ( seenPixels[toI] === 0 ) {
-                                            seenPixels[fromI] = toI + 1;
-
-                                            return toI;
-                                        }
+                                        return toI;
                                     }
-
-                                    return fromI;
-                                };
-
-                                /**
-                                 * The pixels we have seen so far, and it also
-                                 * stores the next pixel to process.
-                                 *
-                                 * This is the 2D array of pixels flattened
-                                 * into a flat 1D array.
-                                 *
-                                 * As 0 is a valid index, and the array fills
-                                 * with 0's by default, we add 1 when storing
-                                 * and remove 1 when retrieving.
-                                 *
-                                 * This means -1 is a pixel with no next address,
-                                 * and 0 means 'go to the pixel at 0'.
-                                 */
-                                var seenPixels = new Int32Array( clipW * clipH );
-
-                                var currentI = mouseY*clipW + mouseX;
-                                var needleI = currentI ;
-
-                                var dataI = currentI * 4 ;
-
-                                var startR = data[dataI  ],
-                                    startG = data[dataI+1],
-                                    startB = data[dataI+2],
-                                    startA = data[dataI+3];
-
-                                // leave early if there is nothing to fill
-                                if ( destAlpha && startA === 0 ) {
-                                    return;
                                 }
 
-                                // work out the tolerance ranges
-                                var minR = Math.max(   0, startR-tolerance ),
-                                    minG = Math.max(   0, startG-tolerance ),
-                                    minB = Math.max(   0, startB-tolerance ),
-                                    minA = Math.max(   0, startA-tolerance ),
+                                return fromI;
+                            };
 
-                                    maxR = Math.min( 255, startR+tolerance ),
-                                    maxG = Math.min( 255, startG+tolerance ),
-                                    maxB = Math.min( 255, startB+tolerance ),
-                                    maxA = Math.min( 255, startA+tolerance );
+                            return function( canvas, mouseX, mouseY ) {
+                                var ctx = canvas.getDirectContext(),
+                                    tolerance = this.tolerance;
 
-                                // fills pixels with the given colour if they are within tolerence
-                                do {
-                                    var x = (currentI % clipW)|0;
-                                    var y = ((currentI-x) / clipW)|0;
+                                var alpha     = ctx.globalAlpha;
+                                var invAlpha  = 1-alpha;
+                                var destAlpha = (ctx.globalCompositeOperation == 'source-atop');
 
-                                    if ( x < minX ) {
-                                        minX = x;
-                                    } else if ( x > maxX ) {
-                                        maxX = x;
+                                var rgb = canvas.getRGB();
+                                var srcR = rgb[0]|0,
+                                    srcG = rgb[1]|0,
+                                    srcB = rgb[2]|0;
+                                var srcRAlpha = srcR * alpha,
+                                    srcGAlpha = srcG * alpha,
+                                    srcBAlpha = srcB * alpha;
+
+                                // Floor the location, and make it clear to the VM
+                                // that these values are integers (the |0 code).
+                                mouseX = mouseX|0;
+                                mouseY = mouseY|0;
+
+                                var w = canvas.width |0,
+                                    h = canvas.height|0;
+
+                                var clip   = canvas.getClip();
+                                var clipX  = ( clip === null ? 0 : clip.x          )|0,
+                                    clipY  = ( clip === null ? 0 : clip.y          )|0,
+                                    clipW  = ( clip === null ? w : clip.w          )|0,
+                                    clipH  = ( clip === null ? h : clip.h          )|0,
+                                    clipX2 = ( clip === null ? w : clip.x + clip.w )|0,
+                                    clipY2 = ( clip === null ? h : clip.y + clip.h )|0 ;
+
+                                // if the target is outside of the clip area, then quit!
+                                if ( mouseX < clipX || mouseY < clipY || mouseX >= clipX2 || mouseY >= clipY2 ) {
+                                    return;
+
+                                } else {
+                                    // get the pixel data out
+                                    var ctxData = ctx.getImageData( clipX, clipY, clipW, clipH );
+                                    var data = ctxData.data;
+                                    
+                                    /*
+                                     * From here on, all x and y values should have
+                                     * the clipX/Y removed from them.
+                                     *
+                                     * So they extend from 0 to clipW/H.
+                                     */
+
+                                    // used for the update area at the end,
+                                    // default to where it was clicked to begin with
+                                    var minX = mouseX-clipX,
+                                        maxX = mouseX-clipX,
+                                        minY = mouseY-clipY,
+                                        maxY = mouseY-clipY;
+
+                                    /**
+                                     * The pixels we have seen so far, and it also
+                                     * stores the next pixel to process.
+                                     *
+                                     * This is the 2D array of pixels flattened
+                                     * into a flat 1D array.
+                                     *
+                                     * As 0 is a valid index, and the array fills
+                                     * with 0's by default, we add 1 when storing
+                                     * and remove 1 when retrieving.
+                                     *
+                                     * This means -1 is a pixel with no next address,
+                                     * and 0 means 'go to the pixel at 0'.
+                                     */
+                                    var seenPixels = new Int32Array( clipW * clipH );
+
+                                    var currentI = mouseY*clipW + mouseX;
+                                    var needleI = currentI ;
+
+                                    var dataI = currentI * 4 ;
+
+                                    var startR = data[dataI  ],
+                                        startG = data[dataI+1],
+                                        startB = data[dataI+2],
+                                        startA = data[dataI+3];
+
+                                    // leave early if there is nothing to fill
+                                    if ( destAlpha && startA === 0 ) {
+                                        return;
                                     }
-                                    if ( y < minY ) {
-                                        minY = y;
-                                    } else if ( y > maxY ) {
-                                        maxY = y;
-                                    }
 
-                                    var i = currentI * 4;
-                                    var r = data[i],
-                                        g = data[i+1],
-                                        b = data[i+2],
-                                        a = data[i+3];
+                                    // work out the tolerance ranges
+                                    var minR = Math.max(   0, startR-tolerance ),
+                                        minG = Math.max(   0, startG-tolerance ),
+                                        minB = Math.max(   0, startB-tolerance ),
+                                        minA = Math.max(   0, startA-tolerance ),
 
-                                    if (
-                                            // ensure we can write there
-                                            !(destAlpha && a === 0) &&
+                                        maxR = Math.min( 255, startR+tolerance ),
+                                        maxG = Math.min( 255, startG+tolerance ),
+                                        maxB = Math.min( 255, startB+tolerance ),
+                                        maxA = Math.min( 255, startA+tolerance );
 
-                                            // ensure it is within tolerance
-                                            r >= minR && r <= maxR &&
-                                            g >= minG && g <= maxG &&
-                                            b >= minB && b <= maxB &&
-                                            a >= minA && a <= maxA
-                                    ) {
-                                        // skip mixing if we'll just be overwriting it
-                                        if ( alpha === 1 ) {
-                                            data[i  ] = srcR,
-                                            data[i+1] = srcG,
-                                            data[i+2] = srcB;
+                                    // fills pixels with the given colour if they are within tolerence
+                                    do {
+                                        var x = (currentI % clipW)|0;
+                                        var y = ((currentI-x) / clipW)|0;
 
-                                            if ( destAlpha === false ) {
-                                                data[i+3] = 255;
-                                            }
-                                        } else {
-                                            var fullAlpha = ( a === 255 );
-                                            a /= 255.0;
-
-                                            /*
-                                             * @see Wikipedia: http://en.wikipedia.org/wiki/Alpha_Blend#Alpha_blending
-                                             *
-                                             * outA = srcA + destA(1-srcA)
-                                             * resultRGB = ( srcRGB*srcA + destRGB*destA*(1-srcA) ) / outA
-                                             */
-                                            var outA = alpha + a*invAlpha;
-
-                                            // skip altering alpha if 'destination alpha' is set
-                                            // skip the alpha mixing if destination has full alpha
-                                            if ( destAlpha === false && !fullAlpha ) {
-                                                // formula: newAlpha = destA + srcA*(1-destA)
-                                                data[i+3] = ( (outA * 255) + 0.5 ) | 0;
-                                            }
-
-                                            data[i  ] = ((( srcRAlpha + r*a*invAlpha ) / outA ) + 0.5 ) | 0,
-                                            data[i+1] = ((( srcGAlpha + g*a*invAlpha ) / outA ) + 0.5 ) | 0,
-                                            data[i+2] = ((( srcBAlpha + b*a*invAlpha ) / outA ) + 0.5 ) | 0;
+                                        if ( x < minX ) {
+                                            minX = x;
+                                        } else if ( x > maxX ) {
+                                            maxX = x;
+                                        }
+                                        if ( y < minY ) {
+                                            minY = y;
+                                        } else if ( y > maxY ) {
+                                            maxY = y;
                                         }
 
-                                        needleI = store( needleI, x-1, y  , clipW, clipH, seenPixels );
-                                        needleI = store( needleI, x+1, y  , clipW, clipH, seenPixels );
-                                        needleI = store( needleI, x  , y-1, clipW, clipH, seenPixels );
-                                        needleI = store( needleI, x  , y+1, clipW, clipH, seenPixels );
-                                    }
+                                        var i = currentI * 4;
+                                        var r = data[i],
+                                            g = data[i+1],
+                                            b = data[i+2],
+                                            a = data[i+3];
 
-                                    currentI = seenPixels[ currentI ] - 1;
-                                } while ( currentI !== -1 && currentI !== needleI );
+                                        if (
+                                                // ensure we can write there
+                                                !(destAlpha && a === 0) &&
 
-                                var diffX = (maxX-minX) + 1,
-                                    diffY = (maxY-minY) + 1;
+                                                // ensure it is within tolerance
+                                                r >= minR && r <= maxR &&
+                                                g >= minG && g <= maxG &&
+                                                b >= minB && b <= maxB &&
+                                                a >= minA && a <= maxA
+                                        ) {
+                                            // skip mixing if we'll just be overwriting it
+                                            if ( alpha === 1 ) {
+                                                data[i  ] = srcR,
+                                                data[i+1] = srcG,
+                                                data[i+2] = srcB;
 
-                                ctx.putImageData( ctxData, clipX, clipY, minX, minY, diffX, diffY );
-                                this.setDrawArea( minX+clipX, minY+clipY, diffX, diffY );
+                                                if ( destAlpha === false ) {
+                                                    data[i+3] = 255;
+                                                }
+                                            } else {
+                                                var fullAlpha = ( a === 255 );
+                                                a /= 255.0;
+
+                                                /*
+                                                 * @see Wikipedia: http://en.wikipedia.org/wiki/Alpha_Blend#Alpha_blending
+                                                 *
+                                                 * outA = srcA + destA(1-srcA)
+                                                 * resultRGB = ( srcRGB*srcA + destRGB*destA*(1-srcA) ) / outA
+                                                 */
+                                                var outA = alpha + a*invAlpha;
+
+                                                // skip altering alpha if 'destination alpha' is set
+                                                // skip the alpha mixing if destination has full alpha
+                                                if ( destAlpha === false && !fullAlpha ) {
+                                                    // formula: newAlpha = destA + srcA*(1-destA)
+                                                    data[i+3] = ( (outA * 255) + 0.5 ) | 0;
+                                                }
+
+                                                data[i  ] = ((( srcRAlpha + r*a*invAlpha ) / outA ) + 0.5 ) | 0,
+                                                data[i+1] = ((( srcGAlpha + g*a*invAlpha ) / outA ) + 0.5 ) | 0,
+                                                data[i+2] = ((( srcBAlpha + b*a*invAlpha ) / outA ) + 0.5 ) | 0;
+                                            }
+
+                                            needleI = store( needleI, x-1, y  , clipW, clipH, seenPixels );
+                                            needleI = store( needleI, x+1, y  , clipW, clipH, seenPixels );
+                                            needleI = store( needleI, x  , y-1, clipW, clipH, seenPixels );
+                                            needleI = store( needleI, x  , y+1, clipW, clipH, seenPixels );
+                                        }
+
+                                        currentI = seenPixels[ currentI ] - 1;
+                                    } while ( currentI !== -1 && currentI !== needleI );
+
+                                    var diffX = (maxX-minX) + 1,
+                                        diffY = (maxY-minY) + 1;
+
+                                    ctx.putImageData( ctxData, clipX, clipY, minX, minY, diffX, diffY );
+                                    this.setDrawArea( minX+clipX, minY+clipY, diffX, diffY );
+                                }
                             }
-                        },
+                        })(),
 
                         cursor: 'sb_cursor_fill',
 
@@ -7685,6 +7734,52 @@
         }
     };
 
+    var normalizeKey = function( key ) {
+        if ( key.length > 1 ) {
+            key = key.toLowerCase();
+
+            if ( key === 'del' ) {
+                key = 'delete';
+            }
+        }
+
+        return key;
+    }
+
+    var newKeyEventTest = function( key ) {
+        if ( typeof key === 'number' ) {
+            return newKeyEventTestNumeric( key|0 );
+        } else if ( typeof key === 'string' ) {
+            return newKeyEventTestString( key );
+        } else {
+            throw new Exception( "expected string or number for key" + key );
+        }
+    }
+
+    var newKeyEventTestNumeric = function( key ) {
+        return function(ev) {
+            if ( ev.charCode !== 0 ) {
+                return ev.charCode === key ;
+            } else {
+                return ev.keyCode  === key ;
+            }
+        }
+    }
+
+    var newKeyEventTestString = function( key ) {
+        key = normalizeKey( key );
+
+        return function(ev) {
+            if ( ev.char ) {
+                return ev.char === key ;
+            } else if ( ev.key !== undefined ) {
+                return normalizeKey( ev.key ) === key ;
+            } else {
+               return normalizeKey( String.fromCharCode(ev.keyCode) ) === key ;
+            }
+        }
+    }
+
     /**
      * The main entry point for creating a new SkyBrush
      * application. It works by taking a HTML DOM element, and
@@ -8061,17 +8156,10 @@
             throw new Error("Function expected for 'onCtrl'");
         }
 
-        if ( typeof key === 'string' ) {
-            key = key.toLowerCase();
-        }
+        var keyTest = newKeyEventTest( key );
 
         return _this.onKeyInteraction( null, function(ev) {
-            if (
-                    ( ev.ctrlKey || ev.metaKey ) && (
-                            (typeof key === 'number' && key === ev.keyCode) ||
-                            (typeof key === 'string' && key === String.fromCharCode(ev.keyCode).toLowerCase())
-                    )
-            ) {
+            if ( (ev.ctrlKey || ev.metaKey) && keyTest(ev) ) {
                 fun.call( _this, ev );
 
                 return false;
@@ -8155,17 +8243,11 @@
             callback = b;
         }
 
-        if ( typeof key === 'string' || key instanceof String ) {
-            key = key.toLowerCase();
-        }
+        var keyTest = newKeyEventTest( key );
 
         var _this = this,
             callbackWrap = function(ev) {
-                var evKey = ( typeof key === 'number' ) ?
-                        ev.keyCode :
-                        String.fromCharCode(ev.keyCode).toLowerCase();
-
-                if ( !(ev.ctrlKey || ev.metaKey) && evKey == key ) {
+                if ( !(ev.ctrlKey || ev.metaKey) && keyTest(ev) ) {
                     callback.call( _this, ev );
 
                     return false;
@@ -8243,6 +8325,7 @@
             ) {
                 ev.preventDefault();
                 ev.stopPropagation();
+console.log('on key interact, prevent default');
 
                 return false;
             } else {
@@ -8692,7 +8775,7 @@
                 function(ev) {
                     var grid = painter.getCanvas().getGrid(),
                         width = $('<input>'),
-                            height = $('<input>');
+                        height = $('<input>');
 
                     width.val( grid.getWidth() );
                     height.val( grid.getHeight() );
@@ -8941,24 +9024,9 @@
 
         /* The Colour Wheel */
 
-        /**
-         * Converts a given differences in x and y,
-         * into an angle (i.e. Math.atan2( yDiff, xDiff ) ),
-         * and then into a hue of the range: 0.0 to 1.0.
-         *
-         * @param yDiff
-         * @param xDiff
-         * @return The angle as a hue.
-         */
-        var atan2ToHue = function( yDiff, xDiff ) {
-            return (
-                    Math.atan2( yDiff, xDiff ) + Math.PI
-            ) / ( Math.PI*2 );
-        };
-
         var colourWheelCanvas = newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
         var wheelCtx = colourWheelCanvas.ctx;
-        var wheelData = wheelCtx.getImageData( 0, 0, COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
+        var wheelData = wheelCtx.createImageData( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
 
         var wheelLineDom = document.createElement('div');
         wheelLineDom.className = 'skybrush_color_wheel_line_outer';
@@ -8967,11 +9035,12 @@
         var wheelLine = $( wheelLineDom );
         data = wheelData.data;
 
+        var colourWheelHalfWidth  = ( COLOUR_WHEEL_WIDTH/2 )|0 ;
         for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
             for ( var x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
-                var i = (y*COLOUR_WHEEL_WIDTH + x) * 4;
+                var i = ((y*COLOUR_WHEEL_WIDTH + x) * 4)|0;
 
-                var paintHue = atan2ToHue( COLOUR_WHEEL_WIDTH/2 - y, COLOUR_WHEEL_WIDTH/2 - x );
+                var paintHue = atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x );
 
                 data[i  ] = hsvToR( paintHue, 1, 1 );
                 data[i+1] = hsvToG( paintHue, 1, 1 );
@@ -9082,7 +9151,7 @@
         };
 
         /* Create the RGB lebel/inputs in the form. */
-        var newInput = function( name, css, event, isDecimal, max ) {
+        var newInput = function( name, css, inputEvent, isDecimal, max ) {
             var label = document.createElement('div');
             label.className = 'skybrush_rgb_label';
             label.innerHTML = name;
@@ -9096,11 +9165,19 @@
                     attr( 'max', max ).
                     attr( 'step', isDecimal ? 0.01 : 1 ).
                     forceNumeric( isDecimal ).
-                    keyup( event ).
-                    blur( function(ev) {
-                        $(this).val( getVal( $(this), max ) );
+                    keypress( function(ev) {
+                        var self = this;
 
-                        event.call( this, ev );
+                        setTimeout( function() {
+                            inputEvent.call(self, ev);
+                        }, 0 );
+                    } ).
+                    change( inputEvent ).
+                    blur( function(ev) {
+                        var $this = $(this);
+                        $this.val( getVal($this, max) );
+
+                        inputEvent.call( this, ev );
                     }).
                     get(0);
 
@@ -9487,8 +9564,8 @@
         };
 
         // key code constants
-        var ALT = 18,
-            SHIFT = 16,
+        var ALT    = 18,
+            SHIFT  = 16,
             DELETE = 46;
 
         painter.
