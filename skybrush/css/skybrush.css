@@ -967,7 +967,7 @@
         color: white;
 
         text-transform: uppercase;
-        text-shadow: 0 2px 1px rgba( 0, 0, 0, 0.7 );
+        text-shadow: -1px 2px 1px rgba( 0, 0, 0, 0.7 );
 
         font-size: 16px;
 
@@ -1391,12 +1391,13 @@
                          -o-transform: translateY(-3px) rotate( 180deg );
                             transform: translateY(-3px) rotate( 180deg );
 
-                    text-shadow: 0 -2px -1px rgba( 0, 0, 0, 0.7 );
+                    text-shadow: 1px -2px 1px rgba( 0, 0, 0, 0.7 );
                 }
                 .skybrush.mozilla .skybrush_gui_pane.sb_open .skybrush_open_toggle_text {
                     -moz-transform: translateY(-1px) rotate( 180deg );
                          transform: translateY(-1px) rotate( 180deg );
                 }
+
             .skybrush_open_toggle,
             .skybrush_header_button.sb_zoom_in,
             .skybrush_header_button.sb_zoom_out,
