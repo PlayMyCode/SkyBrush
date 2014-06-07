@@ -277,7 +277,7 @@
         DEFAULT_GRID_WIDTH  = 5, // pixels
         DEFAULT_GRID_HEIGHT = 5, // pixels
 
-        /*
+        /**
          * These are for decided if a native cursor should be used, or not. At
          * the time of writing, this is banned on Opera and IE.
          *
@@ -6800,7 +6800,7 @@
                                                 a /= 255.0;
 
                                                 /*
-                                                 * @see Wikipedia: http://en.wikipedia.org/wiki/Alpha_Blend#Alpha_blending
+                                                 * see Wikipedia: http://en.wikipedia.org/wiki/Alpha_Blend#Alpha_blending
                                                  *
                                                  * outA = srcA + destA(1-srcA)
                                                  * resultRGB = ( srcRGB*srcA + destRGB*destA*(1-srcA) ) / outA
@@ -7956,8 +7956,8 @@
             key = normalizeKey( key );
 
             return function(ev) {
-                if ( ev.char ) {
-                    return ev.char === key ;
+                if ( ev['char'] ) {
+                    return ev['char'] === key ;
                 } else if ( ev.key !== undefined ) {
                     return normalizeKey( ev.key ) === key ;
                 } else {
