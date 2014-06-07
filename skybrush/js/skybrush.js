@@ -19,16 +19,16 @@
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /**
@@ -343,7 +343,7 @@
          * then it's swapped out,
          * and a crosshair is used instead.
          *
-         * @constant
+         * @const
          * @type {number}
          */
         BRUSH_CURSOR_MINIMUM_SIZE = 5,
@@ -607,7 +607,7 @@
          * The default colour to set as the current colour,
          * when Painter starts.
          */
-        DEFAULT_COLOR = '#104662', // black
+        DEFAULT_COLOR = '#104662', // dark cyan-blue
 
         NUM_COLORS_IN_PALETTE_COLUMN = 5,
 
@@ -692,7 +692,7 @@
     /**
      * Mouse constants, so the code is more readable.
      *
-     * @constant
+     * @const
      * @private
      * @type {number}
      */
@@ -703,6 +703,9 @@
     /**
      * An array used for fast hex value lookup.
      *
+     * This is an array of every hex number from 0 to 255.
+     *
+     * @const
      * @type {Array.<string>}
      */
     var INT_TO_HEX = [
@@ -755,6 +758,63 @@
     }
 
     /**
+     * Converts an RGB color to HSV, and returns the 'value' component.
+     * The 'value' is in the range of 0.0 to 1.0.
+     *
+     * @param   {number} r       The red color value
+     * @param   {number} g       The green color value
+     * @param   {number} b       The blue color value
+     * @return  {number} The value of the HSV value, between 0.0 and 1.0.
+     */
+    var rgbToHSVValue = function(r, g, b) {
+        if ( r > g ) {
+            if ( r > b ) {
+                return r / 255;
+            } else if ( g > b ) {
+                return g / 255;
+            } else {
+                return b / 255;
+            }
+        } else if ( g > b ) {
+            return g / 255;
+        } else {
+            return b / 255;
+        }
+    }
+
+    var rgbToHSVSaturation = function(r, g, b) {
+        if ( r === g && r === b ) {
+            return 0 ;
+
+        } else {
+            var v    =     Math.max( r, g, b );
+            var diff = v - Math.min( r, g, b );
+
+            return ( diff / v ) / 255 ;
+        }
+    }
+
+    var rgbToHSVHue = function(r, g, b) {
+        if ( r === g && r === b ) {
+            return 0;
+
+        } else {
+            r = r / 255,
+            g = g / 255,
+            b = b / 255;
+
+            var v    =     Math.max( r, g, b );
+            var diff = v - Math.min( r, g, b );
+
+            return ( 
+                    ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
+                    ( v === g ) ? ( (b - r) / diff + 2               ) :
+                                  ( (r - g) / diff + 4               )
+            ) / 6 ;
+        }
+    }
+
+    /**
      * Converts an RGB color value to HSV. Conversion formula
      * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
      * Assumes r, g, and b are contained in the set [0, 255] and
@@ -765,29 +825,34 @@
      * @param   {number} b       The blue color value
      * @return  {Array.<number>} The HSV representation
      */
-    var rgbToHSV = function(r, g, b){
-        r = r/255,
-        g = g/255,
-        b = b/255;
+    var rgbToHSV = function(r, g, b) {
+        // achromatic
+        if ( r === g && r === b ) {
+            return [ 0.0, 0.0, Math.max(r, g, b)/255.0 ] ;
 
-        var max = Math.max(r, g, b), min = Math.min(r, g, b);
-        var h, s, v = max;
+        } else {
+            r = r / 255.0,
+            g = g / 255.0,
+            b = b / 255.0;
 
-        var d = max - min;
-        s = max == 0 ? 0 : d / max;
+            var v    =     Math.max( r, g, b );
+            var diff = v - Math.min( r, g, b );
+             
+            return [
+                    // h, the hue
+                    ( 
+                            ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
+                            ( v === g ) ? ( (b - r) / diff + 2               ) :
+                                          ( (r - g) / diff + 4               )
+                    ) / 6,
+                    
+                    // s, the saturation
+                    diff / v,
 
-        if(max == min){
-            h = 0; // achromatic
-        }else{
-            switch(max){
-                case r:h = (g - b) / d + (g < b ? 6 : 0);break;
-                case g:h = (b - r) / d + 2;break;
-                case b:h = (r - g) / d + 4;break;
-            }
-            h /= 6;
+                    // v, the value
+                    v
+            ];
         }
-
-        return [h, s, v];
     }
 
     /**
@@ -1901,7 +1966,6 @@
         return sliderBar;
     };
 
-
     var newGUIBlock = function() {
         var div = document.createElement('div');
         div.className = 'skybrush_gui_content_block';
@@ -1918,7 +1982,6 @@
         
         return div;
     }
-
 
     /**
      * @constructor
@@ -2060,7 +2123,7 @@
      */
     var UndoStack = function( size, firstCanvas ) {
         // the +1 is for the checks later
-        this.size = size+1;
+        this.size = size + 1;
 
         this.reset( firstCanvas );
     };
@@ -2206,7 +2269,7 @@
      * _but_ the actual stroke/fill.
      */
     var circlePath = function( ctx, x, y, w, h ) {
-        var kappa = .5522848;
+        var kappa = 0.5522848;
         var ox = (w / 2) * kappa,   // control point offset horizontal
             oy = (h / 2) * kappa,   // control point offset vertical
             xe = x + w,             // x-end
@@ -2215,11 +2278,11 @@
             ym = y + h / 2;         // y-middle
 
         ctx.beginPath();
-        ctx.moveTo(x, ym);
-        ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-        ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-        ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-        ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+        ctx.moveTo( x, ym );
+        ctx.bezierCurveTo( x      , ym - oy, xm - ox, y      , xm, y  );
+        ctx.bezierCurveTo( xm + ox, y      , xe     , ym - oy, xe, ym );
+        ctx.bezierCurveTo( xe     , ym + oy, xm + ox, ye     , xm, ye );
+        ctx.bezierCurveTo( xm - ox, ye     , x      , ym + oy, x , ym );
         ctx.closePath();
     };
 
@@ -2231,15 +2294,15 @@
      * gradient the alpha across it, from left to right.
      */
     var newCheckerboard = function( w, h, gradientAlpha ) {
-        var canvas = newCanvas( w, h );
-        var ctx = canvas.ctx;
+        var canvas  = newCanvas( w, h );
+        var ctx     = canvas.ctx;
         var ctxData = ctx.createImageData( w, h );
-        var data = ctxData.data;
+        var data    = ctxData.data;
 
         for ( var y = 0; y < h; y++ ) {
             for ( var x = 0; x < w; x++ ) {
-                var i = (y*w + x) * 4,
-                a = ( (1 - y/h)*255 + 0.5 ) | 0;
+                var i = (y*w + x) * 4;
+                var a = ( (1 - y/h)*255 + 0.5 ) | 0;
 
                 // generate a Photoshop-like checker board
                 data[i] = data[i+1] = data[i+2] =
@@ -2354,6 +2417,7 @@
                             height( h )
             );
         }
+
         for ( var y = startY; y <= h; y += yInc ) {
             dom.append(
                     $('<div>').
@@ -2418,12 +2482,12 @@
         }
 
         if ( x < 0 ) {
-            x = - ( x%this.width );
-            x = this.width-x;
+            x = - ( x % this.width );
+            x = this.width - x;
         }
         if ( y < 0 ) {
-            y = - ( y%this.height );
-            y = this.height-y;
+            y = - ( y % this.height );
+            y = this.height - y;
         }
 
         var update = ( this.offsetX !== x || this.offsetY !== y );
@@ -2459,78 +2523,116 @@
     };
 
     /**
-     * A generic resizable components,
-     * for the copy+paste and marquee overlays.
+     * Originally the marquee selector and the grid and things like that were
+     * all implemented as totally seperate components. However over time, they
+     * ended up with a lot of similar code.
+     *
+     * So this was created as an object they can use to help contain that common 
+     * code.
      */
     var ViewOverlay = function( viewport, css ) {
-        if ( viewport && css ) {
-            var self = this,
-                dom;
+        var self = this;
 
-            self.dom = dom = $('<div>').addClass( css );
-            viewport.append( dom );
+        self.dom = $('<div>').addClass( css );
+        viewport.append( self.dom );
 
-            self.x = 0;
-            self.y = 0;
-            self.w = 0;
-            self.h = 0;
-            self.zoom = 1;
+        self.x = 0;
+        self.y = 0;
+        self.w = 0;
+        self.h = 0;
 
-            self.canvasX = 0;
-            self.canvasY = 0;
+        self.zoom = 1;
 
-            self.lastLeft = 0;
-            self.lastTop  = 0;
-        }
+        self.canvasX = 0;
+        self.canvasY = 0;
+
+        self.lastLeft = 0;
+        self.lastTop  = 0;
+
+        // set to invalid values so the first time a width/height is set,
+        // it'll be guaranteed to go through
+        self.lastHeight = -1;
+        self.lastWidth  = -1;
     };
 
-    ViewOverlay.prototype.update = function() {
-        // do nothing
-        return this;
-    };
+    ViewOverlay.prototype = {
+        ensureClass: function( klass ) {
+            this.dom.ensureClass( klass );
 
-    /**
-     * Takes canvas pixels, and resizes to DOM pixels.
-     */
-    ViewOverlay.prototype.setCanvasSize = function( x, y, w, h ) {
-        var zoom = this.zoom;
+            return this;
+        },
 
-        var left = (this.canvasX + x*zoom + 0.5)|0,
-            top  = (this.canvasY + y*zoom + 0.5)|0,
-            /* -2 is to accommodate the 2-pixel border width in the CSS */
-            width = Math.max( 0, ((w*zoom)|0)-2 ),
-            height= Math.max( 0, ((h*zoom)|0)-2 );
+        hasClass: function( klass ) {
+            return this.dom.hasClass( klass );
+        },
 
-        /*
-         * Only update teh changes we have to.
+        removeClass: function( klass ) {
+            this.dom.removeClass( klass );
+
+            return this;
+        },
+
+        append: function() {
+            var argsLen = arguments.length|0;
+
+            if ( argsLen > 0 ) {
+                if ( argsLen === 1 ) {
+                    this.dom.append( arguments[0] );
+                } else {
+                    this.dom.append.apply( this.dom, arguments );
+                }
+            }
+
+            return this;
+        },
+
+        /**
+         * Takes canvas pixels, and resizes to DOM pixels.
          */
-        if ( left !== this.lastLeft || top !== this.lastTop ) {
-            this.lastLeft = left;
-            this.lastTop  = top;
+        setCanvasSize: function( x, y, w, h ) {
+            var zoom = this.zoom;
 
-            this.dom.translate( left, top );
+            var left = (this.canvasX + x*zoom + 0.5)|0,
+                top  = (this.canvasY + y*zoom + 0.5)|0,
+
+                /* -2 is to accommodate the 2-pixel border width in the CSS */
+                width = Math.max( 0, ((w*zoom)|0)-2 ),
+                height= Math.max( 0, ((h*zoom)|0)-2 );
+
+            /*
+             * Only update teh changes we have to.
+             */
+            if ( left !== this.lastLeft || top !== this.lastTop ) {
+                this.lastLeft = left;
+                this.lastTop  = top;
+
+                this.dom.translate( left, top );
+            }
+
+            if ( width !== this.lastWidth ) {
+                this.lastWidth = width;
+                this.dom.width( width );
+            }
+            if ( height !== this.lastHeight ) {
+                this.lastHeight = height;
+                this.dom.height( height );
+            }
+
+            return this;
+        },
+
+        /**
+         * Tells this about any view changes in the SkyBrush viewport.
+         */
+        updateViewport: function( canvasX, canvasY, width, height, zoom ) {
+            this.zoom    = zoom   ;
+            this.canvasX = canvasX;
+            this.canvasY = canvasY;
+
+            return this;
         }
+    }
 
-        if ( width !== this.lastWidth ) {
-            this.lastWidth = width;
-            this.dom.width( width );
-        }
-        if ( height !== this.lastHeight ) {
-            this.lastHeight = height;
-            this.dom.height( height );
-        }
-    };
-
-    /**
-     * Tells this about any view changes in the SkyBrush viewport.
-     */
-    ViewOverlay.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
-        this.zoom = zoom;
-        this.canvasX = canvasX,
-        this.canvasY = canvasY;
-
-        return this.update();
-    };
 
     /**
      * This handles the clipping/select region on the Canvas.
@@ -2541,22 +2643,22 @@
     var Marquee = function( canvas, viewport, painter ) {
         this.canvas = canvas;
 
-        ViewOverlay.call( this, viewport, 'skybrush_marquee' );
-
-        var topLeft     = $('<div>').addClass('skybrush_marquee_handle sb_top_left sb_no_target'),
-            bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right sb_no_target');
-
+        var topLeft     = $('<div>').addClass('skybrush_marquee_handle sb_top_left sb_no_target');
+        var bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right sb_no_target');
         this.handles = topLeft.add( bottomRight );
 
-        this.dom.append( topLeft, bottomRight );
+        this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' ).
+                append( topLeft, bottomRight );
+
+        this.position = { x: 0, y: 0, w: 0, h: 0 };
 
         this.isShowingHandles = false;
 
         var self = this;
 
         var updateTopLeft = function(ev, x, y) {
-            var endX = self.x + self.w,
-                endY = self.y + self.h;
+            var endX = self.position.x + self.position.w,
+                endY = self.position.y + self.position.h;
 
             if ( x > endX ) {
                 x = endX;
@@ -2566,8 +2668,8 @@
                 y = endY;
             }
 
-            var w = (self.x + self.w) - x,
-                h = (self.y + self.h) - y;
+            var w = endX - x,
+                h = endY - y;
 
             self.selectArea( x, y, w, h );
         };
@@ -2575,8 +2677,8 @@
         topLeft.leftdown( function(ev) {
             ev.preventDefault();
 
-            var x = self.x,
-                y = self.h;
+            var x = self.position.x,
+                y = self.position.h;
 
             self.startHighlight( false );
 
@@ -2591,20 +2693,22 @@
         } );
 
         var updateWidthHeight = function(ev, x, y) {
-            var newW = Math.max( 0, x - self.x ),
-                newH = Math.max( 0, y - self.y );
+            var newW = Math.max( 0, x - self.position.x ),
+                newH = Math.max( 0, y - self.position.y );
 
             self.selectArea(
-                    self.x, self.y,
-                    newW, newH
+                    self.position.x, 
+                    self.position.y,
+                    newW,
+                    newH
             );
         };
 
         bottomRight.leftdown( function(ev) {
             ev.preventDefault();
 
-            var width  = self.w,
-                height = self.h;
+            var width  = self.position.w,
+                height = self.position.h;
 
             self.startHighlight( false );
 
@@ -2619,221 +2723,230 @@
         } );
     };
 
-    Marquee.prototype = new ViewOverlay();
+    Marquee.prototype = {
+        updateViewport: function( canvasX, canvasY, width, height, zoom ) {
+            this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom );
+            this.update();
 
-    /**
-     * Begins displaying the resize handles.
-     */
-    Marquee.prototype.showHandles = function() {
-        this.handles.addClass( 'sb_show' );
+            return this;
+        },
 
-        return this;
-    }
+        setCanvasSize: function( x, y, w, h ) {
+            this.viewOverlay.setCanvasSize( x, y, w, h );
 
-    /**
-     * Hides the resize handles.
-     */
-    Marquee.prototype.hideHandles = function() {
-        this.handles.removeClass( 'sb_show' );
+            return this;
+        },
 
-        return this;
-    }
+        /**
+         * Begins displaying the resize handles.
+         */
+        showHandles: function() {
+            this.handles.addClass( 'sb_show' );
 
-    /**
-     * Puts this into highlighting mode.
-     *
-     * This is a visual change, to give the user a visual
-     * indication that the marquee is currently being altered.
-     *
-     * @param clear True to clear this when it highlights, false to not. Defaults to true.
-     */
-    Marquee.prototype.startHighlight = function( clear ) {
-        this.dom.ensureClass( 'sb_highlight' );
+            return this;
+        },
 
-        if ( clear === undefined || clear ) {
-            this.clear();
-        } else {
-            this.dom.removeClass( 'sb_reposition' );
-        }
+        /**
+         * Hides the resize handles.
+         */
+        hideHandles: function() {
+            this.handles.removeClass( 'sb_show' );
 
-        return this;
-    };
+            return this;
+        },
 
-    /**
-     * Ends highlighting mode,
-     * so the visual highlighting that this marquee
-     * shows will now end.
-     */
-    Marquee.prototype.stopHighlight = function() {
-        var self = this;
+        /**
+         * Puts this into highlighting mode.
+         *
+         * This is a visual change, to give the user a visual
+         * indication that the marquee is currently being altered.
+         *
+         * @param clear True to clear this when it highlights, false to not. Defaults to true.
+         */
+        startHighlight: function( clear ) {
+            this.viewOverlay.ensureClass( 'sb_highlight' );
 
-        var x = self.x,
-            y = self.y,
-            w = self.w,
-            h = self.h;
+            if ( clear === undefined || clear ) {
+                this.clear();
+            } else {
+                this.viewOverlay.removeClass( 'sb_reposition' );
+            }
 
-        self.dom.removeClass( 'sb_highlight' );
+            return this;
+        },
 
-        if (
-                x < 0 ||
-                y < 0 ||
-                w+x > self.canvas.width  ||
-                h+y > self.canvas.height
-        ) {
-            var x2 = Math.max( x, 0 ),
-                y2 = Math.max( y, 0 );
-            var w2 = Math.min( w+x, self.canvas.width  ) - x2,
-                h2 = Math.min( h+y, self.canvas.height ) - y2;
+        /**
+         * Ends highlighting mode,
+         * so the visual highlighting that this marquee
+         * shows will now end.
+         */
+        stopHighlight: function() {
+            var self = this;
 
-            self.selectArea( x2, y2, w2, h2 );
-        }
+            var x = self.position.x,
+                y = self.position.y,
+                w = self.position.w,
+                h = self.position.h;
 
-        if ( self.hasClipArea() ) {
-            self.canvas.setClip( self.x, self.y, self.w, self.h );
-        } else {
-            self.dom.removeClass('sb_show');
-        }
+            self.viewOverlay.removeClass( 'sb_highlight' );
 
-        return self;
-    };
+            if (
+                    x < 0 ||
+                    y < 0 ||
+                    w+x > self.canvas.width  ||
+                    h+y > self.canvas.height
+            ) {
+                var x2 = Math.max( x, 0 ),
+                    y2 = Math.max( y, 0 );
+                var w2 = Math.min( w+x, self.canvas.width  ) - x2,
+                    h2 = Math.min( h+y, self.canvas.height ) - y2;
 
-    Marquee.prototype.hasClipArea = function() {
-        var self = this;
-
-        return ! (
-                self.w <= 0 ||
-                self.h <= 0 ||
-                self.x+self.w < 0 ||
-                self.y+self.h < 0 ||
-                self.x >= self.canvas.getWidth() ||
-                self.y >= self.canvas.getHeight()
-        );
-    };
-
-    /**
-     * Selections the region given.
-     *
-     * If the region is outside of the canvas then it is counted
-     * as a non-selection.
-     */
-    Marquee.prototype.select = function( x, y, x2, y2 ) {
-        return this.selectArea(
-                Math.min( x, x2 ),
-                Math.min( y, y2 ),
-
-                Math.abs( x2-x ),
-                Math.abs( y2-y )
-        );
-    };
-
-    Marquee.prototype.xy = function( x, y ) {
-        return this.selectArea( x, y, this.w, this.h );
-    };
-
-    Marquee.prototype.selectArea = function( x, y, w, h ) {
-        var self = this;
-
-        // floor all locations
-        self.x = x|0,
-        self.y = y|0,
-        self.w = w|0,
-        self.h = h|0;
-
-        return self.update();
-    };
-
-    /**
-     * Cleares the current selection on the Marquee.
-     *
-     * This is the same as selection a 0x0 region.
-     */
-    Marquee.prototype.clear = function() {
-        var self = this;
-
-        if ( self.dom.hasClass('sb_show') ) {
-            self.select( 0, 0, 0, 0 );
-            self.canvas.removeClip();
-            self.dom.removeClass( 'sb_reposition' );
-
-            return self.update();
-        }
-
-        return this;
-    };
-
-    Marquee.prototype.hasNoSelection = function() {
-        return ( this.w === 0 ) && ( this.h === 0 ) ;
-    }
-
-    /**
-     * Returns an object showing the current selection,
-     * in canvas pixels, or null if there is no selection.
-     *
-     * @return null if there is no selection, or an object describing it.
-     */
-    Marquee.prototype.getSelection = function() {
-        var self = this;
-
-        if ( self.dom.hasClass('sb_show') ) {
-            return {
-                    x: self.x,
-                    y: self.y,
-                    w: self.w,
-                    h: self.h
-            };
-        } else {
-            return null;
-        }
-    };
-
-    /**
-     * Cases this to hide/show it's self,
-     * based on the current selection,
-     * and if it is shown it will resize accordingly.
-     */
-    Marquee.prototype.update = function() {
-        var self = this;
-
-        var x = self.x,
-            y = self.y,
-            w = self.w,
-            h = self.h,
-            canvas = self.canvas,
-            dom    = self.dom;
-
-        if ( dom.hasClass('sb_highlight' ) ) {
-            dom.ensureClass('sb_show');
+                self.selectArea( x2, y2, w2, h2 );
+            }
 
             if ( self.hasClipArea() ) {
-                dom.removeClass('sb_outside');
+                self.canvas.setClip( self.position.x, self.position.y, self.position.w, self.position.h );
             } else {
-                dom.ensureClass('sb_outside');
+                self.viewOverlay.removeClass('sb_show');
             }
 
-            if ( self.hasNoSelection() ) {
-                dom.ensureClass('sb_temporary_hide');
-            } else {
-                dom.removeClass('sb_temporary_hide');
+            return self;
+        },
+
+        hasClipArea: function() {
+            var self = this;
+
+            return ! (
+                    self.position.w <= 0 ||
+                    self.position.h <= 0 ||
+                    self.position.x+self.position.w < 0 ||
+                    self.position.y+self.position.h < 0 ||
+                    self.position.x >= self.canvas.getWidth() ||
+                    self.position.y >= self.canvas.getHeight()
+            );
+        },
+
+        /**
+         * Selections the region given.
+         *
+         * If the region is outside of the canvas then it is counted
+         * as a non-selection.
+         */
+        select: function( x, y, x2, y2 ) {
+            return this.selectArea(
+                    Math.min( x, x2 ),
+                    Math.min( y, y2 ),
+
+                    Math.abs( x2-x ),
+                    Math.abs( y2-y )
+            );
+        },
+
+        xy: function( x, y ) {
+            return this.selectArea( x, y, self.position.w, self.position.h );
+        },
+
+        selectArea: function( x, y, w, h ) {
+            var self = this;
+
+            // floor all locations
+            self.position.x = x|0,
+            self.position.y = y|0,
+            self.position.w = w|0,
+            self.position.h = h|0;
+
+            return self.update();
+        },
+
+        /**
+         * Cleares the current selection on the Marquee.
+         *
+         * This is the same as selection a 0x0 region.
+         */
+        clear: function() {
+            var self = this;
+
+            if ( self.viewOverlay.hasClass('sb_show') ) {
+                self.select( 0, 0, 0, 0 );
+                self.canvas.removeClip();
+                self.viewOverlay.removeClass( 'sb_reposition' );
+
+                return self.update();
             }
-        } else if ( self.hasClipArea() ) {
-            dom.removeClass('sb_outside');
-            dom.ensureClass('sb_reposition');
-        } else {
-            dom.removeClass('sb_outside');
-            dom.removeClass('sb_reposition');
-            dom.removeClass('sb_show');
-        }
 
-        /*
-        * Always update the dom location,
-        * because it might be fading out when
-        * this is called.
-        */
-        if ( self.hasClipArea() || dom.hasClass('sb_highlight') ) {
-            self.setCanvasSize( x, y, w, h );
-        }
+            return this;
+        },
 
-        return self;
+        hasNoSelection: function() {
+            return ( self.position.w === 0 ) && ( self.position.h === 0 ) ;
+        },
+
+        /**
+         * Returns an object showing the current selection, in canvas pixels,
+         * or null if there is no selection.
+         *
+         * @return null if there is no selection, or an object describing it.
+         */
+        getPosition: function() {
+            return this.viewOverlay.hasClass('sb_show') ?
+                    this.position :
+                    null ;
+        },
+
+        /**
+         * Cases this to hide/show it's self,
+         * based on the current selection,
+         * and if it is shown it will resize accordingly.
+         */
+        update: function() {
+            var self = this;
+
+            if ( dom.hasClass('sb_highlight' ) ) {
+                self.viewOverlay.
+                        ensureClass('sb_show');
+
+                if ( self.hasClipArea() ) {
+                    self.viewOverlay.
+                            removeClass('sb_outside');
+                } else {
+                    self.viewOverlay.
+                            ensureClass('sb_outside');
+                }
+
+                if ( self.hasNoSelection() ) {
+                    self.viewOverlay.
+                            ensureClass('sb_temporary_hide');
+                } else {
+                    self.viewOverlay.
+                            removeClass('sb_temporary_hide');
+                }
+            } else if ( self.hasClipArea() ) {
+                self.viewOverlay.
+                        removeClass('sb_outside').
+                        ensureClass('sb_reposition');
+            } else {
+                self.viewOverlay.
+                        removeClass('sb_outside').
+                        removeClass('sb_reposition').
+                        removeClass('sb_show');
+            }
+
+            /*
+            * Always update the dom location,
+            * because it might be fading out when
+            * this is called.
+            */
+            if ( self.hasClipArea() || self.viewOverlay.hasClass('sb_highlight') ) {
+                self.setCanvasSize(
+                        self.position.x,
+                        self.position.y,
+                        self.position.w,
+                        self.position.h
+                );
+            }
+
+            return self;
+        }
     };
 
     /**
@@ -2854,7 +2967,7 @@
      * @constructor
      */
     var CopyManager = function( viewport ) {
-        ViewOverlay.call( this, viewport, 'skybrush_copy' );
+        this.viewOverlay = new ViewOverlay( viewport, 'skybrush_copy' );
 
         this.copy = null;
 
@@ -2862,114 +2975,127 @@
         this.copyY = 0;
 
         /*
-        * When these two are not undefined,
-        * then we no longer in 'paste' mode.
-        */
-        this.pasteX = undefined;
-        this.pasteY = undefined;
+         * When these two are not undefined,
+         * then we no longer in 'paste' mode.
+         */
+        this.pasteX = 0;
+        this.pasteY = 0;
+        this.isPastingFlag = false;
     };
-    CopyManager.prototype = new ViewOverlay();
 
-    CopyManager.prototype.update = function() {
-        if ( this.hasPaste() ) {
-            this.setCanvasSize(
-                    this.pasteX, this.pasteY,
-                    this.copy.width, this.copy.height
-            );
+    CopyManager.prototype = {
+        updateViewport: function( canvasX, canvasY, width, height, zoom ) {
+            this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom );
+            this.update();
+
+            return this;
+        },
+
+        setCanvasSize: function( x, y, w, h ) {
+            this.viewOverlay.setCanvasSize( x, y, w, h );
+
+            return this;
+        },
+
+        update: function() {
+            if ( this.isPasting() ) {
+                this.setCanvasSize(
+                        this.pasteX    , this.pasteY     ,
+                        this.copy.width, this.copy.height
+                );
+            }
+        },
+
+        draw: function( dest ) {
+            dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY );
+
+            return this;
+        },
+
+        isPasting: function() {
+            return this.isPastingFlag;
+        },
+
+        startPaste: function( dest ) {
+            if ( this.copy !== null ) {
+                this.pasteX = this.pasteY = 0;
+                this.isPastingFlag = true;
+                this.viewOverlay.ensureClass( 'sb_show' );
+
+                return this.movePaste( dest, this.copyX, this.copyY, true );
+            }
+        },
+
+        movePaste: function( dest, x, y, finalize ) {
+            if ( this.isPasting() ) {
+                x = (this.pasteX + (x || 0)) | 0,
+                y = (this.pasteY + (y || 0)) | 0;
+
+                dest.ctx.clearRect( 0, 0, dest.width, dest.height );
+                dest.ctx.drawImage( this.copy, x, y );
+                this.setCanvasSize( x, y, this.copy.width, this.copy.height );
+
+                if ( finalize ) {
+                    this.pasteX = x;
+                    this.pasteY = y;
+                }
+            }
+
+            return this;
+        },
+
+        setCopy: function( canvas, x, y, w, h ) {
+            if ( x === undefined ) {
+                x = 0,
+                y = 0,
+                w = canvas.width,
+                h = canvas.height;
+            } else {
+                w = Math.min( w, canvas.width  ),
+                h = Math.min( h, canvas.height );
+            }
+
+            if ( this.copy === null ) {
+                this.copy = newCanvas( w, h );
+            } else {
+                this.copy.width  = w,
+                this.copy.height = h;
+            }
+
+            this.copy.ctx.drawImage( canvas, -x, -y );
+            this.copyX = x,
+            this.copyY = y;
+
+            return this;
+        },
+
+        overlapsPaste: function( area ) {
+            if ( this.isPasting() ) {
+                var x = this.pasteX,
+                    y = this.pasteY,
+                    w = this.copy.width,
+                    h = this.copy.height;
+
+                return ! (
+                        x > area.x+area.w ||
+                        y > area.y+area.h ||
+                        x+w < area.x ||
+                        y+h < area.y
+                );
+            }
+
+            return false;
+        },
+
+        /**
+         * Cleares this from being in pasting mode.
+         */
+        endPaste: function() {
+            this.isPastingFlag = false;
+            this.viewOverlay.removeClass( 'sb_show' );
+
+            return this;
         }
-    };
-
-    CopyManager.prototype.draw = function( dest ) {
-        dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY );
-        return this;
-    };
-
-    CopyManager.prototype.hasPaste = function() {
-        return this.pasteX !== undefined && this.pasteY !== undefined;
-    };
-
-    CopyManager.prototype.pasteCopy = function( dest ) {
-        this.pasteX = this.pasteY = 0;
-        this.dom.ensureClass( 'sb_show' );
-
-        return this.movePaste( dest, this.copyX, this.copyY, true );
-    };
-
-    CopyManager.prototype.movePaste = function( dest, x, y, finalize ) {
-        x = (this.pasteX + (x || 0)) | 0,
-        y = (this.pasteY + (y || 0)) | 0;
-
-        dest.ctx.clearRect( 0, 0, dest.width, dest.height );
-        dest.ctx.drawImage( this.copy, x, y );
-        this.setCanvasSize( x, y, this.copy.width, this.copy.height );
-
-        if ( finalize ) {
-            this.pasteX = x;
-            this.pasteY = y;
-        }
-
-        return this;
-    };
-
-    CopyManager.prototype.setCopy = function( canvas, x, y, w, h ) {
-        if ( x === undefined ) {
-            x = 0,
-            y = 0,
-            w = canvas.width,
-            h = canvas.height;
-        } else {
-            w = Math.min( w, canvas.width  ),
-            h = Math.min( h, canvas.height );
-        }
-
-        if ( this.copy == null ) {
-            this.copy = newCanvas( w, h );
-        } else {
-            this.copy.width  = w,
-            this.copy.height = h;
-        }
-
-        this.copy.ctx.drawImage( canvas, -x, -y );
-        this.copyX = x,
-        this.copyY = y;
-
-        return this;
-    };
-
-    CopyManager.prototype.hasCopy = function() {
-        return this.copy !== null;
-    };
-
-    CopyManager.prototype.getCopy = function() {
-        return this.copy;
-    };
-
-    CopyManager.prototype.overlapsPaste = function( area ) {
-        if ( this.hasPaste() ) {
-            var x = this.pasteX,
-                y = this.pasteY,
-                w = this.copy.width,
-                h = this.copy.height;
-
-            return ! (
-                    x > area.x+area.w ||
-                    y > area.y+area.h ||
-                    x+w < area.x ||
-                    y+h < area.y
-            );
-        }
-
-        return false;
-    };
-
-    /**
-     * Cleares this from being in pasting mode.
-     */
-    CopyManager.prototype.clearPaste = function() {
-        this.dom.removeClass( 'sb_show' );
-        this.pasteX = this.pasteY = undefined;
-
-        return this;
     };
 
     /**
@@ -3099,11 +3225,11 @@
 
         painter.onSetCommand( function( command ) {
             if ( command.name.toLowerCase() !== 'move' ) {
-                _this.endPaste();
+                _this.drawAndEndPaste();
             }
         } );
         painter.onSetAlpha( function( alpha ) {
-            if ( _this.copyObj.hasPaste() ) {
+            if ( _this.copyObj.isPasting() ) {
                 _this.copyObj.movePaste( _this.overlay, 0, 0 );
             }
         } );
@@ -3581,7 +3707,7 @@
     };
 
     CanvasManager.prototype.isPasting = function() {
-        return this.copyObj.hasPaste();
+        return this.copyObj.isPasting();
     };
 
     CanvasManager.prototype.isInPaste = function( x, y ) {
@@ -3594,7 +3720,7 @@
     };
 
     CanvasManager.prototype.movePaste = function( x, y, finalize ) {
-        if ( this.copyObj.hasPaste() ) {
+        if ( this.copyObj.isPasting() ) {
             this.copyObj.movePaste( this.overlay, x, y, finalize );
         }
 
@@ -3602,10 +3728,12 @@
     };
 
     /**
-     * Ends pasting mode.
+     * If SkyBrush is currently pasting ...
+     *  - draw the pasting content to the canvas
+     *  - clear the pasting overlay (the bit that shows where it will be pasted)
      */
-    CanvasManager.prototype.endPaste = function() {
-        if ( this.copyObj.hasPaste() ) {
+    CanvasManager.prototype.drawAndEndPaste = function() {
+        if ( this.copyObj.isPasting() ) {
             var clip = this.getFullClip();
 
             if ( this.copyObj.overlapsPaste(clip) ) {
@@ -3616,24 +3744,31 @@
                 } );
             }
 
-            this.clearPaste();
+            this.endPaste();
         }
 
         return this;
     };
 
     CanvasManager.prototype.paste = function() {
-        this.endPaste();
-        this.copyObj.pasteCopy( this.overlay );
+        this.drawAndEndPaste();
+        this.copyObj.startPaste( this.overlay );
         this.events.run( 'onPaste' );
 
         return this;
     };
 
-    CanvasManager.prototype.clearPaste = function() {
-        if ( this.copyObj.hasPaste() ) {
+    /**
+     * If SkyBrush is currently pasting ...
+     *  - clears the pasting overlay bit
+     * 
+     * Note this *doesn't* draw the paste to the screen; it just ends the 
+     * pasting mode.
+     */
+    CanvasManager.prototype.endPaste = function() {
+        if ( this.copyObj.isPasting() ) {
             this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
-            this.copyObj.clearPaste();
+            this.copyObj.endPaste();
         }
 
         return this;
@@ -4009,7 +4144,7 @@
         var _this = this;
 
         if ( newWidth != _this.width || newHeight != _this.height ) {
-            _this.endPaste();
+            _this.drawAndEndPaste();
 
             // use existing smoothing
             if ( isSmooth ) {
@@ -4078,7 +4213,7 @@
             oldCtx = _this.overlay.ctx ;
 
         if ( newWidth != _this.width || newHeight != _this.height ) {
-            _this.endPaste();
+            _this.drawAndEndPaste();
 
             // create a new canvas, of the required size, and with our content
             newC.width  = newWidth;
@@ -4241,7 +4376,7 @@
 
     CanvasManager.prototype.reset = function() {
         this.resetUndoRedo().
-                clearPaste().
+                endPaste().
                 marquee.clear();
 
         this.grid.hide();
@@ -4335,7 +4470,7 @@
      * @return True if this can undo, and false if there is nothing to undo.
      */
     CanvasManager.prototype.hasUndo = function() {
-        return this.undos.hasUndo() || this.copyObj.hasPaste();
+        return this.undos.hasUndo() || this.copyObj.isPasting();
     };
 
     /**
@@ -4355,11 +4490,11 @@
     CanvasManager.prototype.crop = function() {
         var self = this;
 
-        self.endPaste();
+        self.drawAndEndPaste();
 
         // check for a marquee selection
         // and otherwise use the visible area
-        var selection = self.marquee.getSelection();
+        var selection = self.marquee.getPosition();
         if ( selection === null ) {
             selection = self.getDrawnArea();
         } else {
@@ -4368,10 +4503,10 @@
         }
 
         if ( selection !== null ) {
-            var x = selection.x,
-                y = selection.y,
+            var x  = selection.x,
+                y  = selection.y,
                 w2 = selection.w,
-                h2 = selection.h ;
+                h2 = selection.h;
 
             var temp = newCanvas( w2, h2 );
             temp.ctx.drawImage( self.canvas, -x, -y );
@@ -4520,7 +4655,7 @@
             w = self.width,
             h = self.height;
 
-        self.endPaste();
+        self.drawAndEndPaste();
 
         self.canvas.ctx.clearRect( 0, 0, w, h );
 
@@ -4545,8 +4680,8 @@
      * @return True if an undo was performed, otherwise false.
      */
     CanvasManager.prototype.undo = function() {
-        if ( this.copyObj.hasPaste() ) {
-            this.clearPaste();
+        if ( this.copyObj.isPasting() ) {
+            this.endPaste();
 
             return true;
         } else {
@@ -6835,7 +6970,7 @@
                                 if ( this.wasMovement ) {
                                     canvas.movePaste( x-this.startX, y-this.startY, true );
                                 } else {
-                                    canvas.endPaste();
+                                    canvas.drawAndEndPaste();
                                 }
                             }
                         }
@@ -7025,7 +7160,8 @@
 
         self.inScrollbar = false;
 
-        self.dom = $('<div class="skybrush_brush"></div>');
+        self.$dom = $('<div class="skybrush_brush"></div>');
+        self.dom  = self.$dom.get( 0 );
         viewport.append( self.dom );
 
         // sensible defaults, so they are never 'undefined'
@@ -7052,350 +7188,402 @@
 
         // ensure it's all setup right!
         self.setClass( DEFAULT_CURSOR );
+
+        self.isHidden = false;
     }
 
-    /**
-     * Cleares the items set on the cursor, so it's back to it's default state.
-     */
-    DirectCursor.prototype.clearCursor = function() {
-        this.clearCursorInner();
-
-        this.dom.hide();
-
-        this.fakeShown = false;
-        this.cursorDataURL = null;
-        this.cursorClass = null;
-
-        return this;
-    }
-
-    DirectCursor.prototype.clearCursorInner = function() {
-        if ( this.cursorDataURL !== null ) {
-            this.dom.hide();
-            this.viewport.css( 'cursor', '' );
-        }
-
-        this.viewport.removeClass( NO_CURSOR_CSS );
-
-        if ( this.cursorClass !== null ) {
-            if ( this.cursorClass !== NO_CURSOR_CSS ) {
-                this.viewport.removeClass( this.cursorClass );
-            }
-        }
-
-        return this;
-    }
-
-    /**
-     * Sets the cursor to display the data url given. Only the url needs to be
-     * given, i.e.
-     *
-     *  cursor.setCursorURL( '/cursors/crosshair.cur', size );
-     *
-     * This can also take a data url, but it only works if the browser actually
-     * supports them.
-     *
-     * @param The data URI for the cursor.
-     * @param size, the size of the cursor when displayed.
-     */
-    DirectCursor.prototype.setCursorURL = function( url, size ) {
-        url = this.calculateUrl( url, size );
-
-        if ( ! this.inScrollbar ) {
-            this.setCursorURLInner( url, size );
-        }
-
-        this.cursorClass = null;
-        this.cursorDataURL = url;
-        this.displaySize = size;
-        this.fakeShown = ! useNativeCursor( size );
-
-        return this;
-    }
-
-    DirectCursor.prototype.setCursorURLInner = function( url, size ) {
-        this.clearCursorInner();
-
-        if ( useNativeCursor(size) ) {
-            this.viewport.css( 'cursor', url );
-        } else {
-            this.viewport.addClass( NO_CURSOR_CSS );
-            this.dom.show();
-            this.dom.css( 'background-image', url );
-        }
-    }
-
-    /**
-     * @return True if the fake cursor, is currently visible, and false if not.
-     */
-    DirectCursor.prototype.isFakeShown = function() {
-        return this.fakeShown;
-    }
-
-    DirectCursor.prototype.calculateUrl = function( url, size ) {
-        if ( useNativeCursor(size) ) {
-            /*
-             * The location is off by one,
-             * when applied as a cursor url.
-             *
-             * So I subtract 1, to correct.
-             */
-            var loc = size/2 - 1;
-
-            return 'url(' + url + ') ' + loc + ' ' + loc + ', auto' ;
-        } else {
-            return 'url(' + url + ')' ;
-        }
-    }
-
-    /**
-     * Adds the CSS class to the viewport, that the cursor is within.
-     */
-    DirectCursor.prototype.setClass = function( klass ) {
-        // ie cannot handle our cursors, so hide them
-        if ( $.browser.msie ) {
-            klass = DEFAULT_CURSOR;
-        }
-
-        if ( ! this.inScrollbar ) {
-            this.clearCursor();
-            this.viewport.addClass( klass );
-        }
-
-        this.cursorClass = klass;
-        this.cursorDataURL = null;
-        this.fakeShown = false;
-            
-        return this;
-    };
-
-    /**
-     * Sets the cursor to a blank one.
-     */
-    DirectCursor.prototype.setBlankCursor = function() {
-        this.setClass( NO_CURSOR_CSS );
-
-        return this;
-    };
-
-    /**
-     * Call this, when the cursor has entered a Scrollbar.
-     *
-     * Don't worry about what it does, just do it.
-     */
-    DirectCursor.prototype.enterScrollbar = function() {
-        if ( ! this.inScrollbar ) {
+    DirectCursor.prototype = {
+        /**
+         * Cleares the items set on the cursor, so it's back to it's default state.
+         */
+        clearCursor: function() {
             this.clearCursorInner();
-            this.inScrollbar = true;
-        }
 
-        return this;
-    };
+            this.dom.className = 'skybrush_brush';
 
-    /**
-     * Call this, when the cursor has left a Scrollbar.
-     *
-     * Don't worry about what it does, just do it.
-     */
-    DirectCursor.prototype.leaveScrollbar = function() {
-        if ( this.inScrollbar ) {
-            this.inScrollbar = false;
+            this.fakeShown = false;
+            this.cursorDataURL = null;
+            this.cursorClass = null;
 
-            if ( this.cursorClass ) {
-                this.setClass( this.cursorClass );
-            } else if ( this.cursorDataURL ) {
-                this.setCursorURLInner( this.cursorDataURL, this.displaySize );
+            return this;
+        },
+
+        clearCursorInner: function() {
+            if ( this.cursorDataURL !== null ) {
+                this.dom.className = 'skybrush_brush';
+                this.viewport.css( 'cursor', '' );
             }
-        }
 
-        return this;
-    };
+            this.viewport.removeClass( NO_CURSOR_CSS );
 
-    DirectCursor.prototype.update = function( ev ) {
-        this.updateMove( ev.pageX, ev.pageY );
-        this.updateScrollbarCursor( ev );
+            if ( this.cursorClass !== null ) {
+                if ( this.cursorClass !== NO_CURSOR_CSS ) {
+                    this.viewport.removeClass( this.cursorClass );
+                }
+            }
 
-        return this;
-    };
+            return this;
+        },
 
-    /**
-     * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
-     * So when we move over the scroll bar, we turn off the custom cursor,
-     * and set it to the standard one.
-     *
-     * It then gets turned back, if we have moved out, and have an old
-     * cursor to set.
-     *
-     * @param ev The event for the mouse movement.
-     * @return true if we are overlapping the scrollbar, false if not.
-     */
-    DirectCursor.prototype.updateScrollbarCursor = function( ev ) {
-        var x = ev.pageX,
-            y = ev.pageY,
-            scrollBars = this.viewport.scrollBarSize();
+        /**
+         * Sets the cursor to display the data url given. Only the url needs to be
+         * given, i.e.
+         *
+         *  cursor.setCursorURL( '/cursors/crosshair.cur', size );
+         *
+         * This can also take a data url, but it only works if the browser actually
+         * supports them.
+         *
+         * @param The data URI for the cursor.
+         * @param size, the size of the cursor when displayed.
+         */
+        setCursorURL: function( url, size ) {
+            url = this.calculateUrl( url, size );
 
-        // work out if we are on top of a scroll bar
-        if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
-            var pos = this.viewport.offset();
+            if ( ! this.inScrollbar ) {
+                this.setCursorURLInner( url, size );
+            }
 
-            if (
-                    scrollBars.right > 0 &&
-                    pos.left   + (this.viewport.width() - scrollBars.right) < ev.pageX
-            ) {
-                this.enterScrollbar();
-            } else if (
-                    scrollBars.bottom > 0 &&
-                    pos.top   + (this.viewport.height() - scrollBars.bottom) < ev.pageY
-            ) {
-                this.enterScrollbar();
+            this.cursorClass = null;
+            this.cursorDataURL = url;
+            this.displaySize = size;
+            this.fakeShown = ! useNativeCursor( size );
+
+            return this;
+        },
+
+        setCursorURLInner: function( url, size ) {
+            this.clearCursorInner();
+
+            if ( useNativeCursor(size) ) {
+                if ( ! this.isHidden ) {
+                    this.viewport.css( 'cursor', url );
+                }
+            } else {
+                this.viewport.addClass( NO_CURSOR_CSS );
+                this.dom.style.backgroundImage = url;
+
+                if ( ! this.isHidden ) {
+                    this.dom.className = 'skybrush_brush sb_show';
+                }
+            }
+        },
+
+        /**
+         * @return True if the fake cursor, is currently visible, and false if not.
+         */
+        isFakeShown: function() {
+            return this.fakeShown;
+        },
+
+        calculateUrl: function( url, size ) {
+            if ( useNativeCursor(size) ) {
+                /*
+                 * The location is off by one,
+                 * when applied as a cursor url.
+                 *
+                 * So I subtract 1, to correct.
+                 */
+                var loc = size/2 - 1;
+
+                return 'url(' + url + ') ' + loc + ' ' + loc + ', auto' ;
+            } else {
+                return 'url(' + url + ')' ;
+            }
+        },
+
+        /**
+         * Adds the CSS class to the viewport, that the cursor is within.
+         */
+        setClass: function( klass ) {
+            // ie cannot handle our cursors, so hide them
+            if ( $.browser.msie ) {
+                klass = DEFAULT_CURSOR;
+            }
+
+            if ( ! this.inScrollbar ) {
+                this.clearCursor();
+
+                if ( ! this.isHidden ) {
+                    this.viewport.addClass( klass );
+                }
+            }
+
+            this.cursorClass = klass;
+            this.cursorDataURL = null;
+            this.fakeShown = false;
+                
+            return this;
+        },
+
+        /**
+         * Sets the cursor to a blank one.
+         */
+        setBlankCursor: function() {
+            this.setClass( NO_CURSOR_CSS );
+
+            return this;
+        },
+
+        /**
+         * Call this, when the cursor has entered a Scrollbar.
+         *
+         * Don't worry about what it does, just do it.
+         */
+        enterScrollbar: function() {
+            if ( ! this.inScrollbar ) {
+                this.clearCursorInner();
+                this.inScrollbar = true;
+            }
+
+            return this;
+        },
+
+        /**
+         * Call this, when the cursor has left a Scrollbar.
+         *
+         * Don't worry about what it does, just do it.
+         */
+        leaveScrollbar: function() {
+            if ( this.inScrollbar ) {
+                this.inScrollbar = false;
+
+                if ( this.cursorClass ) {
+                    this.setClass( this.cursorClass );
+                } else if ( this.cursorDataURL ) {
+                    this.setCursorURLInner( this.cursorDataURL, this.displaySize );
+                }
+            }
+
+            return this;
+        },
+
+        update: function( ev ) {
+            this.updateMove( ev.pageX, ev.pageY );
+            this.updateScrollbarCursor( ev );
+
+            return this;
+        },
+
+        /**
+         * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
+         * So when we move over the scroll bar, we turn off the custom cursor,
+         * and set it to the standard one.
+         *
+         * It then gets turned back, if we have moved out, and have an old
+         * cursor to set.
+         *
+         * @param ev The event for the mouse movement.
+         * @return true if we are overlapping the scrollbar, false if not.
+         */
+        updateScrollbarCursor: function( ev ) {
+            var x = ev.pageX,
+                y = ev.pageY,
+                scrollBars = this.viewport.scrollBarSize();
+
+            // work out if we are on top of a scroll bar
+            if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
+                var pos = this.viewport.offset();
+
+                if (
+                        scrollBars.right > 0 &&
+                        pos.left + (this.viewport.width() - scrollBars.right) < ev.pageX
+                ) {
+                    this.enterScrollbar();
+                } else if (
+                        scrollBars.bottom > 0 &&
+                        pos.top  + (this.viewport.height() - scrollBars.bottom) < ev.pageY
+                ) {
+                    this.enterScrollbar();
+                } else {
+                    this.leaveScrollbar();
+                }
             } else {
                 this.leaveScrollbar();
             }
-        } else {
-            this.leaveScrollbar();
-        }
 
-        return this;
-    };
+            return this;
+        },
 
-    /**
-     * pageX and pageY are optional. If omitted, this will
-     * presume it is at the same location as the last time
-     * this was called.
-     */
-    DirectCursor.prototype.updateMove = function(pageX, pageY) {
-        var _this = this;
+        /**
+         * pageX and pageY are optional. If omitted, this will
+         * presume it is at the same location as the last time
+         * this was called.
+         */
+        updateMove: function(pageX, pageY) {
+            if ( this.isFakeShown() ) {
+                var viewport = this.viewport;
 
-        if ( _this.isFakeShown() ) {
-            if ( pageX === undefined || pageY === undefined ) {
-                pageX = _this.lastX;
-                pageY = _this.lastY;
-            }
+                if ( pageX === undefined || pageY === undefined ) {
+                    pageX = this.lastX;
+                    pageY = this.lastY;
+                }
 
-            var displaySize  = _this.displaySize,
-                displaySize2 = displaySize/2,
-                pos          = _this.viewport.offset(),
-                scrollBars   = _this.viewport.scrollBarSize();
+                var displaySize  = this.displaySize,
+                    displaySize2 = displaySize/2,
+                    pos          = viewport.offset(),
+                    scrollBars   = viewport.scrollBarSize();
 
-            var scrollX = _this.viewport.scrollLeft(),
-                scrollY = _this.viewport.scrollTop(),
-                viewportHeight = _this.viewport.height() - scrollBars.bottom,
-                viewportWidth  = _this.viewport.width()  - scrollBars.right;
+                var scrollX = viewport.scrollLeft(),
+                    scrollY = viewport.scrollTop(),
+                    viewportHeight = viewport.height() - scrollBars.bottom,
+                    viewportWidth  = viewport.width()  - scrollBars.right;
+
+                    /*
+                     * If the cursor is near the top or bottom edge,
+                     * then the cursor is obscured using 'background-position'.
+                     *
+                     * When this is true, it'll do it on the bottom,
+                     * and when false, it does this for the top edge.
+                     *
+                     * hideFromRight does the same, but on the x axis.
+                     */
+                var hideFromBottom = false,
+                    hideFromRight  = false;
 
                 /*
-                 * If the cursor is near the top or bottom edge,
-                 * then the cursor is obscured using 'background-position'.
+                 * We have the location, in the middle, of the cursor on the screen.
+                 * This is the 'fixed' position, where no scrolling taken into account.
                  *
-                 * When this is true, it'll do it on the bottom,
-                 * and when false, it does this for the top edge.
-                 *
-                 * hideFromRight does the same, but on the x axis.
+                 * We then convert this into the top/left position,
+                 * and then add on the scrolling.
                  */
-            var hideFromBottom = false,
-                hideFromRight  = false;
 
-            /*
-             * We have the location, in the middle, of the cursor on the screen.
-             * This is the 'fixed' position, where no scrolling taken into account.
-             *
-             * We then convert this into the top/left position,
-             * and then add on the scrolling.
-             */
+                var middleX = (pageX - pos.left),
+                    middleY = (pageY - pos.top );
 
-            var middleX = (pageX - pos.left),
-                middleY = (pageY - pos.top );
+                var left,
+                    top,
+                    width,
+                    height;
 
-            var left,
-                top,
-                width,
-                height;
+                /*
+                 * Now translate from middle to top/left, for:
+                 *  - if over the top edge
+                 *  - if over the bottom edge
+                 *  - if between those edges
+                 */
 
-            /*
-             * Now translate from middle to top/left, for:
-             *  - if over the top edge
-             *  - if over the bottom edge
-             *  - if between those edges
-             */
+                if ( middleY-displaySize2 < 0 ) {
+                    top    = 0;
+                    height = displaySize + (middleY-displaySize2);
+                } else if ( middleY+displaySize2 > viewportHeight ) {
+                    top = middleY-displaySize2;
+                    height = viewportHeight - (middleY-displaySize2);
 
-            if ( middleY-displaySize2 < 0 ) {
-                top    = 0;
-                height = displaySize + (middleY-displaySize2);
-            } else if ( middleY+displaySize2 > viewportHeight ) {
-                top = middleY-displaySize2;
-                height = viewportHeight - (middleY-displaySize2);
-
-                hideFromBottom = true;
-            } else {
-                top    = middleY - (displaySize2-1);
-                height = displaySize;
-            }
-
-            if ( middleX-displaySize2 < 0 ) {
-                left  = 0;
-                width = displaySize + (middleX-displaySize2);
-            } else if ( middleX+displaySize2 > viewportWidth ) {
-                left  = middleX-displaySize2;
-                width = viewportWidth - (middleX-displaySize2);
-
-                hideFromRight = true;
-            } else {
-                left  = middleX - (displaySize2-1);
-                width = displaySize;
-            }
-
-            top  += scrollY;
-            left += scrollX;
-
-            if ( left !== this.lastLeft || top !== this.lastTop ) {
-                _this.lastLeft = left;
-                _this.lastTop  = top;
-
-                _this.dom.translate( left, top );
-
-                _this.lastX = pageX;
-                _this.lastY = pageY;
-            }
-
-            /*
-             * Now alter the width/height,
-             * and the background position.
-             */
-
-            width  = Math.max( width , 0 );
-            height = Math.max( height, 0 );
-
-            var cssSetup = this.cssSetup;
-            if (
-                    height !== cssSetup.height ||
-                    width  !== cssSetup.width
-            ) {
-                var positionY = ! hideFromBottom ?
-                            -(displaySize-height) + 'px' :
-                             0 ;
-                var positionX = ! hideFromRight ?
-                            -(displaySize-width ) + 'px' :
-                             0 ;
-
-                var newBackPosition = positionX + ' ' + positionY;
-                if ( newBackPosition !== cssSetup['background-position'] ) {
-                    cssSetup['background-position'] = newBackPosition;
-                    _this.dom.css( 'background-position', newBackPosition );
+                    hideFromBottom = true;
+                } else {
+                    top    = middleY - (displaySize2-1);
+                    height = displaySize;
                 }
 
-                if ( width !== cssSetup.width ) {
-                    cssSetup.width = width;
-                    _this.dom.width( width );
+                if ( middleX-displaySize2 < 0 ) {
+                    left  = 0;
+                    width = displaySize + (middleX-displaySize2);
+                } else if ( middleX+displaySize2 > viewportWidth ) {
+                    left  = middleX-displaySize2;
+                    width = viewportWidth - (middleX-displaySize2);
+
+                    hideFromRight = true;
+                } else {
+                    left  = middleX - (displaySize2-1);
+                    width = displaySize;
                 }
 
-                if ( height !== cssSetup.height ) {
-                    cssSetup.height = height;
-                    _this.dom.height( height );
+                top  += scrollY;
+                left += scrollX;
+
+                if ( left !== this.lastLeft || top !== this.lastTop ) {
+                    this.lastLeft = left;
+                    this.lastTop  = top;
+
+                    this.$dom.translate( left, top );
+
+                    this.lastX = pageX;
+                    this.lastY = pageY;
+                }
+
+                /*
+                 * Now alter the width/height,
+                 * and the background position.
+                 */
+
+                width  = Math.max( width , 0 );
+                height = Math.max( height, 0 );
+
+                var cssSetup = this.cssSetup;
+                if (
+                        height !== cssSetup.height ||
+                        width  !== cssSetup.width
+                ) {
+                    var positionY = ! hideFromBottom ?
+                                -(displaySize-height) + 'px' :
+                                 0 ;
+                    var positionX = ! hideFromRight ?
+                                -(displaySize-width ) + 'px' :
+                                 0 ;
+
+                    var newBackPosition = positionX + ' ' + positionY;
+                    if ( newBackPosition !== cssSetup['background-position'] ) {
+                        cssSetup['background-position'] = newBackPosition;
+                        this.dom.style.backgroundPosition = newBackPosition;
+                    }
+
+                    if ( width !== cssSetup.width ) {
+                        cssSetup.width = width;
+                        this.$dom.width( width );
+                    }
+
+                    if ( height !== cssSetup.height ) {
+                        cssSetup.height = height;
+                        this.$dom.height( height );
+                    }
                 }
             }
+
+            return this;
+        },
+
+        /**
+         * Hides this cursor so that it is no longer shown, at all. This 
+         * includes both the real cursor, and the fake cursor built using an
+         * HTML element.
+         */
+        hide: function() {
+            if ( ! this.isHidden ) {
+                this.isHidden = true;
+
+                if ( this.cursorClass !== null ) {
+                    this.viewport.removeClass( this.cursorClass );
+                } else if ( this.cursorDataURL ) {
+                    this.viewport.css( 'cursor', '' );
+                }
+
+                this.viewport.addClass( NO_CURSOR_CSS );
+                this.dom.className = 'skybrush_brush';
+            }
+            
+            return this;
+        },
+
+        /**
+         * If the cursor is hidden, then it will now be shown. Otherwise this
+         * will do nothing.
+         */
+        show: function() {
+            if ( this.isHidden ) {
+                this.isHidden = false;
+
+                if ( this.cursorClass ) {
+                    this.setClass( this.cursorClass );
+                } else if ( this.cursorDataURL ) {
+                    this.setCursorURLInner( this.cursorDataURL, this.displaySize );
+                }
+            }
+            
+            return this;
         }
-
-        return _this;
-    };
+    }
 
 
     /**
@@ -7403,24 +7591,22 @@
      * zoom, and some decision making on how the brush should look.
      *
      * If 'isTouch' is set, then only 'showTouch' and 'hideTouch'
-     * will actually allow this to be seen or not.
+     * will actually allow this to be seen or not. The other 'show' and 'hide'
+     * will still look like they work, and will as far as they can, except 
+     * nothing actually appeares.
      *
-     * The other 'show' and 'hide' will still look like they work,
-     * and will as far as they can, except nothing actually appeares.
+     * The 'cursorTranslator' is used for translating cursor locations. That is
+     * so the CSS can move to a different location, but still work.
      *
-     * The 'cursorTranslator' is used for translating cursor locations.
-     * That is so the CSS can move to a different location,
-     * but still work.
-     *
+     * @param painter The SkyBrush instance.
      * @param viewport The view area this is a cursor for.
      * @param isTouch True if this is working with touch, false if not.
      * @param cursorTranslator Null for no translator, otherwise provide one.
      */
-    var BrushCursor = function( painter, viewport, isTouch, translator ) {
+    var BrushCursor = function( viewport, isTouch, translator ) {
         var self = this;
 
         self.cursor = new DirectCursor( viewport );
-        self.painter = painter;
 
         self.cursorTranslator = translator || null;
 
@@ -7468,12 +7654,13 @@
 
     BrushCursor.prototype.showTouch = function() {
         // don't show if hidden!
-        if ( this.isTouch && !this.isHidden ) {
+        if ( this.isTouch && ! this.isHidden ) {
             this.showInner(); 
         }
 
         return this;
     };
+
     BrushCursor.prototype.hideTouch = function() {
         if ( this.isTouch ) {
             this.hideInner();
@@ -7481,8 +7668,11 @@
 
         return this;
     };
+
     BrushCursor.prototype.show = function() {
         this.isHidden = false;
+
+        this.renderShape( this.render, this.zoomSize );
 
         if ( ! this.isTouch ) {
             this.showInner();
@@ -7490,6 +7680,7 @@
 
         return this;
     };
+
     BrushCursor.prototype.hide = function() {
         this.isHidden = true;
 
@@ -7504,8 +7695,7 @@
         if ( this.isReallyHidden ) {
             this.isReallyHidden = false;
 
-            this.dom.show();
-            this.renderShape( this.render, this.zoomSize );
+            this.cursor.show();
         }
 
         return this;
@@ -7514,7 +7704,7 @@
     BrushCursor.prototype.hideInner = function() {
         if ( ! this.isReallyHidden ) {
             this.isReallyHidden = true;
-            this.dom.hide();
+            this.cursor.hide();
         }
 
         return this;
@@ -7586,7 +7776,7 @@
                     ctx.lineCap   = 'round';
                     ctx.lineWidth = 1;
 
-                    this.shape( ctx, canvas, newSize );
+                    self.shape( ctx, canvas, newSize );
 
                     var middle = canvas.width/2;
 
@@ -7654,6 +7844,9 @@
      * Handles translating the cursor urls to a new location.
      *
      * Note that this is not always in use, and so is optional.
+     *
+     * There is also a performance cost when this is in use. But hey, it's 
+     * kinda cool that you can do this.
      */
     var CursorLocationChanger = function( imageLocation ) {
         var stylesheet = document.createElement('style');
@@ -7740,45 +7933,49 @@
 
             if ( key === 'del' ) {
                 key = 'delete';
+            } else if ( key === 'esc' ) {
+                key = 'escape';
             }
         }
 
         return key;
     }
 
-    var newKeyEventTest = function( key ) {
-        if ( typeof key === 'number' ) {
-            return newKeyEventTestNumeric( key|0 );
-        } else if ( typeof key === 'string' ) {
-            return newKeyEventTestString( key );
-        } else {
-            throw new Exception( "expected string or number for key" + key );
-        }
-    }
-
-    var newKeyEventTestNumeric = function( key ) {
-        return function(ev) {
-            if ( ev.charCode !== 0 ) {
-                return ev.charCode === key ;
-            } else {
-                return ev.keyCode  === key ;
+    var newKeyEventTest = (function() {
+        var newKeyEventTestNumeric = function( key ) {
+            return function(ev) {
+                if ( ev.charCode !== 0 ) {
+                    return ev.charCode === key ;
+                } else {
+                    return ev.keyCode  === key ;
+                }
             }
         }
-    }
 
-    var newKeyEventTestString = function( key ) {
-        key = normalizeKey( key );
+        var newKeyEventTestString = function( key ) {
+            key = normalizeKey( key );
 
-        return function(ev) {
-            if ( ev.char ) {
-                return ev.char === key ;
-            } else if ( ev.key !== undefined ) {
-                return normalizeKey( ev.key ) === key ;
-            } else {
-               return normalizeKey( String.fromCharCode(ev.keyCode) ) === key ;
+            return function(ev) {
+                if ( ev.char ) {
+                    return ev.char === key ;
+                } else if ( ev.key !== undefined ) {
+                    return normalizeKey( ev.key ) === key ;
+                } else {
+                   return normalizeKey( String.fromCharCode(ev.keyCode) ) === key ;
+                }
             }
         }
-    }
+
+        return function( key ) {
+            if ( typeof key === 'number' ) {
+                return newKeyEventTestNumeric( key|0 );
+            } else if ( typeof key === 'string' ) {
+                return newKeyEventTestString( key );
+            } else {
+                throw new Exception( "expected string or number for key" + key );
+            }
+        }
+    })()
 
     /**
      * The main entry point for creating a new SkyBrush
@@ -7880,6 +8077,7 @@
      * or even ignoring input.
      */
     var SkyBrush = function( container, options ) {
+        var self = this;
         initializeJQuery();
 
         if ( ! container ) {
@@ -7960,13 +8158,13 @@
         container.append( dom );
 
         var $canvas = dom.find('canvas.skybrush_canvas_draw'),
-            _this = this,
-            canvas, ctx;
+            canvas, 
+            ctx;
 
-        _this.dom = dom;
-        _this.guiPane  = _this.dom.find( '.skybrush_gui_pane' );
-        _this.guiDom   = _this.guiPane.find( '.skybrush_gui_pane_content' );
-        _this.viewport = _this.dom.find( '.skybrush_viewport_content' ).
+        self.dom = dom;
+        self.guiPane  = self.dom.find( '.skybrush_gui_pane' );
+        self.guiDom   = self.guiPane.find( '.skybrush_gui_pane_content' );
+        self.viewport = self.dom.find( '.skybrush_viewport_content' ).
                 dblclick( function(ev) {
                     ev.stopPropagation();
                     ev.preventDefault();
@@ -7976,9 +8174,9 @@
                         var scrollDir = ev.originalEvent.wheelDelta;
 
                         if ( scrollDir < 0 ) {
-                            _this.zoomOut();
+                            self.zoomOut();
                         } else if ( scrollDir > 0 ) {
-                            _this.zoomIn();
+                            self.zoomIn();
                         }
 
                         ev.stopPropagation();
@@ -7986,28 +8184,28 @@
                     }
                 } );
 
-        _this.events = new events.Handler( _this );
-        _this.canvas = new CanvasManager( _this.viewport, _this );
+        self.events = new events.Handler( self );
+        self.canvas = new CanvasManager( self.viewport, self );
 
-        _this.keysEnabled = true;
+        self.keysEnabled = true;
 
         // initialized laterz
-        _this.command = null;
+        self.command = null;
 
-        _this.isDraggingFlag = false;
-        _this.dragging = {
+        self.isDraggingFlag = false;
+        self.dragging = {
                 onMove: undefined,
                 onEnd: undefined
         };
 
         // state flags
-        _this.isPainting  = false;
+        self.isPainting  = false;
 
         // A flag for skipping either 'shift' or 'alt' events,
         // so only one of them is ever active at any time.
-        _this.shiftOrAltSkip = null;
-        _this.isShiftDownFlag = false;
-        _this.isAltDownFlag = false;
+        self.shiftOrAltSkip = null;
+        self.isShiftDownFlag = false;
+        self.isAltDownFlag = false;
 
         var allCommands = newCommands();
 
@@ -8032,18 +8230,18 @@
          *
          * @const
          */
-        _this.commands = allCommands;
-        _this.pickerCommand = pickerCommand;
+        self.commands = allCommands;
+        self.pickerCommand = pickerCommand;
 
         var zoomLabel = dom.find( '.skybrush_viewport_zoom' );
 
-        initializeMainButtons( _this, dom.find('.skybrush_gui_pane'), pickerCommand );
-        initializeColors( _this );
-        initializeCommands( _this, allCommands, pickerCommand );
-        initializeSettings( _this );
-        initializeShortcuts( _this, (options.grab_ctrl_r === false) );
+        initializeMainButtons( self, dom.find('.skybrush_gui_pane'), pickerCommand );
+        initializeColors( self );
+        initializeCommands( self, allCommands, pickerCommand );
+        initializeSettings( self );
+        initializeShortcuts( self, (options.grab_ctrl_r === false) );
 
-        _this.infoBar = new InfoBar( dom );
+        self.infoBar = new InfoBar( dom );
 
         var cursorTranslator = null;
         /*
@@ -8066,14 +8264,12 @@
             }
         }
 
-        _this.brushCursor = new BrushCursor( _this, _this.viewport, IS_TOUCH, cursorTranslator );
+        self.brushCursor = new BrushCursor( self.viewport, IS_TOUCH, cursorTranslator );
 
-        _this.onSetCommand( function() {
-            this.refreshCursor();
-        });
+        self.onSetCommand( self.refreshCursor );
 
         // update the cursor on zoom
-        _this.onZoom( function(zoom) {
+        self.onZoom( function(zoom) {
             this.brushCursor.setZoom( zoom );
             this.refreshCursor();
 
@@ -8098,38 +8294,38 @@
 
         /* Handle GUI dragging. */
         $(document).
-                bind('vmousedown', function(ev) { return _this.runMouseDown(ev); }).
-                bind('vmousemove', function(ev) { return _this.runMouseMove(ev); }).
-                bind('vmouseup'  , function(ev) { return _this.runMouseUp(ev)  ; });
+                bind('vmousedown', function(ev) { return self.runMouseDown(ev); }).
+                bind('vmousemove', function(ev) { return self.runMouseMove(ev); }).
+                bind('vmouseup'  , function(ev) { return self.runMouseUp(ev)  ; });
 
         var startingWidth  = options.width  || DEFAULT_WIDTH,
             startingHeight = options.height || DEFAULT_HEIGHT;
 
-        var defaultCommand = _this.getCommand( DEFAULT_COMMAND ) || _this.commands[1] ;
+        var defaultCommand = self.getCommand( DEFAULT_COMMAND ) || self.commands[1] ;
 
         // Finally, set defaults
-        _this.setSize( startingWidth, startingHeight ).
+        self.setSize( startingWidth, startingHeight ).
                 setZoom( DEFAULT_ZOOM, undefined, undefined, true ).
                 setColor( DEFAULT_COLOR ).
                 setAlpha( DEFAULT_ALPHA ).
                 setCommand( defaultCommand );
 
-        _this.canvas.resetUndoRedo();
+        self.canvas.resetUndoRedo();
 
         /* Resize only seems to work on Window, not on the Viewport or SkyBrush */
         $(window).resize( function() {
-            _this.events.run( 'resize' );
+            self.events.run( 'resize' );
         } );
 
         // cancel alt/shift down when we alt-tab
         $(window).blur( function() {
-            _this.runOnShift( false );
-            _this.runOnAlt( false );
+            self.runOnShift( false );
+            self.runOnAlt( false );
         })
 
         if ( options.callback ) {
             setTimeout( function() {
-                options.callback( _this );
+                options.callback( self );
             }, 0 );
         }
     };
@@ -9397,11 +9593,11 @@ console.log('on key interact, prevent default');
             /* Update the Colour Mixer */
 
             // convert colour to full hue
-            var hsv = rgbToHSV( r, g, b );
+            var newHue = rgbToHSVHue( r, g, b );
 
             // cache these for laterz
-            saturation = hsv[1];
-            value = hsv[2];
+            saturation = rgbToHSVSaturation( r, g, b );
+            value = rgbToHSVValue( r, g, b );
 
             if ( ! hasHSVFocus ) {
                 sInput.val( Math.round(saturation * 100) );
@@ -9444,10 +9640,10 @@ console.log('on key interact, prevent default');
              */
 
             if ( saturation > 0 || hue === undefined ) {
-                updateHue( hsv[0] );
+                updateHue( newHue );
 
                 if ( ! hasHSVFocus ) {
-                    hInput.val( Math.round(hsv[0] * 360) );
+                    hInput.val( Math.round(newHue * 360) );
                 }
             }
         } );
@@ -10056,8 +10252,7 @@ console.log('on key interact, prevent default');
      * @param zoomY the location, in canvas pixels, of where to zoom. Optional, pass in undefined for no value.
      */
     SkyBrush.prototype.setZoomPercent = function(p, zoomX, zoomY) {
-        this.setZoom( percentToZoom(p), zoomX, zoomY );
-        return this;
+        return this.setZoom( percentToZoom(p), zoomX, zoomY );
     };
 
     /**
@@ -10125,6 +10320,7 @@ console.log('on key interact, prevent default');
      */
     SkyBrush.prototype.setZoom = function( zoom, x, y, force ) {
         zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
+
         if ( zoom > 1 ) {
             zoom = Math.round( zoom );
         }
@@ -10148,9 +10344,8 @@ console.log('on key interact, prevent default');
      */
     SkyBrush.prototype.zoomIn = function( x, y ) {
         var zoom = percentToZoom( this.getZoomPercent() + 1/MAX_ZOOM );
-        this.setZoom( zoom, x, y );
 
-        return this;
+        return this.setZoom( zoom, x, y );
     };
 
     /**
@@ -10161,9 +10356,8 @@ console.log('on key interact, prevent default');
      */
     SkyBrush.prototype.zoomOut = function( x, y ) {
         var zoom = percentToZoom( this.getZoomPercent() - 1/MAX_ZOOM );
-        this.setZoom( zoom, x, y );
 
-        return this;
+        return this.setZoom( zoom, x, y );
     };
 
     /**
@@ -10608,6 +10802,11 @@ console.log('on key interact, prevent default');
         return this;
     };
 
+    /**
+     * Runs the 'undo' command.
+     *
+     * @return This SkyBrush instance.
+     */
     SkyBrush.prototype.undo = function() {
         if ( this.canvas.undo() ) {
             this.events.run( 'onundo' );
@@ -10616,6 +10815,11 @@ console.log('on key interact, prevent default');
         return this;
     };
 
+    /**
+     * Runs the 'redo' command.
+     *
+     * @return This SkyBrush instance.
+     */
     SkyBrush.prototype.redo = function() {
         if ( this.canvas.redo() ) {
             this.events.run( 'onredo' );
@@ -10624,16 +10828,25 @@ console.log('on key interact, prevent default');
         return this;
     };
 
+    /**
+     * @return The width of the users drawing (their canvas), in pixels.
+     */
     SkyBrush.prototype.getWidth = function() {
         return this.canvas.getWidth();
     };
 
+    /**
+     * @return The height of the users drawing (their canvas), in pixels.
+     */
     SkyBrush.prototype.getHeight = function() {
         return this.canvas.getHeight();
     };
 
     /**
-     * Shows the GUI pane, but does not show it forever.
+     * Shows the GUI pane, but does not lock it open. When the user clicks to
+     * draw then it will auto-close.
+     *
+     * @return This SkyBrush instance.
      */
     SkyBrush.prototype.showGUIPane = function() {
         this.guiPane.ensureClass( 'sb_open' );
@@ -10641,6 +10854,11 @@ console.log('on key interact, prevent default');
         return this;
     }
 
+    /**
+     * Sets the GUI pane to be open.
+     *
+     * @return This SkyBrush instance.
+     */
     SkyBrush.prototype.openGUIPane = function() {
         this.guiPane.ensureClass( 'sb_open' );
         this.viewport.parent().ensureClass( 'sb_open' );
@@ -10650,6 +10868,12 @@ console.log('on key interact, prevent default');
         return this;
     }
 
+    /**
+     * Closes the GUI pane which the user can open and close at the bottom of 
+     * the screen.
+     *
+     * @return This SkyBrush instance.
+     */
     SkyBrush.prototype.closeGUIPane = function() {
         this.guiPane.removeClass( 'sb_open' );
         this.viewport.parent().removeClass( 'sb_open' );
@@ -10659,15 +10883,28 @@ console.log('on key interact, prevent default');
         return this;
     }
 
+    /**
+     * @return True if the GUI section at the bottom is open, but not locked open.
+     *         Otherwise false.
+     */
     SkyBrush.prototype.isGUIsOverlapping = function() {
         return this.guiPane.hasClass('sb_open') && 
              ! this.viewport.parent().hasClass('sb_open');
     }
 
+    /**
+     * @return True if the GUI section at the bottom is open, and false if closed.
+     */
     SkyBrush.prototype.isGUIsShown = function() {
         return this.guiPane.hasClass('sb_open');
     }
 
+    /**
+     * Toggles the GUI pane at the bottom of the screen between being open and
+     * closed.
+     *
+     * @return This SkyBrush instance.
+     */
     SkyBrush.prototype.toggleGUIPane = function() {
         if ( this.isGUIsShown() ) {
             this.closeGUIPane();

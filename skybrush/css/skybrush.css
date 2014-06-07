@@ -1725,7 +1725,7 @@
  * which looks like the current brush.
  */
 .skybrush_brush {
-    display: block;
+    display: none;
     position: absolute;
     top: 0;
 
@@ -1735,6 +1735,9 @@
     background: transparent;
     background-repeat: no-repeat;
     cursor: none !important;
+}
+.skybrush_brush.sb_show {
+    display: block;
 }
 
 /*
