@@ -2015,15 +2015,16 @@
         } );
 
         if ( clickableHeader !== false ) {
-            var darkenContent = $('<div>').addClass('skybrush_gui_darken');
+            var darkenDom = document.createElement( 'div' );
+            darkenDom.className = 'skybrush_gui_darken';
 
-            darkenContent.leftclick( function(ev) {
+            $(darkenDom).leftclick( function(ev) {
                 if ( ! self.isOpen() ) {
                     self.open();
                 }
             });
 
-            this.dom.append( darkenContent );
+            this.dom.append( darkenDom );
         }
 
         var headerContent = $( '<div class="skybrush_gui_header_text"></div>' );
@@ -2039,11 +2040,11 @@
         this.content = content;
 
         // set later
-        this.parent = null;
+        this.painter = null;
     };
 
-    GUI.prototype.setParent = function( parent ) {
-        this.parent = parent;
+    GUI.prototype.setPainter = function( painter ) {
+        this.painter = painter;
 
         return this;
     };
@@ -2074,8 +2075,8 @@
     };
 
     GUI.prototype.open = function() {
-        if ( ! this.parent.isGUIsShown() ) {
-            this.parent.showGUIPane();
+        if ( ! this.painter.isGUIsShown() ) {
+            this.painter.showGUIPane();
         }
 
         this.dom.removeClass( 'sb_hide' );
@@ -2094,10 +2095,10 @@
     };
 
     GUI.prototype.toggleOpen = function() {
-        if ( this.parent.isGUIsShown() ) {
+        if ( this.painter.isGUIsShown() ) {
             this.dom.toggleClass( 'sb_hide' );
         } else {
-            this.parent.showGUIPane();
+            this.painter.showGUIPane();
             this.dom.removeClass( 'sb_hide' );
         }
 
@@ -2329,10 +2330,10 @@
      * @constructor
      * @private
      */
-    var GridManager = function( parent ) {
+    var GridManager = function( viewport ) {
         var dom = $('<div>').addClass( 'skybrush_grid' );
         this.dom = dom;
-        parent.append( dom );
+        viewport.append( dom );
 
         this.offsetX = 0;
         this.offsetY = 0;
@@ -3417,10 +3418,10 @@
         var newWidth   = Math.round( this.width  * zoom ),
             newHeight  = Math.round( this.height * zoom );
 
-        var parent = $canvas.parent();
+        var canvasParent = $canvas.parent();
 
-        var moveX = (parent.width()  - newWidth )/2,
-            moveY = (parent.height() - newHeight)/2;
+        var moveX = (canvasParent.width()  - newWidth )/2,
+            moveY = (canvasParent.height() - newHeight)/2;
 
         var canvasX = ( moveX >= 0 ?  moveX : 0 ),
             canvasY = ( moveY >= 0 ?  moveY : 0 );
@@ -8760,7 +8761,7 @@
          * open.
          */
         var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
-                setParent( painter ).
+                setPainter( painter ).
                 addContent( copyButtons, colourInfo );
 
         wrap.append( gui.dom );
@@ -10055,7 +10056,7 @@
     SkyBrush.prototype.addGUI = function( gui ) {
         for ( var i = 0; i < arguments.length; i++ ) {
             var gui = arguments[i];
-            gui.setParent( this );
+            gui.setPainter( this );
 
             this.guiDom.append( gui.dom );
         }
