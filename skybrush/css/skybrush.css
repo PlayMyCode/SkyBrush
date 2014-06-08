@@ -121,6 +121,7 @@
  */
 .skybrush_viewport,
 .skybrush_viewport *,
+.skybrush_gui,
 .skybrush_gui_header,
 .skybrush_gui_header_bar {
     -webkit-user-select: none;
@@ -925,6 +926,10 @@
     position: relative;
 
     vertical-align: top;
+
+    -webkit-transition: width 100ms linear;
+       -moz-transition: width 100ms linear;
+            transition: width 100ms linear;
 }
 .skybrush_gui.sb_hide {
     width: 60px;
@@ -990,19 +995,31 @@
         top: 0;
         bottom: 0;
 
-        visibility: hidden;
-
-        opacity: 0.4;
-        background: rgba( 0, 0, 0, 0.7 );
+        background: #284454;
 
         z-index: 1000;
 
         pointer-events: none;
 
         border-right: 1px solid #000;
+        
+        -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear;
+           -moz-transition: visibility 0s linear 100ms, opacity 100ms linear;
+             -o-transition: visibility 0s linear 100ms, opacity 100ms linear;
+                transition: visibility 0s linear 100ms, opacity 100ms linear;
+
+        visibility: hidden;
+        opacity: 0;
     }
     .skybrush_gui.sb_hide > .skybrush_gui_darken {
+        -webkit-transition: visibility 0s linear      , opacity 100ms linear;
+           -moz-transition: visibility 0s linear      , opacity 100ms linear;
+             -o-transition: visibility 0s linear      , opacity 100ms linear;
+                transition: visibility 0s linear      , opacity 100ms linear;
+
         visibility: visible;
+        opacity: 0.4;
+
         pointer-events: auto;
         cursor: pointer;
     }
@@ -1027,7 +1044,7 @@
     }
     .skybrush_gui:last-child > .skybrush_gui_header,
     .skybrush_gui:last-child > .skybrush_gui_content {
-        padding-right: 16px
+        padding-right: 16px;
     }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
