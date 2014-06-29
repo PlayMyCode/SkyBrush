@@ -154,6 +154,9 @@
                     }
                 }
 
+                // clickable headers not supported on IE 9 and below
+                GUI_CLICKABLE_HEADERS_SUPPORTED = ! ( $.browser.msie && $.browser.version <= 9 )
+
                 USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera );
                 TOUCH_PIXEL_CONTENT = ( $.browser.mozilla && parseInt($.browser.version) < 23);
                 MAX_NATIVE_CURSOR_SIZE = USE_NATIVE_CURSOR ?
@@ -407,6 +410,24 @@
          * @type {string}
          */
         GUI_CSS_PREFIX = 'sb_gui_',
+
+        /**
+         * This is set later to true or false, through the lazy jQuery 
+         * intialization.
+         *
+         * @const
+         * @type {boolean}
+         */
+        GUI_CLICKABLE_HEADERS_SUPPORTED = true,
+
+        /**
+         * When a GUI component in the bar is hidden, and it becomes thinner
+         * and greyed out, this is the width is will minimize to.
+         *
+         * @const
+         * @type {string}
+         */
+        GUI_CONTENT_WIDTH_WHEN_HIDDEN = 40,
 
         /**
          * Attempts to disable the right click context menu,
@@ -790,7 +811,7 @@
             var v    =     Math.max( r, g, b );
             var diff = v - Math.min( r, g, b );
 
-            return ( diff / v ) / 255 ;
+            return diff / v ;
         }
     }
 
@@ -1602,7 +1623,30 @@
                 drawY = nextY;
             }
         }
-    };
+    }
+
+    var appendHTML = function( el, html ) {
+        if ( typeof html === 'string' ) {
+            el.insertAdjacentHTML( 'beforeend', html );
+        } else if (
+                ( html instanceof Array ) ||
+                ( ('' + html) === '[object Arguments]' )
+        ) {
+            var htmlLen = html.length;
+
+            for ( var i = 0; i < htmlLen; i++ ) {
+                appendHTML( el, html[i] );
+            }
+        } else if ( html.jquery ) {
+            el.appendChild( html.get(0) );
+        } else if ( html instanceof Element ) {
+            el.appendChild( html );
+        } else {
+            throw new Error( "unknown argument given, cannot add to element" );
+        }
+
+        return el;
+    }
 
     /**
      * Creates a new JQuery wrapped Anchor, and returns it,
@@ -1966,283 +2010,6 @@
         return sliderBar;
     };
 
-    var newGUIBlock = function() {
-        var div = document.createElement('div');
-        div.className = 'skybrush_gui_content_block';
-
-        for ( var i = 0; i < arguments.length; i++ ) {
-            var dom = arguments[i];
-
-            if ( dom.jquery ) {
-                div.appendChild( dom.get(0) );
-            } else {
-                div.appendChild( dom );
-            }
-        }
-        
-        return div;
-    }
-
-    /**
-     * @constructor
-     * @private
-     *
-     * @param name The name of this GUI, this appeares in the header.
-     * @param klass The CSS class for the content in this GUI.
-     */
-    var GUI = function( name, klass, clickableHeader ) {
-        this.header     = header;
-        this.isDragged  = false;
-
-        this.dragOffsetX = 0;
-        this.dragOffsetY = 0;
-
-        this.dom = $('<div>').
-                addClass( 'skybrush_gui' ).
-                addClass( GUI_CSS_PREFIX + klass );
-                
-        var header  = $('<div>').addClass('skybrush_gui_header'),
-            content = $('<div>').addClass('skybrush_gui_content');
-
-        var self = this;
-        header.leftclick( function(ev) {
-            ev.stopPropagation();
-            ev.preventDefault();
-
-            if ( clickableHeader !== false ) {
-                self.toggleOpen();
-            }
-        } );
-
-        if ( clickableHeader !== false ) {
-            var darkenDom = document.createElement( 'div' );
-            darkenDom.className = 'skybrush_gui_darken';
-
-            $(darkenDom).leftclick( function(ev) {
-                if ( ! self.isOpen() ) {
-                    self.open();
-                }
-            });
-
-            this.dom.append( darkenDom );
-        }
-
-        var headerContent = $( '<div class="skybrush_gui_header_text"></div>' );
-        headerContent.html( name );
-
-        header.append( headerContent );
-
-        if ( $.browser.msie ) {
-            header.bind( 'selectstart', function() { return false; } );
-        }
-
-        this.dom.append( header, content );
-        this.content = content;
-
-        // set later
-        this.painter = null;
-    };
-
-    GUI.prototype.setPainter = function( painter ) {
-        this.painter = painter;
-
-        return this;
-    };
-
-    /**
-     * Adds an element to the GUI.
-     */
-    GUI.prototype.append = function() {
-        for ( var i = 0; i < arguments.length; i++ ) {
-            this.content.append( newGUIBlock(arguments[i]) );
-        }
-
-        return this;
-    };
-
-    /**
-     * Adds a new item to the content inside this dialog GUI.
-     *
-     * @param dom The jQuery object to add to this GUI.
-     * @return This GUI.
-     */
-    GUI.prototype.addContent = function() {
-        for ( var i = 0; i < arguments.length; i++ ) {
-            this.dom.children('.skybrush_gui_content').append( arguments[i] );
-        }
-
-        return this;
-    };
-
-    GUI.prototype.open = function() {
-        if ( ! this.painter.isGUIsShown() ) {
-            this.painter.showGUIPane();
-        }
-
-        this.dom.removeClass( 'sb_hide' );
-        
-        return this;
-    };
-
-    GUI.prototype.close = function() {
-        this.dom.ensureClass( 'sb_hide' );
-
-        return this;
-    };
-
-    GUI.prototype.isOpen = function() {
-        return ! this.dom.hasClass( 'sb_hide' );
-    };
-
-    GUI.prototype.toggleOpen = function() {
-        if ( this.painter.isGUIsShown() ) {
-            this.dom.toggleClass( 'sb_hide' );
-        } else {
-            this.painter.showGUIPane();
-            this.dom.removeClass( 'sb_hide' );
-        }
-
-        return this;
-    };
-
-    /**
-     * The UndoStack manages the undo/redo functionality in SkyBrush.
-     *
-     * It does this through a series of stacks,
-     * which it switches between.
-     *
-     * Once this goes beyond the alotted size, then old undo's will
-     * no longer be stored, and will fall out of memory. Although there
-     * if always a base undo canvas, which has everything up to that
-     * point stored on it.
-     *
-     * @constructor
-     * @private
-     *
-     * @param size The number of undo's allowed.
-     */
-    var UndoStack = function( size, firstCanvas ) {
-        // the +1 is for the checks later
-        this.size = size + 1;
-
-        this.reset( firstCanvas );
-    };
-
-    UndoStack.prototype.reset = function( firstCanvas ) {
-        this.index = 0;
-        this.undoIndex = 0;
-        this.maxRedo = 0;
-
-        var first = newCanvas( firstCanvas.width, firstCanvas.height );
-        first.ctx.drawImage( firstCanvas, 0, 0 );
-
-        // flush drawing changes if browser is badly written
-        if ( TOUCH_PIXEL_CONTENT ) {
-            first.ctx.getImageData( 0, 0, 1, 1 );
-        }
-
-        this.canvases = [ first ];
-    };
-
-    /**
-     * @param canvas The current canvas.
-     * @param drawInfo Information on what was just drawn.
-     * @return canvas The canvas to use for the future.
-     */
-    UndoStack.prototype.add = function( canvas, drawInfo ) {
-        var undoCanvas = null;
-
-        // ensure we have space
-        if ( this.undoIndex === this.size ) {
-            undoCanvas = this.canvases.shift();
-            undoCanvas.width  = canvas.width ;
-            undoCanvas.height = canvas.height;
-        } else {
-            this.undoIndex++;
-            this.maxRedo = this.undoIndex;
-
-            // write over the top of an old 'redo' canvas
-            if ( this.undoIndex < this.canvases.length ) {
-                undoCanvas = this.canvases[ this.undoIndex ];
-                undoCanvas.width  = canvas.width ;
-                undoCanvas.height = canvas.height;
-            } else {
-                undoCanvas = newCanvas( canvas.width, canvas.height );
-            }
-        }
-
-        undoCanvas.getContext('2d').drawImage( canvas, 0, 0 );
-
-        // In Firefox we touch the canvas pixel data directly to force it to draw.
-        // If we don't, then the items are drawn later on to a future canvas.
-        // Seems like a Firefox bug.
-        if ( TOUCH_PIXEL_CONTENT ) {
-            var data = undoCanvas.ctx.getImageData( 0, 0, 1, 1 ).data;
-        }
-
-        this.canvases[ this.undoIndex ] = undoCanvas;
-    };
-
-    /**
-     * Invalidates all possible redo actions.
-     *
-     * What does this mean in practice? Well if you have drawn something,
-     * then used undo, the first item is now stored as a 'future' item.
-     * This is something that will be restored when the 'redo'.
-     *
-     * But if you draw something else, without redo'ing, then that redo
-     * should no longer be available. Call this method to say "all of
-     * the redo's you have available, invalidate them".
-     *
-     * In practice, this is done internally for you, when you add items.
-     */
-    UndoStack.prototype.clearRedo = function() {
-        for ( var i = this.undoIndex; i < this.canvases.length; i++ ) {
-            this.canvases.pop();
-        }
-    };
-
-    /**
-     * @return True if calling 'undo' will undo the current canvas.
-     */
-    UndoStack.prototype.hasUndo = function() {
-        return this.undoIndex > 0;
-    };
-
-    /**
-     * @return True if there is history to redo.
-     */
-    UndoStack.prototype.hasRedo = function() {
-        return this.undoIndex < this.maxRedo;
-    };
-
-    /**
-     * This does nothing if there is nothing to undo.
-     */
-    UndoStack.prototype.undo = function() {
-        if ( this.hasUndo() ) {
-            this.undoIndex--;
-
-            var canvas = this.canvases[ this.undoIndex ];
-
-            return canvas;
-        } else {
-            return null;
-        }
-    };
-
-    /**
-     * This does nothing if there is nothing to redo.
-     */
-    UndoStack.prototype.redo = function() {
-        if ( this.hasRedo() ) {
-            this.undoIndex++;
-            return this.canvases[ this.undoIndex ];
-        } else {
-            return null;
-        }
-    };
-
     /**
      * @private
      * @return A HTML5 Canvas.
@@ -2321,6 +2088,334 @@
         return canvas;
     }
 
+    var newGUIBlock = function() {
+        var div = document.createElement('div');
+        div.className = 'skybrush_gui_content_block';
+
+        return div;
+    }
+
+    /**
+     * @constructor
+     * @private
+     *
+     * @param name The name of this GUI, this appeares in the header.
+     * @param klass The CSS class for the content in this GUI.
+     */
+    var GUI = function( name, klass, clickableHeader ) {
+        this.guiWidth = '';
+        this.sibling = null;
+
+        // -- build the header 
+        var header  = document.createElement( 'div' );
+        header.className = 'skybrush_gui_header';
+
+        var headerContent = document.createElement( 'div' );
+        headerContent.className = 'skybrush_gui_header_text'
+        header.appendChild( appendHTML(headerContent, name) );
+
+        var self = this;
+        var $header = $(header);
+        $header.leftclick( function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+
+            if ( clickableHeader !== false ) {
+                self.toggleOpen();
+            }
+        } );
+
+        if ( $.browser.msie ) {
+            $header.bind( 'selectstart', RETURN_FALSE );
+        }
+
+        // -- build the content
+        var content = document.createElement( 'div' );
+        content.className = 'skybrush_gui_content';
+        this.content = content;
+        this.content.appendChild( header );
+
+        // -- build the dom
+        this.dom = document.createElement( 'div' );
+        this.dom.className = 'skybrush_gui ' + GUI_CSS_PREFIX + klass ;
+
+        // -- build the darken overlay for when the GUI is closed
+        if ( GUI_CLICKABLE_HEADERS_SUPPORTED && clickableHeader !== false ) {
+            var darkenDom = document.createElement( 'div' );
+            darkenDom.className = 'skybrush_gui_darken';
+
+            $( darkenDom ).leftclick( function(ev) {
+                self.open();
+            });
+
+            this.content.appendChild( darkenDom );
+
+            this.isHeaderClickable = true;
+        } else {
+            this.isHeaderClickable = false;
+        }
+
+        this.dom.appendChild( content );
+        this.$dom = $(this.dom);
+
+        // set later
+        this.painter = null;
+    };
+
+    GUI.prototype = {
+        setSiblingGUI: function( sibling ) {
+            if ( this.sibling !== null ) {
+                this.sibling.setSiblingGUI( sibling );
+            } else {
+                this.sibling = sibling;
+                this.dom.appendChild( sibling.dom );
+            }
+        },
+
+        setPainter: function( painter ) {
+            this.painter = painter;
+
+            return this;
+        },
+
+        /**
+         * Adds all of the elements given to the GUI, they are *each* placed
+         * into their own GUI block wrapper.
+         *
+         * This differs to 'appendDirect' because the elements given will each be
+         * wrapped within it's own gui block, within the contents of this gui.
+         *
+         * @return This GUI object.
+         */
+        append: function() {
+            var content = this.content ;
+
+            for ( var i = 0; i < arguments.length; i++ ) {
+                content.appendChild( appendHTML(newGUIBlock(), arguments[i]) );
+            }
+
+            return this;
+        },
+
+        /**
+         * Adds all of the elements given to the GUI, they are *all* placed
+         * into a single GUI block wrapper when added.
+         *
+         * @return This GUI object.
+         */
+        appendTogether: function() {
+            this.content.appendChild( appendHTML(newGUIBlock(), arguments) );
+
+            return this;
+        },
+
+        /**
+         * This will add the elements given straight into the content, with no
+         * intermediate wrapping of any kind.
+         *
+         * @param dom The jQuery object to add to this GUI.
+         * @return This GUI.
+         */
+        appendDirect: function() {
+            appendHTML( this.content, arguments );
+
+            return this;
+        },
+
+        open: function() {
+            if ( ! this.painter.isGUIsShown() ) {
+                this.painter.showGUIPane();
+            }
+
+            if ( this.isHeaderClickable && this.sibling !== null && !this.isOpen() ) {
+                this.dom.className = this.dom.className.replace( ' sb_hide', '' );
+                this.sibling.$dom.translate( 0, 0 );
+            }
+            
+            return this;
+        },
+
+        close: function() {
+            if ( this.isHeaderClickable && this.sibling && this.isOpen() ) {
+                if ( this.guiWidth === '' ) {
+                    this.guiWidth = $(this.content).width();
+                }
+
+                var self = this;
+                setTimeout(function() {
+                    self.sibling.$dom.translate( 
+                            - (self.guiWidth - GUI_CONTENT_WIDTH_WHEN_HIDDEN),
+                            0
+                    );
+
+                    self.dom.className += ' sb_hide';
+                }, 0);
+            }
+
+            return this;
+        },
+
+        isOpen: function() {
+            return this.dom.className.indexOf('sb_hide') === -1;
+        },
+
+        toggleOpen: function() {
+            if ( this.painter.isGUIsShown() ) {
+                if ( this.isOpen() ) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+            } else {
+                this.painter.showGUIPane();
+                this.open();
+            }
+
+            return this;
+        }
+    };
+
+    /**
+     * The UndoStack manages the undo/redo functionality in SkyBrush.
+     *
+     * It does this through a series of stacks,
+     * which it switches between.
+     *
+     * Once this goes beyond the alotted size, then old undo's will
+     * no longer be stored, and will fall out of memory. Although there
+     * if always a base undo canvas, which has everything up to that
+     * point stored on it.
+     *
+     * @constructor
+     * @private
+     *
+     * @param size The number of undo's allowed.
+     */
+    var UndoStack = function( size, firstCanvas ) {
+        // the +1 is for the checks later
+        this.size = size + 1;
+
+        this.reset( firstCanvas );
+    };
+
+    UndoStack.prototype = {
+        reset: function( firstCanvas ) {
+            this.index = 0;
+            this.undoIndex = 0;
+            this.maxRedo = 0;
+
+            var first = newCanvas( firstCanvas.width, firstCanvas.height );
+            first.ctx.drawImage( firstCanvas, 0, 0 );
+
+            // flush drawing changes if browser is badly written
+            if ( TOUCH_PIXEL_CONTENT ) {
+                first.ctx.getImageData( 0, 0, 1, 1 );
+            }
+
+            this.canvases = [ first ];
+        },
+
+        /**
+         * @param canvas The current canvas.
+         * @param drawInfo Information on what was just drawn.
+         * @return canvas The canvas to use for the future.
+         */
+        add: function( canvas, drawInfo ) {
+            var undoCanvas = null;
+
+            // ensure we have space
+            if ( this.undoIndex === this.size ) {
+                undoCanvas = this.canvases.shift();
+                undoCanvas.width  = canvas.width ;
+                undoCanvas.height = canvas.height;
+            } else {
+                this.undoIndex++;
+                this.maxRedo = this.undoIndex;
+
+                // write over the top of an old 'redo' canvas
+                if ( this.undoIndex < this.canvases.length ) {
+                    undoCanvas = this.canvases[ this.undoIndex ];
+                    undoCanvas.width  = canvas.width ;
+                    undoCanvas.height = canvas.height;
+                } else {
+                    undoCanvas = newCanvas( canvas.width, canvas.height );
+                }
+            }
+
+            undoCanvas.getContext('2d').drawImage( canvas, 0, 0 );
+
+            // In Firefox we touch the canvas pixel data directly to force it to draw.
+            // If we don't, then the items are drawn later on to a future canvas.
+            // Seems like a Firefox bug.
+            if ( TOUCH_PIXEL_CONTENT ) {
+                var data = undoCanvas.ctx.getImageData( 0, 0, 1, 1 ).data;
+            }
+
+            this.canvases[ this.undoIndex ] = undoCanvas;
+        },
+
+        /**
+         * Invalidates all possible redo actions.
+         *
+         * What does this mean in practice? Well if you have drawn something,
+         * then used undo, the first item is now stored as a 'future' item.
+         * This is something that will be restored when the 'redo'.
+         *
+         * But if you draw something else, without redo'ing, then that redo
+         * should no longer be available. Call this method to say "all of
+         * the redo's you have available, invalidate them".
+         *
+         * In practice, this is done internally for you, when you add items.
+         */
+        clearRedo: function() {
+            for ( var i = this.undoIndex; i < this.canvases.length; i++ ) {
+                this.canvases.pop();
+            }
+        },
+
+        /**
+         * @return True if calling 'undo' will undo the current canvas.
+         */
+        hasUndo: function() {
+            return this.undoIndex > 0;
+        },
+
+        /**
+         * @return True if there is history to redo.
+         */
+        hasRedo: function() {
+            return this.undoIndex < this.maxRedo;
+        },
+
+        /**
+         * This does nothing if there is nothing to undo.
+         */
+        undo: function() {
+            if ( this.hasUndo() ) {
+                this.undoIndex--;
+
+                var canvas = this.canvases[ this.undoIndex ];
+
+                return canvas;
+            } else {
+                return null;
+            }
+        },
+
+        /**
+         * This does nothing if there is nothing to redo.
+         */
+        redo: function() {
+            if ( this.hasRedo() ) {
+                this.undoIndex++;
+
+                return this.canvases[ this.undoIndex ];
+            } else {
+                return null;
+            }
+        }
+    }
+
     /**
      * The GridManager wraps up all of the grid handling for the canvas.
      * It's very closely tied to the CanvasManger,
@@ -2331,9 +2426,11 @@
      * @private
      */
     var GridManager = function( viewport ) {
-        var dom = $('<div>').addClass( 'skybrush_grid' );
-        this.dom = dom;
-        viewport.append( dom );
+        var dom = document.createElement( 'div' );
+        dom.className = 'skybrush_grid';
+
+        this.dom = $(dom);
+        viewport.get(0).appendChild( dom );
 
         this.offsetX = 0;
         this.offsetY = 0;
@@ -2344,180 +2441,182 @@
         this.isDirty = true;
     };
 
-    /**
-     * Moves this grid to the area stated,
-     * and re-organizes the grid to look how it's shown.
-     *
-     * The CanvasManager does work to located the upscale
-     * canvas to fill the proper canvas. To avoid duplicating
-     * this code, this method is provided to allow the canvas
-     * to just pass the results on to this grid.
-     */
-    GridManager.prototype.updateViewport = function( canvasX, canvasY, width, height, zoom ) {
-        this.zoom = zoom;
-        this.dom.
-                width( width+1 ).
-                height( height+1 ).
-                translate( canvasX, canvasY );
+    GridManager.prototype = {
+        /**
+         * Moves this grid to the area stated,
+         * and re-organizes the grid to look how it's shown.
+         *
+         * The CanvasManager does work to located the upscale
+         * canvas to fill the proper canvas. To avoid duplicating
+         * this code, this method is provided to allow the canvas
+         * to just pass the results on to this grid.
+         */
+        updateViewport: function( canvasX, canvasY, width, height, zoom ) {
+            this.zoom = zoom;
+            this.dom.
+                    width( width+1 ).
+                    height( height+1 ).
+                    translate( canvasX, canvasY );
 
-        this.update( width+1, height+1 );
-    };
+            this.update( width+1, height+1 );
+        },
 
-    /**
-     * Updates the layout of the grid.
-     *
-     * This should be called right after any properties have
-     * been altered, but is only used internally.
-     *
-     * Calls such as 'setSize' and 'setOffset' already call
-     * this automatically.
-     */
-    GridManager.prototype.update = function( w, h ) {
-        this.dom.empty();
+        /**
+         * Updates the layout of the grid.
+         *
+         * This should be called right after any properties have
+         * been altered, but is only used internally.
+         *
+         * Calls such as 'setSize' and 'setOffset' already call
+         * this automatically.
+         */
+        update: function( w, h ) {
+            this.dom.empty();
 
-        if ( this.isShown() ) {
-            this.forceUpdate( w, h );
-        } else {
-            this.isDirty = true;
+            if ( this.isShown() ) {
+                this.forceUpdate( w, h );
+            } else {
+                this.isDirty = true;
+            }
+        },
+
+        /**
+         * Forces an update.
+         *
+         * This differs from the standard update, because this guarantees
+         * that an update is performed, whilst the standard update might
+         * skip it, for performance reasons.
+         */
+        forceUpdate: function( w, h ) {
+            var zoom = this.zoom,
+                 dom = this.dom;
+
+            if ( w === undefined ) {
+                w = dom.width();
+            }
+            if ( h === undefined ) {
+                h = dom.height();
+            }
+
+            var xInc = Math.max( zoom * this.width , 1 ),
+                yInc = Math.max( zoom * this.height, 1 );
+
+            var startX = ( this.offsetX % this.width  ) * zoom,
+                startY = ( this.offsetY % this.height ) * zoom;
+
+            for ( var x = startX; x <= w; x += xInc ) {
+                dom.append(
+                        $('<div>').
+                                addClass('skybrush_grid_line').
+                                addClass('skybrush_grid_line_vertical').
+                                translate( x, 0 ).
+                                height( h )
+                );
+            }
+
+            for ( var y = startY; y <= h; y += yInc ) {
+                dom.append(
+                        $('<div>').
+                                addClass('skybrush_grid_line').
+                                addClass('skybrush_grid_line_horizontal').
+                                translate( 0, y ).
+                                width( w )
+                );
+            }
+
+            this.isDirty = false;
+        },
+
+
+        /**
+         * Sets the size of the grid squares, in pixels.
+         */
+        setSize: function( w, h ) {
+            w = Math.max( w|0, 0 );
+            h = Math.max( h|0, 0 );
+
+            if ( w !== this.width || h !== this.height ) {
+                this.width  = w;
+                this.height = h;
+
+                this.update();
+            }
+        },
+
+        getWidth: function() {
+            return this.width;
+        },
+
+        getHeight: function() {
+            return this.height;
+        },
+
+        getOffsetX: function() {
+            return this.offsetX;
+        },
+
+        getOffsetY: function() {
+            return this.offsetY;
+        },
+
+        /**
+         * Allows you to offset the location of the grid,
+         * from the top left corner,
+         * by the amounts given.
+         */
+        setOffset: function( x, y ) {
+            if ( isNaN(x) ) {
+                x = 0;
+            } else {
+                x = x|0;
+            }
+
+            if ( isNaN(y) ) {
+                y = 0;
+            } else {
+                y = y|0;
+            }
+
+            if ( x < 0 ) {
+                x = - ( x % this.width );
+                x = this.width - x;
+            }
+            if ( y < 0 ) {
+                y = - ( y % this.height );
+                y = this.height - y;
+            }
+
+            var update = ( this.offsetX !== x || this.offsetY !== y );
+
+            if ( update ) {
+                this.offsetX = x,
+                this.offsetY = y;
+
+                this.update();
+            }
+
+            return this;
+        },
+
+        isShown: function() {
+            return this.dom.hasClass( 'sb_show' );
+        },
+
+        show: function() {
+            if ( this.isDirty ) {
+                this.forceUpdate();
+            }
+
+            this.dom.ensureClass('sb_show');
+
+            return this;
+        },
+
+        hide: function() {
+            this.dom.removeClass( 'sb_show' );
+
+            return this;
         }
-    };
-
-    /**
-     * Forces an update.
-     *
-     * This differs from the standard update, because this guarantees
-     * that an update is performed, whilst the standard update might
-     * skip it, for performance reasons.
-     */
-    GridManager.prototype.forceUpdate = function( w, h ) {
-        var zoom = this.zoom,
-             dom = this.dom;
-
-        if ( w === undefined ) {
-            w = dom.width();
-        }
-        if ( h === undefined ) {
-            h = dom.height();
-        }
-
-        var xInc = Math.max( zoom * this.width , 1 ),
-            yInc = Math.max( zoom * this.height, 1 );
-
-        var startX = ( this.offsetX % this.width  ) * zoom,
-            startY = ( this.offsetY % this.height ) * zoom;
-
-        for ( var x = startX; x <= w; x += xInc ) {
-            dom.append(
-                    $('<div>').
-                            addClass('skybrush_grid_line').
-                            addClass('skybrush_grid_line_vertical').
-                            translate( x, 0 ).
-                            height( h )
-            );
-        }
-
-        for ( var y = startY; y <= h; y += yInc ) {
-            dom.append(
-                    $('<div>').
-                            addClass('skybrush_grid_line').
-                            addClass('skybrush_grid_line_horizontal').
-                            translate( 0, y ).
-                            width( w )
-            );
-        }
-
-        this.isDirty = false;
-    };
-
-
-    /**
-     * Sets the size of the grid squares, in pixels.
-     */
-    GridManager.prototype.setSize = function( w, h ) {
-        w = Math.max( w|0, 0 );
-        h = Math.max( h|0, 0 );
-
-        if ( w !== this.width || h !== this.height ) {
-            this.width  = w;
-            this.height = h;
-
-            this.update();
-        }
-    };
-
-    GridManager.prototype.getWidth = function() {
-        return this.width;
-    };
-
-    GridManager.prototype.getHeight = function() {
-        return this.height;
-    };
-
-    GridManager.prototype.getOffsetX = function() {
-        return this.offsetX;
-    };
-
-    GridManager.prototype.getOffsetY = function() {
-        return this.offsetY;
-    };
-
-    /**
-     * Allows you to offset the location of the grid,
-     * from the top left corner,
-     * by the amounts given.
-     */
-    GridManager.prototype.setOffset = function( x, y ) {
-        if ( isNaN(x) ) {
-            x = 0;
-        } else {
-            x = x|0;
-        }
-
-        if ( isNaN(y) ) {
-            y = 0;
-        } else {
-            y = y|0;
-        }
-
-        if ( x < 0 ) {
-            x = - ( x % this.width );
-            x = this.width - x;
-        }
-        if ( y < 0 ) {
-            y = - ( y % this.height );
-            y = this.height - y;
-        }
-
-        var update = ( this.offsetX !== x || this.offsetY !== y );
-
-        if ( update ) {
-            this.offsetX = x,
-            this.offsetY = y;
-
-            this.update();
-        }
-
-        return this;
-    };
-
-    GridManager.prototype.isShown = function() {
-        return this.dom.hasClass( 'sb_show' );
-    };
-
-    GridManager.prototype.show = function() {
-        if ( this.isDirty ) {
-            this.forceUpdate();
-        }
-
-        this.dom.ensureClass('sb_show');
-
-        return this;
-    };
-
-    GridManager.prototype.hide = function() {
-        this.dom.removeClass( 'sb_show' );
-
-        return this;
     };
 
     /**
@@ -8127,6 +8226,7 @@
             ctx;
 
         this.dom = dom;
+        this.guis = [];
         this.guiPane  = this.dom.find( '.skybrush_gui_pane' );
         this.guiDom   = this.guiPane.find( '.skybrush_gui_pane_content' );
         this.viewport = this.dom.find( '.skybrush_viewport_content' ).
@@ -8693,10 +8793,11 @@
                     paste.removeClass( 'sb_disabled' );
                 } );
 
-        var copyButtons = $('<div>').addClass('skybrush_topbar_button_group').
-                 append( copy ).
-                 append( cut ).
-                 append( paste );
+        var copyButtons = document.createElement( 'div' );
+        copyButtons.className = 'skybrush_main_buttons';
+        copyButtons.appendChild(  copy.get(0) );
+        copyButtons.appendChild(   cut.get(0) );
+        copyButtons.appendChild( paste.get(0) );
 
         /*
          * The current colour icon, and colour picker 
@@ -8762,7 +8863,7 @@
          */
         var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
                 setPainter( painter ).
-                addContent( copyButtons, colourInfo );
+                appendDirect( copyButtons, colourInfo );
 
         wrap.append( gui.dom );
     }
@@ -9037,7 +9138,7 @@
                 append( crop );
 
         var gui = new GUI( 'Canvas', 'canvas' ).
-                addContent( resize, scale, grid, clear, crop );
+                appendDirect( resize, scale, grid, clear, crop );
 
         painter.addGUI( gui );
     };
@@ -9483,7 +9584,7 @@
         );
 
         var colorGUI = new GUI( 'Palette', 'colors' ).
-                addContent( newGUIBlock(currentColor, destinationAlpha) ).
+                appendTogether( currentColor, destinationAlpha ).
                 append( mixer );
         
         var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
@@ -10050,15 +10151,38 @@
     /**
      * Adds a new GUI component to float on top of this SkyBrush.
      *
+     * The GUIs are built as a chain of GUIs, each attached to the next in turn.
+     *
      * @private
      * @param gui The GUI component to display.
      */
     SkyBrush.prototype.addGUI = function( gui ) {
-        for ( var i = 0; i < arguments.length; i++ ) {
-            var gui = arguments[i];
-            gui.setPainter( this );
+        var startI;
+        var last;
 
-            this.guiDom.append( gui.dom );
+        // -- the first ever gui added to this
+        if ( this.guis.length === 0 ) {
+            startI = 1;
+
+            last = arguments[0];
+
+            last.setPainter( this );
+            this.guiDom.append( last.dom );
+            this.guis.push( last );
+
+        // -- a gui was already added before this call
+        } else {
+            startI = 0;
+
+            last = this.guis[ this.guis.length - 1 ];
+        }
+
+        for ( var i = startI; i < arguments.length; i++ ) {
+            var gui = arguments[i];
+
+            gui.setPainter( this );
+            last.setSiblingGUI( gui );
+            this.guis.push( gui );
         }
 
         return this;
