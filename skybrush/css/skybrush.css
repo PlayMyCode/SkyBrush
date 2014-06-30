@@ -1285,6 +1285,9 @@
                     font-size: 10px;
                     font-weight: bold;
                 }
+                .skybrush_rgb_input {
+                    -moz-appearance:textfield;
+                }
                 .skybrush_rgb_input::-webkit-inner-spin-button,
                 .skybrush_rgb_input::-webkit-outer-spin-button {
                     -webkit-appearance: none;
@@ -1306,9 +1309,10 @@
         margin: 5px 0 5px 0;
     }
         .skybrush_destination_alpha > .skybrush_command_control_label {
-            margin-top: 5px;
             float: none;
             display: inline;
+            position: relative;
+            top: 2px;
         }
         .skybrush_destination_alpha > input {
         }
@@ -1705,6 +1709,9 @@
                     .skybrush_control.sb_control_slider > .skybrush_slider_bar_inner {
                         height: 1px;
                     }
+                .skybrush_control.sb_control_slider > .skybrush_input {
+                    -moz-appearance:textfield;
+                }
                 .skybrush_control.sb_control_slider > .skybrush_input::-webkit-inner-spin-button,
                 .skybrush_control.sb_control_slider > .skybrush_input::-webkit-outer-spin-button {
                     -webkit-appearance: none;
