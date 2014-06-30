@@ -489,6 +489,11 @@
         background: #ddd;
     }
     .skybrush_gui_pane {
+        /* magical webkit speedup */
+        -webkit-backface-visibility: hidden;
+        -webkit-perspective: 1000;
+        -webkit-transform: translateZ(0);
+
         z-index: 2; /* 1 more than the upscale */
         height: 192px;
 
@@ -533,7 +538,7 @@
                 height: 100%;
                 min-width: 100%;
                 position: relative;
-                overflow: visible;
+                overflow: hidden;
             }
                 .skybrush_gui_header_bar,
                 .skybrush_gui_header {
@@ -915,6 +920,9 @@
 /**
  * These are the floating windows on top of SkyBrush.
  */
+.skybrush_gui_pane_content > .skybrush_gui {
+    display: inline;
+}
 .skybrush_gui {
     display: inline-block;
     
@@ -1034,17 +1042,13 @@
         
         z-index: 0;
         
-        padding: 37px 5px 5px 5px;
+        padding: 37px 6px 5px 6px;
 
         -moz-box-sizing: border-box;
              box-sizing: border-box;
 
     }
     
-    .skybrush_gui:last-child > .skybrush_gui_header,
-    .skybrush_gui:last-child > .skybrush_gui_content {
-        padding-right: 16px;
-    }
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
         float: left;

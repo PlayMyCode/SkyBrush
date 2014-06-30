@@ -2156,7 +2156,9 @@
         }
 
         this.dom.appendChild( content );
-        this.$dom = $(this.dom);
+        this.$dom = $( this.dom );
+
+        this.amountTranslated = 0;
 
         // set later
         this.painter = null;
@@ -2230,6 +2232,9 @@
             if ( this.isHeaderClickable && this.sibling !== null && !this.isOpen() ) {
                 this.dom.className = this.dom.className.replace( ' sb_hide', '' );
                 this.sibling.$dom.translate( 0, 0 );
+
+                this.painter.subtractGUIPaneContentWidth( - this.amountTranslated );
+                this.amountTranslated = 0;
             }
             
             return this;
@@ -2243,12 +2248,12 @@
 
                 var self = this;
                 setTimeout(function() {
-                    self.sibling.$dom.translate( 
-                            - (self.guiWidth - GUI_CONTENT_WIDTH_WHEN_HIDDEN),
-                            0
-                    );
-
+                    var translateX = - (self.guiWidth - GUI_CONTENT_WIDTH_WHEN_HIDDEN);
+                    self.amountTranslated = translateX;
+                    self.sibling.$dom.translate( translateX, 0 );
                     self.dom.className += ' sb_hide';
+
+                    self.painter.subtractGUIPaneContentWidth( translateX );
                 }, 0);
             }
 
@@ -8210,9 +8215,8 @@
                         '</div>' +
                         '<div class="skybrush_gui_pane">' +
                             '<div class="skybrush_gui_pane_scroll">' +
-                                '<div class="skybrush_gui_pane_content">' +
-                                    '<div class="skybrush_gui_header_bar"></div>' +
-                                '</div>' +
+                                '<div class="skybrush_gui_header_bar"></div>' +
+                                '<div class="skybrush_gui_pane_content"></div>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
@@ -8226,9 +8230,18 @@
             ctx;
 
         this.dom = dom;
+
+        // 
+        // gui pane stuff
+        //
+        
         this.guis = [];
         this.guiPane  = this.dom.find( '.skybrush_gui_pane' );
-        this.guiDom   = this.guiPane.find( '.skybrush_gui_pane_content' );
+        this.guiDom   = this.guiPane.find( '.skybrush_gui_pane_content' ).get( 0 );
+        // this is to reduce the width of the content area in the GUI pane,
+        // when those GUIs are collapsed.
+        this.guiPaneContentWidthSubtract = 0;
+
         this.viewport = this.dom.find( '.skybrush_viewport_content' ).
                 dblclick( function(ev) {
                     ev.stopPropagation();
@@ -8370,6 +8383,7 @@
 
         // Finally, set defaults
         this.setSize( startingWidth, startingHeight ).
+                refreshGUIPaneContentArea().
                 setZoom( DEFAULT_ZOOM, undefined, undefined, true ).
                 setColor( DEFAULT_COLOR ).
                 setAlpha( DEFAULT_ALPHA ).
@@ -10167,7 +10181,7 @@
             last = arguments[0];
 
             last.setPainter( this );
-            this.guiDom.append( last.dom );
+            this.guiDom.appendChild( last.dom );
             this.guis.push( last );
 
         // -- a gui was already added before this call
@@ -10200,9 +10214,7 @@
      * @return The GUI overlay with the name given, as a jQuery object, or null if not found.
      */
     SkyBrush.prototype.getGUI = function( klass ) {
-        var gui = this.guiDom.children( '.skybrush_gui.' + klass );
-
-        return gui.size() > 0 ? gui : null ;
+        return this.guiDom.querySelector( '.skybrush_gui.' + klass ) || null;
     };
 
     // Canvas 2D Context properties we are interested in storing/restoring
@@ -10950,6 +10962,7 @@
         this.viewport.parent().ensureClass( 'sb_open' );
 
         this.canvas.updateCanvasSize();
+        this.refreshGUIPaneContentArea();
 
         return this;
     }
@@ -10965,6 +10978,25 @@
         this.viewport.parent().removeClass( 'sb_open' );
 
         this.canvas.updateCanvasSize();
+
+        return this;
+    }
+
+    SkyBrush.prototype.subtractGUIPaneContentWidth = function( w ) {
+        this.guiPaneContentWidthSubtract -= w|0;
+
+        return this.refreshGUIPaneContentArea();
+    }
+
+    SkyBrush.prototype.refreshGUIPaneContentArea = function() {
+        // at the time of writing, the first child is expected to always be a .skybrush_gui
+        var contentWidth = $( this.guiDom.firstChild ).width() - this.guiPaneContentWidthSubtract;
+
+        if ( contentWidth < 0 ) {
+            this.guiDom.style.width = '0';
+        } else {
+            this.guiDom.style.width = contentWidth + 'px';
+        }
 
         return this;
     }
