@@ -293,6 +293,12 @@
         MAX_NATIVE_CURSOR_SIZE = 0,
 
         /**
+         * Warning, this should always be greater than the time it takes to 
+         * open or close the GUI pane, due to a bug in Chrome.
+         */
+        CANVAS_LAZY_REFLOW_DELAY = 150,
+
+        /**
          * When true, pixel content will be touched, in order to avoid issues
          * with the canvas failing to be updated when drawn to.
          *
@@ -3253,6 +3259,15 @@
 
         this.isUpscaleShown = false;
 
+        /**
+         * For lazy calls to updateCanvasSize, this will skip multiple calls in
+         * a row that occur, if updateCanvasSize has not yet been called.
+         *
+         * Essentially if you call lazyUpdateCanvasSize 3 times in a row, it'll
+         * only run the once due to this flag.
+         */
+        this.isAwaitingUpdate = null;
+
         /*
          * Events
          *
@@ -3300,9 +3315,7 @@
          * including when the window size has changed.
          */
         painter.onResize( function() {
-            setTimeout( function() {
-                self.updateCanvasSize();
-            }, 0 );
+            self.lazyUpdateCanvasSize();
         } );
 
         this.grid    = new GridManager( viewport );
@@ -3493,6 +3506,29 @@
     };
 
     /**
+     * This is a lazy version of 'updateCanvasSize'. This will not be called
+     * straight away, but instead delayed and called in the future.
+     *
+     * Not that multiple calls performed in a row will be ignored, if it didn't
+     * actually run yet. It will only call once for each time it is called 
+     * multiple times.
+     */
+    CanvasManager.prototype.lazyUpdateCanvasSize = function() {
+        if ( ! this.isAwaitingUpdate !== null ) {
+            clearTimeout( this.isAwaitingUpdate );
+        }
+
+        var self = this;
+        this.isAwaitingUpdate = setTimeout(function() {
+            this.isAwaitingUpdate = null;
+
+            self.updateCanvasSize();
+        }, CANVAS_LAZY_REFLOW_DELAY );
+
+        return this;
+    }
+
+    /**
      * Resizes and moves around the canvas, overlay, viewport, and the upscale.
      * It essentially resets the layout, based on the current size and zoom settings.
      *
@@ -3630,12 +3666,12 @@
         this.grid.   updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
         this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
         this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
-    };
 
-    /**
-     * Hides the upscale, and stops any events planning to show it.
-     */
-    CanvasManager.prototype.hideUpscale = function() {
+        if ( this.isAwaitingUpdate !== null ) {
+            clearTimeout( this.isAwaitingUpdate );
+
+            this.isAwaitingUpdate = null;
+        }
     };
 
     /**
@@ -4620,16 +4656,17 @@
 
         // search for minX, minY, maxX, maxY, working inwards on all sides
         // search for minY
+        var i = 0;
         for ( var y = 0; y < h; y++ ) {
             var hasAlpha = false;
 
             for ( var x = 0; x < w; x++ ) {
-                var i = (y*w + x) * 4;
-
                 if ( data[i+3] > 0 ) {
                     hasAlpha = true;
                     break;
                 }
+
+                i += 4;
             }
 
             if ( hasAlpha ) {
@@ -4640,16 +4677,17 @@
         }
 
         // search for maxY
+        i = 0;
         for ( var y = h-1; y >= 0; y-- ) {
             var hasAlpha = false;
 
             for ( var x = 0; x < w; x++ ) {
-                var i = (y*w + x) * 4;
-
                 if ( data[i+3] > 0 ) {
                     hasAlpha = true;
                     break;
                 }
+
+                i += 4;
             }
 
             if ( y <= minY ) {
@@ -4662,16 +4700,17 @@
         }
 
         // search for minX
+        i = 0;
         for ( var x = 0; x < w; x++ ) {
             var hasAlpha = false;
 
             for ( var y = 0; y < h; y++ ) {
-                var i = (y*w + x) * 4;
-
                 if ( data[i+3] > 0 ) {
                     hasAlpha = true;
                     break;
                 }
+
+                i += 4;
             }
 
             if ( hasAlpha ) {
@@ -4682,16 +4721,17 @@
         }
 
         // search for maxX
+        i = 0;
         for ( var x = w-1; x >= 0; x-- ) {
             var hasAlpha = false;
 
             for ( var y = 0; y < h; y++ ) {
-                var i = (y*w + x) * 4;
-
                 if ( data[i+3] > 0 ) {
                     hasAlpha = true;
                     break;
                 }
+
+                i += 4;
             }
 
             if ( x <= minX ) {
@@ -4724,10 +4764,10 @@
         } );
     };
 
-        /**
-         * Cleares this canvas of all content,
-         * and adds the current content to the undo stack.
-         */
+    /**
+     * Cleares this canvas of all content,
+     * and adds the current content to the undo stack.
+     */
     CanvasManager.prototype.clear = function() {
         var w = this.width,
             h = this.height;
@@ -4791,64 +4831,68 @@
         viewport.append( this.dom );
     };
 
-    InfoBar.prototype.show = function( button ) {
-        if ( ! this.isShown() ) {
-            this.dom.addClass( 'sb_show' );
+    InfoBar.prototype = {
+        show: function( button ) {
+            if ( ! this.isShown() ) {
+                this.dom.addClass( 'sb_show' );
+                this.highlightFirstInput();
+            }
+        },
+
+        isShown: function() {
+            return this.dom.hasClass( 'sb_show' );
+        },
+
+        isTarget: function(target) {
+            return this.isShown() && (
+                    target === this.dom.get(0) ||
+                    $(target).parents().is( this.dom )
+            );
+        },
+
+        hide: function() {
+            if ( this.isShown() ) {
+                this.dom.removeClass( 'sb_show' );
+            }
+        },
+
+        highlightFirstInput: function() {
+            /*
+             * Grabs the first textual input box, and gives it focus.
+             *
+             * Changing the value is to undo any highlighting,
+             * selection of all of the text,
+             * which some browsers may do.
+             */
+            this.content.
+                    find( 'input[type="text"], input[type="number"]' ).
+                    first().
+                    focus().
+                    each( function() {
+                        var $this = $( this );
+                        $this.val( $this.val() );
+                    } );
+        },
+
+        setContent: function() {
+            this.content.empty();
+            this.confirm = null;
+
+            var argsLen = arguments.length;
+
+            for ( var i = 0; i < argsLen; i++ ) {
+                this.content.append( arguments[i] );
+            }
+
             this.highlightFirstInput();
+
+            return this;
+        },
+
+        getContent: function() {
+            return this.content;
         }
-    };
-
-    InfoBar.prototype.isShown = function() {
-        return this.dom.hasClass( 'sb_show' );
-    };
-
-    InfoBar.prototype.isTarget = function(target) {
-        return this.isShown() && (
-                target === this.dom.get(0) ||
-                $(target).parents().is( this.dom )
-        );
-    };
-
-    InfoBar.prototype.hide = function() {
-        if ( this.isShown() ) {
-            this.dom.removeClass( 'sb_show' );
-        }
-    };
-
-    InfoBar.prototype.highlightFirstInput = function() {
-        /*
-         * Grabs the first textual input box, and gives it focus.
-         *
-         * Changing the value is to undo any highlighting,
-         * selection of all of the text,
-         * which some browsers may do.
-         */
-        this.content.
-                find( 'input[type="text"], input[type="number"]' ).
-                first().
-                focus().
-                each( function() {
-                    var $this = $( this );
-                    $this.val( $this.val() );
-                } );
-    };
-
-    InfoBar.prototype.setContent = function() {
-        this.content.empty();
-        this.confirm = null;
-
-        for ( var i = 0; i < arguments.length; i++ ) {
-            this.content.append( arguments[i] );
-        }
-
-        this.highlightFirstInput();
-
-        return this;
-    };
-
-    InfoBar.prototype.getContent = function() {
-        return this.content;
-    };
+    }
 
     /**
      * Creates and then returns all commands used by SkyBrush.
@@ -9309,16 +9353,17 @@
         data = wheelData.data;
 
         var colourWheelHalfWidth  = ( COLOUR_WHEEL_WIDTH/2 )|0 ;
+        var i = 0;
         for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
             for ( var x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
-                var i = ((y*COLOUR_WHEEL_WIDTH + x) * 4)|0;
-
                 var paintHue = atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x );
 
                 data[i  ] = hsvToR( paintHue, 1, 1 );
                 data[i+1] = hsvToG( paintHue, 1, 1 );
                 data[i+2] = hsvToB( paintHue, 1, 1 );
                 data[i+3] = 255;
+
+                i += 4;
             }
         }
 
@@ -10961,7 +11006,7 @@
         this.guiPane.ensureClass( 'sb_open' );
         this.viewport.parent().ensureClass( 'sb_open' );
 
-        this.canvas.updateCanvasSize();
+        this.canvas.lazyUpdateCanvasSize();
         this.refreshGUIPaneContentArea();
 
         return this;
@@ -10977,7 +11022,7 @@
         this.guiPane.removeClass( 'sb_open' );
         this.viewport.parent().removeClass( 'sb_open' );
 
-        this.canvas.updateCanvasSize();
+        this.canvas.lazyUpdateCanvasSize();
 
         return this;
     }
