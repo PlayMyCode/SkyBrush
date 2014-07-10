@@ -155,8 +155,12 @@
 }
 .skybrush_command_control_label {
     float: left;
+    text-align: right;
     font-size: 11px;
     font-weight: bold;
+
+    position: relative;
+    top: 2px;
 }
 .skybrush_rgb_label {
     vertical-align: baseline;
@@ -229,10 +233,6 @@
 
     padding-left: 3px;
     padding-right: 3px;
-
-    -webkit-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
-       -moz-box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
-            box-shadow: 2px 2px 2px rgba( 0, 0, 0, 0.2 );
 }
 .skybrush_input_button {
     font-size: 11px;
@@ -1448,7 +1448,7 @@
 
     .skybrush_colour_info {
         position: absolute;
-        right : 16px;
+        right : 18px;
         top   : 56px;
         bottom: 35px;
 
@@ -1474,6 +1474,7 @@
     .skybrush_button.sb_copy,
     .skybrush_button.sb_paste {
         min-width: 64px;
+        margin-left: 9px;
     }
 
     .skybrush_button.sb_canvas_size,
@@ -1642,41 +1643,80 @@
                 clear: both;
                 width: 100%;
 
-                vertical-align: middle;
-                line-height: 24px;
+                vertical-align: baseline;
+                height: 18px;
+                line-height: normal;
+                padding: 3px 0 3px 0;
             }
+
+            /*
+             * Slider bar is always a native when it is
+             *      input.skybrush_slider_bar
+             *
+             * It is a fake bar when it is
+             *      .skybrush_slider_bar.sb_fake
+             *
+             */
+
             .skybrush_slider_bar {
                 position: relative;
             }
             .skybrush_slider_bar.sb_fake {
                 top: -4px;
             }
-            input[type="range"].skybrush_slider_bar {
+            input.skybrush_slider_bar {
                 padding: 0;
                 cursor: pointer;
+                height: 18px;
+                top: -3px;
             }
-            .skybrush.msie input[type="range"].skybrush_slider_bar {
+            .skybrush.msie input.skybrush_slider_bar {
                 top: -2px;
             }
-            .skybrush.webkit input[type="range"].skybrush_slider_bar {
+            .skybrush.webkit input.skybrush_slider_bar {
                 -webkit-appearance: none;
-                bottom: -2px;
+                top: -1px;
 
                 background: #aaa;
             }
-            input[type="range"].skybrush_slider_bar::-webkit-slider-thumb {
+
+            .skybrush_slider_bar::-webkit-slider-thumb {
                 -webkit-appearance: none;
 
                 display: block;
                 width : 18px;
                 height: 18px;
-                background: #999;
                 background: #3C667F;
                 color: #999;
+
+                border-none;
+                border-radius: 0;
+                box-shadow: none;
             }
+
+            .skybrush_slider_bar::-moz-range-track {
+                background: #aaa;
+                height: 18px;
+            }
+            /*
+             * WARNING: this must be styled 'SEPERATELY' from the webkit one.
+             */
+            .skybrush_slider_bar::-moz-range-thumb {
+                border: none;
+                border-radius: 0;
+                height: 18px;
+                width : 18px;
+                background: #3c667f;
+            }
+
+            /*hide the outline behind the border*/
+            input.skybrush_slider_bar:-moz-focusring {
+                outline: 1px solid #DDD;
+                outline-offset: -1px;
+            }
+
             .skybrush_control > input,
             .skybrush_slider_bar,
-            .skybrush_input,
             .skybrush_command_control_label {
                 display: inline-block;
             }
@@ -1689,7 +1729,7 @@
                 margin-bottom: 2px;
             }
                 .skybrush_control.sb_control_slider > .skybrush_slider_bar {
-                    width: 65px;
+                    width: 80px;
                     margin: 0 8px;
                 }
                 .skybrush_control.sb_control_slider > .skybrush_command_control_label {
@@ -1705,18 +1745,16 @@
                         height: 1px;
                     }
                 .skybrush_control.sb_control_slider > .skybrush_input {
+                    margin: 0;
+                    width: 22px;
+                    position: relative;
+
                     -moz-appearance:textfield;
                 }
                 .skybrush_control.sb_control_slider > .skybrush_input::-webkit-inner-spin-button,
                 .skybrush_control.sb_control_slider > .skybrush_input::-webkit-outer-spin-button {
                     -webkit-appearance: none;
                     margin: 0;
-                }
-                .skybrush_control.sb_control_slider > .skybrush_input {
-                    margin: 0;
-                    width: 22px;
-                    position: relative;
-                    bottom: -3px;
                 }
                 .skybrush_control.sb_control_toggle > .skybrush_command_control_label {
                     padding-top: 5px;

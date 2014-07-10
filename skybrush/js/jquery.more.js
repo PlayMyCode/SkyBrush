@@ -242,6 +242,79 @@
 
         var isIOS = isIPhone || isIPad || isIPod ;
 
+        if ( $.browser === undefined ) {
+            var msie     = 0;
+            var opera    = 0;
+            var mozilla  = 0;
+            var chrome   = 0;
+            var webkit   = 0;
+            var safari   = 0;
+
+            var getUAVersion = function(userAgent, browserName) {
+                var test = new RegExp(browserName + "([\\d.]+)", 'i');
+                var match = userAgent.match( test );
+
+                if ( match !== null && match.length > 0 ) {
+                    var strMatch = match[0];
+                    var splitI = strMatch.indexOf("/");
+
+                    if ( splitI === -1 ) {
+                        splitI = strMatch.indexOf(":");
+                    }
+
+                    if ( splitI !== -1 ) {
+                        return parseInt( strMatch.substring(splitI+1) ) || -1;
+                    }
+                }
+
+                return -1;
+            }
+
+            var userAgent = navigator.userAgent.toString();
+
+            if (userAgent.indexOf("MSIE/") !== -1) {
+                msie = getUAVersion( userAgent, "MSIE/" );
+            } else if (userAgent.indexOf("Trident/") !== -1) {
+                if ( userAgent.indexOf(" rv:") !== -1 ) {
+                    msie = getUAVersion( userAgent, "rv:" );
+                } else {
+                    msie = getUAVersion( userAgent, "Trident/" );
+                }
+
+            } else if (userAgent.indexOf("Firefox/") !== -1) {
+                mozilla = getUAVersion( userAgent, "Firefox/" );
+
+            } else if (userAgent.indexOf("Iceweasel/") !== -1) {
+                mozilla = getUAVersion( userAgent, "Iceweasel/" );
+
+            } else if (userAgent.indexOf("Netscape/") !== -1) {
+                mozilla = getUAVersion( userAgent, "Netscape/" );
+
+            } else if (userAgent.indexOf("AppleWebKit/") !== -1) {
+                webkit = getUAVersion( userAgent, "AppleWebKit/" );
+            }
+
+            var browser = {};
+
+            if ( msie !== 0 ) {
+                browser.varsion = browser.msie = msie;
+            }
+
+            if ( opera !== 0 ) {
+                browser.varsion = browser.opera = opera;
+            }
+
+            if ( mozilla !== 0 ) {
+                browser.varsion = browser.mozilla = mozilla;
+            }
+
+            if ( webkit !== 0 ) {
+                browser.varsion = browser.webkit = webkit;
+            }
+
+            $.browser = browser;
+        }
+
         $.browser.iOS = isIPhone || isIPad || isIPod ;
         $.browser.iPhone = isIPhone;
         $.browser.iPad = isIPad;
@@ -696,21 +769,50 @@
         $.scrollBarWidth = function() {
             if ( _scrollbarWidth === 0 ) {
                 if ( $.browser.msie ) {
-                    var $textarea1 = $('<textarea cols="10" rows="2"></textarea>')
-                                .css({ position: 'absolute', top: -1000, left: -1000 }).appendTo('body'),
-                        $textarea2 = $('<textarea cols="10" rows="2" style="overflow: hidden;"></textarea>')
-                                .css({ position: 'absolute', top: -1000, left: -1000 }).appendTo('body');
+                    var textarea1 = document.createElement( 'textarea' );
+                    textarea1.setAttribute( 'cols', '10' );
+                    textarea1.setAttribute( 'rows',  '2' );
+
+                    textarea1.style.position = 'absolute';
+                    textarea1.style.top      = "-1000px";
+                    textarea1.style.left     = "-1000px";
+
+                    var textarea2 = document.createElement( 'textarea' );
+                    textarea1.setAttribute( 'cols', '10' );
+                    textarea1.setAttribute( 'rows',  '2' );
+
+                    textarea1.style.position = 'absolute';
+                    textarea1.style.top      = "-1000px";
+                    textarea1.style.left     = "-1000px";
+                    textarea1.style.overflow = "hidden";
                     
-                    _scrollbarWidth = $textarea1.width() - $textarea2.width();
-                    $textarea1.add($textarea2).remove();
+                    document.body.appendChild( textarea1 );
+                    document.body.appendChild( textarea2 );
+
+                    _scrollbarWidth = $( textarea1 ).width() - $( textarea2 ).width();
+
+                    document.body.removeChild( textArea1 );
+                    document.body.removeChild( textArea2 );
                 } else {
-                    var $div = $('<div />')
-                            .css({ width: 100, height: 100, overflow: 'auto', position: 'absolute', top: -1000, left: -1000 })
-                            .prependTo('body').append('<div />').find('div')
-                            .css({ width: '100%', height: 200 });
-                    
-                    _scrollbarWidth = 100 - $div.width();
-                    $div.parent().remove();
+                    var div = document.createElement( 'div' );
+                    div.style.width  = '100px';
+                    div.style.height = '100px';
+                    div.style.overflow = 'auto';
+                    div.style.position = 'absolute';
+                    div.style.top  = '-1000px';
+                    div.style.left = '-1000px';
+
+                    var divInner = document.createElement( 'div' );
+                    divInner.style.width  = '100%';
+                    divInner.style.height = '200px';
+
+                    div.appendChild( divInner );
+
+                    document.body.appendChild( div );
+
+                    _scrollbarWidth = 100 - $( div ).width();
+
+                    document.body.removeChild( div );
                 }
             }
             

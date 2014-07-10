@@ -296,7 +296,7 @@
          * Warning, this should always be greater than the time it takes to 
          * open or close the GUI pane, due to a bug in Chrome.
          */
-        CANVAS_LAZY_REFLOW_DELAY = 150,
+        CANVAS_LAZY_REFLOW_DELAY = 180,
 
         /**
          * When true, pixel content will be touched, in order to avoid issues
@@ -1719,14 +1719,16 @@
         var sliderBar;
 
         if ( $.support.input.range ) {
-            sliderBar = $('<input>').
-                    addClass( 'skybrush_slider_bar' ).
-                    attr( 'type', 'range' ).
+            var sliderBarInput = newInput( 'range', 'skybrush_slider_bar' );
 
-                    // default min/max/step values
-                    attr( 'min', 0 ).
-                    attr( 'max', 1 ).
-                    attr( 'step', 1/NUM_SLIDE_INCREMENTS ).
+            // default min/max/step values
+            sliderBarInput.setAttribute( 'min' , Number.toString(0) );
+            sliderBarInput.setAttribute( 'max' , Number.toString(1) );
+            sliderBarInput.setAttribute( 'step', Number.toString(1/NUM_SLIDE_INCREMENTS) );
+
+            // now setup the slider bar it's self
+            
+            sliderBar = $( sliderBarInput ).
                     change( function() {
                         sliderBar.runOnSlide();
                     });
@@ -2749,9 +2751,12 @@
     var Marquee = function( canvas, viewport, painter ) {
         this.canvas = canvas;
 
-        var topLeft     = $('<div>').addClass('skybrush_marquee_handle sb_top_left sb_no_target');
-        var bottomRight = $('<div>').addClass('skybrush_marquee_handle sb_bottom_right sb_no_target');
-        this.handles = topLeft.add( bottomRight );
+        var topLeft     = document.createElement('div');
+        topLeft.className     = 'skybrush_marquee_handle sb_top_left sb_no_target';
+        var bottomRight       = document.createElement('div');
+        bottomRight.className = 'skybrush_marquee_handle sb_bottom_right sb_no_target';
+
+        this.handles = $( topLeft, bottomRight );
 
         this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' ).
                 append( topLeft, bottomRight );
@@ -2780,7 +2785,7 @@
             self.selectArea( x, y, w, h );
         };
 
-        topLeft.leftdown( function(ev) {
+        $( topLeft ).leftdown( function(ev) {
             ev.preventDefault();
 
             var x = self.position.x,
@@ -2810,7 +2815,7 @@
             );
         };
 
-        bottomRight.leftdown( function(ev) {
+        $( bottomRight ).leftdown( function(ev) {
             ev.preventDefault();
 
             var width  = self.position.w,
@@ -3953,6 +3958,7 @@
 
     CanvasManager.prototype.onClip = function( f ) {
         this.events.add( 'onClip', f );
+
         return this;
     };
 
@@ -4995,11 +5001,9 @@
                     defaultField = false;
                 }
 
-                var checkbox = $('<input>').
-                        attr( 'type', 'checkbox' ).
-                        addClass( cssID ).
-                        change( function() {
-                            var isChecked = $(this).is(':checked')
+                var checkbox = newInput( 'checkbox', cssID );
+                $( checkbox ).change( function() {
+                            var isChecked = $( this ).is(':checked')
 
                             command[ field ] = isChecked;
                             if ( callback ) {
@@ -5012,10 +5016,10 @@
                         } );
 
                 if ( command[field] ) {
-                    checkbox.attr( 'checked', 'checked' );
+                    checkbox.setAttribute( 'checked', 'checked' );
                 }
 
-                cDom.appendChild( checkbox.get(0) );
+                cDom.appendChild( checkbox );
             } else if ( type == 'toggle' ) {
                 var cssStates = control.css_options,
                         names = control.name_options;
@@ -8662,6 +8666,30 @@
 
     var NOT_ALPHA_NUMERIC_LOWER = /[^a-z0-9_]+/g;
 
+    /**
+     * A very simple function. Makes a new div HTML element, sets the text 
+     * given inside of it, sets the class, and then returns the div.
+     */
+    var newTextDiv = function( klass, text ) {
+        var div = document.createElement( 'div' );
+        
+        div.textContent = text;
+        div.className = klass;
+
+        return div;
+    }
+
+    var newInput = function( type, klass ) {
+        var input = document.createElement( 'input' );
+
+        input.setAttribute( 'type', type );
+        if ( klass !== undefined ) {
+            input.className = klass;
+        }
+
+        return input;
+    }
+
     var newButton = function() {
         var dom = document.createElement( 'a' );
         dom.setAttribute( 'href', '#' );
@@ -8940,122 +8968,123 @@
         var infoOption = function( name, onSuccess, extraComponents ) {
             var isConstrained = false;
 
-            return newButton(name, 'skybrush_button',  'sb_absolute',
+            return newButton( name, 'skybrush_button', 'sb_absolute',
                     function() {
                         var width  = painter.getCanvas().getWidth(),
                             height = painter.getCanvas().getHeight();
 
-                        var widthInput  = $('<input type="number" value="' + width  + '">').
-                                    addClass( 'sb_width' ),
-                            heightInput = $('<input type="number" value="' + height + '">').
-                                    addClass( 'sb_height' ),
-                            constrain = $('<input type="checkbox">').
-                                    addClass( 'constrain' );
+                        var widthInput  = newInput( 'number', 'sb_width' );
+                        widthInput.value = width;
+                        widthInput.setAttribute( 'maxlength', 5 );
 
-                        constrain.prop( 'checked', isConstrained );
+                        var heightInput = newInput( 'number', 'sb_height' );
+                        heightInput.value = height;
+                        heightInput.setAttribute( 'maxlength', 5 );
 
-                        /* Update the width/height in the other
-                         *  input, when the value changes in this one,
-                         *  if we're using 'constrain proportions'.
+                        var constrain   = newInput( 'checkbox', 'constrain' );
+                        if ( isConstrained ) {
+                            constrain.setAttribute( 'checked', 'checked' );
+                        }
+
+                        var $constrain = $( constrain );
+
+                        /*
+                         * Update the width/height in the other
+                         * input, when the value changes in this one,
+                         * if we're using 'constrain proportions'.
                          */
-                        widthInput.keydown( function() {
-                            var $this = $(this);
+                        $( widthInput ).
+                                forceNumeric( false ).
+                                keydown( function() {
+                                    var $this = $( this );
 
-                            /* setTimeout is used because the input.val is
-                             * only updated after this has fully bubbled up.
-                             * So we run the code straight after.
-                             */
-                            if ( constrain.is(':checked') ) {
-                                setTimeout( function() {
-                                    var w = $this.val();
+                                    /*
+                                     * setTimeout is used because the input.val is
+                                     * only updated after this has fully bubbled up.
+                                     * So we run the code straight after.
+                                     */
+                                    if ( $constrain.is(':checked') ) {
+                                        setTimeout( function() {
+                                            var w = $this.val();
 
-                                    if ( ! isNaN(w) && w > 0 ) {
-                                        heightInput.val(
-                                                Math.round(height * (w/width))
-                                        );
+                                            if ( ! isNaN(w) && w > 0 ) {
+                                                heightInput.value = Math.round( height * (w/width) );
+                                            }
+                                        }, 1 );
                                     }
-                                }, 1 );
-                            }
-                        } );
-                        heightInput.keydown( function() {
-                            var $this = $(this);
+                                } );
 
-                            if ( constrain.is(':checked') ) {
-                                setTimeout( function() {
-                                    var h = $this.val();
+                        $( heightInput ).
+                                forceNumeric( false ).
+                                keydown( function() {
+                                    var $this = $( this );
 
-                                    if ( ! isNaN(h) && h > 0 ) {
-                                        widthInput.val(
-                                                Math.round(width * (h/height))
-                                        );
+                                    if ( $constrain.is(':checked') ) {
+                                        setTimeout( function() {
+                                            var h = $this.val();
+
+                                            if ( ! isNaN(h) && h > 0 ) {
+                                                widthInput.value = Math.round( width * (h/height) )
+                                            }
+                                        }, 1 );
                                     }
-                                }, 1 );
-                            }
-                        } );
+                                } );
 
                         /*
                          * Reset the width/height when the user
                          * turns the constrain property on.
                          */
-                        constrain.change( function() {
+                        $constrain.change( function() {
                             isConstrained = $(this).is(':checked');
 
                             if ( isConstrained ) {
-                                widthInput.val( width );
-                                heightInput.val( height );
+                                widthInput.value  = width  ;
+                                heightInput.value = height ;
                             }
                         } );
 
-                        /*
-                         * This funky bit of syntax first creates an empty
-                         * jQuery collection (the $()), and then adds to
-                         * DOM elements to it.
-                         *
-                         * This allows us to operate on both width and height.
-                         * Just imagine it being like: [ widthInput, heightInput ].
-                         */
-                        $().add( widthInput ).add( heightInput ).
-                                attr( 'maxlength', 5 ).
-                                forceNumeric( false );
-
-                        var form = $('<form>');
-                        form.submit( function(ev) {
+                        var form = document.createElement( 'form' );
+                        form.setAttribute('action', '');
+                        form.addEventListener('submit', function(ev) {
                             ev.preventDefault();
 
                             var $content = painter.getInfoBar().getContent();
 
                             onSuccess.call(
                                     this,
-                                    $content.find( '.sb_width'  ).val(),
-                                    $content.find( '.sb_height' ).val()
+                                    widthInput.value  |0,
+                                    heightInput.value |0
                             );
 
                             painter.getInfoBar().hide();
-                        } );
+                        }, false);
 
-                        var okButton = $('<input>').
-                                attr( 'type', 'submit' ).
-                                killEvent( 'click', 'mousedown' ).
-                                val( 'ok' ).
+                        var okButton = newInput( 'submit' );
+                        okButton.setAttribute( 'value', 'ok' );
+
+                        $( okButton ).
+                                stopPropagation( 'click', 'mousedown' ).
                                 click( function() {
                                     form.submit();
                                 } );
 
-                        form.
-                                append( $('<div>Width:</div>').addClass( 'skybrush_info_label' ) ).
-                                append( widthInput ).
-                                append( $('<div>Height:</div>').addClass( 'skybrush_info_label' ) ).
-                                append( heightInput ).
-                                append( $('<div>Relative</div>').addClass( 'skybrush_info_label' ) ).
-                                append( constrain );
+                        form.appendChild( newTextDiv( 'skybrush_info_label', 'Width:'    ) );
+                        form.appendChild( widthInput  );
+
+                        form.appendChild( newTextDiv( 'skybrush_info_label', 'Height:'   ) );
+                        form.appendChild( heightInput );
+
+                        form.appendChild( newTextDiv( 'skybrush_info_label', 'Relative:' ) );
+                        form.appendChild( constrain   );
 
                         if ( extraComponents ) {
-                            extraComponents(form);
+                            extraComponents( form );
                         }
 
-                        form.append( okButton );
+                        form.appendChild( okButton );
 
-                        painter.getInfoBar().
+                        painter.
+                                getInfoBar().
                                 setContent( form ).
                                 show( $(this) );
                     });
@@ -9075,69 +9104,91 @@
                     painter.scale( w, h, $(this).find('input.smooth').is(':checked') );
                 },
                 function( form ) {
-                    var smooth = $('<input type="checkbox">').addClass('smooth');
+                    var smooth = newInput( 'checkbox', 'smooth' );
+                    if ( isSmooth ) {
+                        smooth.setAttribute( 'checked', 'checked' );
+                    }
 
-                    smooth.prop( 'checked', isSmooth );
-                    smooth.change( function() {
+                    $( smooth ).change( function() {
                         isSmooth = $(this).is(':checked');
                     } );
 
-                    form.
-                            append( $('<div>Smooth</div>').addClass('skybrush_info_label') ).
-                            append( smooth );
+                    form.appendChild( newTextDiv('skybrush_info_label', 'Smooth') );
+                    form.appendChild( smooth );
                 }
         );
 
         var grid = newButton( 'Grid', 'skybrush_button', 'sb_absolute',
                 function(ev) {
-                    var grid = painter.getCanvas().getGrid(),
-                        width = $('<input>'),
-                        height = $('<input>');
+                    var grid = painter.getCanvas().getGrid();
 
-                    width.val( grid.getWidth() );
-                    height.val( grid.getHeight() );
+                    /*
+                     * grid width & height
+                     */
+
+                    var width  = newInput( 'number' );
+                    var height = newInput( 'number' );
+
+                    width.value  = grid.getWidth() ;
+                    height.value = grid.getHeight();
 
                     var updateSize = function() {
                         setTimeout( function() {
                             grid.setSize(
-                                    width.val(),
-                                    height.val()
+                                    width.value  |0,
+                                    height.value |0
                             );
                         }, 1 );
                     };
 
-                    $().add( width ).add( height ).
+                    $( width ).
                             forceNumeric( false ).
-                            attr( 'type', 'number' ).
+                            keypress( updateSize ).
+                            click( updateSize ).
+                            change( updateSize );
+                    $( height ).
+                            forceNumeric( false ).
                             keypress( updateSize ).
                             click( updateSize ).
                             change( updateSize );
 
-                    var offsetX = $('<input>'),
-                        offsetY = $('<input>');
+                    /*
+                     * grid offset x & y
+                     */
 
-                    offsetX.val( grid.getOffsetX() );
-                    offsetY.val( grid.getOffsetY() );
+                    var offsetX = newInput( 'number' );
+                    var offsetY = newInput( 'number' );
+
+                    offsetX.value = grid.getOffsetX();
+                    offsetY.value = grid.getOffsetY();
 
                     var updateOffset = function() {
                         setTimeout( function() {
                                 grid.setOffset(
-                                        offsetX.val(),
-                                        offsetY.val()
+                                        offsetX.value |0,
+                                        offsetY.value |0
                                 );
                         }, 1 );
                     };
 
-                    $().add( offsetX ).add( offsetY ).
+                    $( offsetX ).
                             forceNumeric( false ).
-                            attr( 'type', 'number' ).
+                            keypress( updateOffset ).
+                            click( updateOffset ).
+                            change( updateOffset );
+                    $( offsetY ).
+                            forceNumeric( false ).
+                            keypress( updateOffset ).
+                            click( updateOffset ).
+                            change( updateOffset );
 
-                    keypress( updateOffset ).
-                    click( updateOffset ).
-                    change( updateOffset );
+                    /*
+                     * the show checkbox
+                     */
 
-                    var show = $('<input>').
-                            attr( 'type', 'checkbox' ).
+                    var show = newInput( 'checkbox' );
+
+                    $( show ).
                             change( function() {
                                 if ( $(this).is(':checked') ) {
                                     grid.show();
@@ -9145,22 +9196,27 @@
                                     grid.hide();
                                 }
                             } );
+
                     if ( grid.isShown() ) {
-                        show.attr('checked', 'checked');
+                        show.setAttribute( 'checked', 'checked' );
                     }
 
+                    /*
+                     * put it all together
+                     */
+
                     painter.getInfoBar().setContent(
-                            $('<div>Width:</div>').addClass( 'skybrush_info_label' ),
+                            newTextDiv( 'skybrush_info_label',  'Width:'    ),
                             width,
-                            $('<div>Height:</div>').addClass( 'skybrush_info_label' ),
+                            newTextDiv( 'skybrush_info_label',  'Height:'   ),
                             height,
 
-                            $('<div>X Offset:</div>').addClass( 'skybrush_info_label' ),
+                            newTextDiv( 'skybrush_info_label',  'X Offset:' ),
                             offsetX,
-                            $('<div>Y Offset:</div>').addClass( 'skybrush_info_label' ),
+                            newTextDiv( 'skybrush_info_label',  'Y Offset:' ),
                             offsetY,
 
-                            $('<div>Show</div>').addClass( 'skybrush_info_label' ),
+                            newTextDiv( 'skybrush_info_label',  'Show:'     ),
                             show
                     ).show( $(this) );
                 }
@@ -9469,7 +9525,7 @@
         };
 
         /* Create the RGB lebel/inputs in the form. */
-        var newInput = function( name, css, inputEvent, isDecimal, max ) {
+        var newColourInput = function( name, css, inputEvent, isDecimal, max ) {
             var label = document.createElement('div');
             label.className = 'skybrush_rgb_label';
             label.innerHTML = name;
@@ -9530,15 +9586,15 @@
             );
         };
 
-        var rWrap = newInput( 'r', 'skybrush_rgb_r', syncRGBFormToCurrentColor, false, 255 ),
-            gWrap = newInput( 'g', 'skybrush_rgb_g', syncRGBFormToCurrentColor, false, 255 ),
-            bWrap = newInput( 'b', 'skybrush_rgb_b', syncRGBFormToCurrentColor, false, 255 );
+        var rWrap = newColourInput( 'r', 'skybrush_rgb_r', syncRGBFormToCurrentColor, false, 255 ),
+            gWrap = newColourInput( 'g', 'skybrush_rgb_g', syncRGBFormToCurrentColor, false, 255 ),
+            bWrap = newColourInput( 'b', 'skybrush_rgb_b', syncRGBFormToCurrentColor, false, 255 );
 
         rInput = $( rWrap.__input );
         gInput = $( gWrap.__input );
         bInput = $( bWrap.__input );
 
-        var aWrap = newInput('a', 'rgb_a', syncAlpha, true, 1.0 );
+        var aWrap = newColourInput('a', 'rgb_a', syncAlpha, true, 1.0 );
         var aInput = $( aWrap.__input );
 
         var rgbForm = document.createElement( 'div' );
@@ -9567,9 +9623,9 @@
             );
         };
 
-        var hWrap = newInput( 'h', 'skybrush_rgb_h', syncHSVFormToCurrentColor, false, 360 ),
-            sWrap = newInput( 's', 'skybrush_rgb_s', syncHSVFormToCurrentColor, false, 100 ),
-            vWrap = newInput( 'v', 'skybrush_rgb_v', syncHSVFormToCurrentColor, false, 100 );
+        var hWrap = newColourInput( 'h', 'skybrush_rgb_h', syncHSVFormToCurrentColor, false, 360 ),
+            sWrap = newColourInput( 's', 'skybrush_rgb_s', syncHSVFormToCurrentColor, false, 100 ),
+            vWrap = newColourInput( 'v', 'skybrush_rgb_v', syncHSVFormToCurrentColor, false, 100 );
 
         hInput = $( hWrap.__input );
         sInput = $( sWrap.__input );
@@ -9659,16 +9715,19 @@
                 true
         ));
 
-        $().add( $alphaCanvas ).add( alphaBar ).
-                leftdrag( function(ev) {
-                    var pos = $alphaCanvas.offset(),
-                          h = $alphaCanvas.height();
+        var updateAlphaFun = function(ev) {
+            var pos = $alphaCanvas.offset(),
+                  h = $alphaCanvas.height();
 
-                    var y = Math.limit( ev.pageY - pos.top, 0, h );
-                    painter.setAlpha( y / h );
+            var y = Math.limit( ev.pageY - pos.top, 0, h );
+            painter.setAlpha( y / h );
 
-                    ev.preventDefault();
-                } );
+            ev.preventDefault();
+        }
+
+        $( $alphaCanvas ).leftdrag( updateAlphaFun );
+        $( alphaBar     ).leftdrag( updateAlphaFun );
+
         alphaGradient.replaceWith( $alphaCanvas );
 
         /* Disable Selections on some components in IE */
