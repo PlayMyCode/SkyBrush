@@ -1370,21 +1370,15 @@
             }
             .skybrush_open_toggle {
             }
-                .skybrush_open_toggle_text,
-                .sb_zoom_in,
-                .sb_zoom_out {
-                    font-size: 25px;
-                    line-height: 14px;
-                }
-                .skybrush_header_button.sb_zoom_out {
-                    -webkit-transform: translateY(-3px) rotate( 0 );
-                       -moz-transform: translateY(-3px) rotate( 0 );
-                        -ms-transform: translateY(-3px) rotate( 0 );
-                         -o-transform: translateY(-3px) rotate( 0 );
-                            transform: translateY(-3px) rotate( 0 );
-                }
+            .skybrush_open_toggle_text,
+            .sb_zoom_in,
+            .sb_zoom_out {
+                font-size: 25px;
+            }
                 .skybrush_open_toggle_text {
                     display: inline-block;
+
+                    line-height: 14px;
 
                     -webkit-transition: -webkit-transform 120ms linear;
                        -moz-transition:    -moz-transform 120ms linear;
@@ -1437,6 +1431,7 @@
             }
             .skybrush_header_button.sb_zoom_out {
                 left: 40px;
+                line-height: 27px;
             }
             .skybrush_header_button.sb_zoom_in {
                 left: 70px;
