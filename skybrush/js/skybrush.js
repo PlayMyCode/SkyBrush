@@ -5570,7 +5570,7 @@
             this.setSize( DEFAULT_BRUSH_SIZE );
         };
 
-        Brush.prototype = new Command( '', '', {} );
+        Brush.prototype = new Command( {} );
 
         /**
          * Sets the size for this brush.
@@ -5599,9 +5599,9 @@
          *  = onDraw - called for drawing geometry
          *  = onDown - already exists, but is wrapped in it's own onDown
          *
-             * @constructor
-             * @private
-             *
+         * @constructor
+         * @private
+         *
          * @param setup The controls information for this command.
          */
         var Geometry = function( setup ) {
@@ -5663,7 +5663,7 @@
             Command.call( this, setup );
         };
 
-        Geometry.prototype = new Command( '', '', {} );
+        Geometry.prototype = new Command( {} );
 
         Geometry.prototype.round = function( n, isOutline, size ) {
             if ( (!isOutline) || size % 2 == 0 ) {
@@ -5792,7 +5792,7 @@
             Geometry.call( this, setup );
         };
 
-        ShapeGeometry.prototype = new Geometry( '', '', function() {}, undefined );
+        ShapeGeometry.prototype = new Geometry( {} );
 
         /* Helper Drawing Function */
 
@@ -6076,7 +6076,7 @@
 
             Brush.call( this, setup  );
         };
-        PixelBrush.prototype = new Brush( '', '', {} );
+        PixelBrush.prototype = new Brush( {} );
 
         var pickerCommand = new Command({
                 name  : 'Picker',
