@@ -2,12 +2,12 @@
 
 /**
  * @license
- * 
+ *
  * SkyBrush - skybrush.css
- * 
+ *
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -18,16 +18,16 @@
  *     * Neither the name of the <organization> nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -41,7 +41,7 @@
  * and zoomed, floating dialog boxes on top of the canvas,
  * various brushes you can use for painting, colour picker,
  * and more!
- * 
+ *
  * = Features =
  *  - easy embeddable painting application
  *  - Cross browser; supports IE 9+, Firefox, Chrome, Safari and Opera
@@ -256,7 +256,7 @@
                     size-1.4
             );
             ctx.stroke();
-            
+
             // an outer circle
             ctx.strokeStyle = '#000';
             ctx.globalAlpha = 1;
@@ -287,13 +287,13 @@
          * Although IE does not support cursor data uri's, it is the least
          * laggy when using background-image.
          *
-         * @see initializeJQuery 
+         * @see initializeJQuery
          */
         USE_NATIVE_CURSOR = false,
         MAX_NATIVE_CURSOR_SIZE = 0,
 
         /**
-         * Warning, this should always be greater than the time it takes to 
+         * Warning, this should always be greater than the time it takes to
          * open or close the GUI pane, due to a bug in Chrome.
          */
         CANVAS_LAZY_REFLOW_DELAY = 180,
@@ -379,7 +379,7 @@
         /**
          * The name of the command to select as default,
          * when the user first sees painter.
-         * 
+         *
          * @const
          * @type {string}
          */
@@ -387,7 +387,7 @@
 
         /**
          * The default size for brushes.
-         * 
+         *
          * @const
          * @type {number}
          */
@@ -395,10 +395,10 @@
 
         /**
          * The prefix added to command css classes.
-         * 
+         *
          * So 'picker' becomes 'sb_command_picker' if
          * the prefix is 'sb_command_'.
-         * 
+         *
          * @const
          * @type {string}
          */
@@ -411,14 +411,14 @@
         CONTROL_CSS_PREFIX = 'sb_control_',
 
         /**
-         * 
+         *
          * @const
          * @type {string}
          */
         GUI_CSS_PREFIX = 'sb_gui_',
 
         /**
-         * This is set later to true or false, through the lazy jQuery 
+         * This is set later to true or false, through the lazy jQuery
          * intialization.
          *
          * @const
@@ -495,7 +495,7 @@
          * @type {number}
          */
         GUI_DEFAULT_Y = 70,
-        
+
         /**
          * When scrolling, the canvas will wait this amount of time
          * before it tries to display the upscale.
@@ -736,7 +736,7 @@
      * @type {Array.<string>}
      */
     var INT_TO_HEX = [
-            '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '0a', '0b', '0c', '0d', '0e', '0f', 
+            '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '0a', '0b', '0c', '0d', '0e', '0f',
             '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f',
             '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2a', '2b', '2c', '2d', '2e', '2f',
             '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '3a', '3b', '3c', '3d', '3e', '3f',
@@ -771,10 +771,10 @@
     /**
      * You give it a value, and this returns a 'percent',
      * which is a number from 0.0 to 1.0.
-     * 
+     *
      * It works out this percent through the value, min
      * and max values given.
-     * 
+     *
      * @param n The value to convert to a percent.
      * @param min The minimum value in the range.
      * @param max The minimum value in the range.
@@ -833,7 +833,7 @@
             var v    =     Math.max( r, g, b );
             var diff = v - Math.min( r, g, b );
 
-            return ( 
+            return (
                     ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
                     ( v === g ) ? ( (b - r) / diff + 2               ) :
                                   ( (r - g) / diff + 4               )
@@ -864,15 +864,15 @@
 
             var v    =     Math.max( r, g, b );
             var diff = v - Math.min( r, g, b );
-             
+
             return [
                     // h, the hue
-                    ( 
+                    (
                             ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
                             ( v === g ) ? ( (b - r) / diff + 2               ) :
                                           ( (r - g) / diff + 4               )
                     ) / 6,
-                    
+
                     // s, the saturation
                     diff / v,
 
@@ -1072,7 +1072,7 @@
      * the nearest whole number.
      *
      * Example result: #d9aa23
-     * 
+     *
      * @param r The red component.
      * @param g The green component.
      * @param b The blue component.
@@ -1697,21 +1697,21 @@
      *   -------[]---
      *
      * This will use the input 'range' type where available.
-     * 
+     *
      * @return A jQuery object (a div), which is pre-built and setup as a slider.
      */
     /*
      * Ok, so how does this work? Either a HTML5 input range or a custom
      * slider gets generated.
-     * 
+     *
      * This then has an API directly pasted onto the object which is the
      * most *basic* API possible. Direct getters and setters, and visual
      * cues, that's it.
-     * 
+     *
      * They both have a more complex API built on top, which is the API
      * that does the 'slideUp', 'slideDown', setting and running of slide
      * events.
-     * 
+     *
      * The idea is to push the clever code up the stack, so it's shared,
      * and keep the lower code where it's different as basic as possible.
      */
@@ -1727,7 +1727,7 @@
             sliderBarInput.setAttribute( 'step', Number.toString(1/NUM_SLIDE_INCREMENTS) );
 
             // now setup the slider bar it's self
-            
+
             sliderBar = $( sliderBarInput ).
                     change( function() {
                         sliderBar.runOnSlide();
@@ -1813,7 +1813,7 @@
 
                 newX = Math.limit( newX, 0, w );
                 var p = newX / w;
-                
+
                 sliderBar.percent( newX / w );
                 sliderBar.runOnSlide();
             };
@@ -1848,7 +1848,7 @@
 
                         if ( slider.data('is_sliding') ) {
                             var thisWidth = $this.width();
-                            
+
                             var x = Math.limit(
                                     ev.offset($this).left,
                                     0,
@@ -1937,7 +1937,7 @@
 
         /*
          * The common sliding code.
-         * 
+         *
          * This code is built on top of both the HTML5 and
          * my own sliders.
          */
@@ -1982,7 +1982,7 @@
         sliderBar.slide = function(f) {
             return this.bind( 'on_slide', f );
         };
-        
+
         sliderBar.setSlide = function(p) {
             return this.val(
                     percentToRange(
@@ -2114,7 +2114,7 @@
         this.guiWidth = '';
         this.sibling = null;
 
-        // -- build the header 
+        // -- build the header
         var header  = document.createElement( 'div' );
         header.className = 'skybrush_gui_header';
 
@@ -2244,7 +2244,7 @@
                 this.painter.subtractGUIPaneContentWidth( - this.amountTranslated );
                 this.amountTranslated = 0;
             }
-            
+
             return this;
         },
 
@@ -2637,7 +2637,7 @@
      * all implemented as totally seperate components. However over time, they
      * ended up with a lot of similar code.
      *
-     * So this was created as an object they can use to help contain that common 
+     * So this was created as an object they can use to help contain that common
      * code.
      */
     var ViewOverlay = function( viewport, css ) {
@@ -2808,7 +2808,7 @@
                 newH = Math.max( 0, y - self.position.y );
 
             self.selectArea(
-                    self.position.x, 
+                    self.position.x,
                     self.position.y,
                     newW,
                     newH
@@ -3515,7 +3515,7 @@
      * straight away, but instead delayed and called in the future.
      *
      * Not that multiple calls performed in a row will be ignored, if it didn't
-     * actually run yet. It will only call once for each time it is called 
+     * actually run yet. It will only call once for each time it is called
      * multiple times.
      */
     CanvasManager.prototype.lazyUpdateCanvasSize = function() {
@@ -3887,8 +3887,8 @@
     /**
      * If SkyBrush is currently pasting ...
      *  - clears the pasting overlay bit
-     * 
-     * Note this *doesn't* draw the paste to the screen; it just ends the 
+     *
+     * Note this *doesn't* draw the paste to the screen; it just ends the
      * pasting mode.
      */
     CanvasManager.prototype.endPaste = function() {
@@ -4978,10 +4978,10 @@
             }
 
             var cDom = document.createElement( 'div' );
-            cDom.className = 
+            cDom.className =
                     'skybrush_control '         +
                     CONTROL_CSS_PREFIX + type   +
-                    ( (css !== undefined) ? 
+                    ( (css !== undefined) ?
                             ' sb_' + css :
                             '' ) ;
 
@@ -6568,7 +6568,7 @@
                         for (var i = 0; i < length; i++) {
                             var xi = xs[i],
                                 yi = ys[i];
-                                
+
                             var xDist = xi - x;
                             var yDist = yi - y;
                             var hypot = xDist * xDist + yDist * yDist;
@@ -6822,7 +6822,7 @@
                                     // get the pixel data out
                                     var ctxData = ctx.getImageData( clipX, clipY, clipW, clipH );
                                     var data = ctxData.data;
-                                    
+
                                     /*
                                      * From here on, all x and y values should have
                                      * the clipX/Y removed from them.
@@ -7058,7 +7058,7 @@
 
                 /*
                  * The 'Move' command is for moving paste items around.
-                 * 
+                 *
                  * This is tricky to get right, because certain behaviours all need to be supported.
                  *  = If the button is clicked, with no movement, and there is a copy selection, it should be pasted.
                  *  = If the button is clicked, with no movement, and no copy selection, nothing should happen.
@@ -7129,7 +7129,7 @@
         /*
          * If the location is not explicit, make it explicit!
          * This is so setting it in the stylesheet and directly on the dom is the same.
-         * 
+         *
          * It is relative to this page.
          */
         if ( ! (
@@ -7150,7 +7150,7 @@
     /**
      * @const
      * @nosideeffects
-     * 
+     *
      * @param rule The rule to test.
      * @return True if the rule is one that should be translated, and otherwise false.
      */
@@ -7163,7 +7163,7 @@
 
     /**
      * Updates the stylesheets to use the location given.
-     * 
+     *
      * This allows the style sheets to have dynamic image locations,
      * which are then altered using JS.
      */
@@ -7231,7 +7231,7 @@
             // select this + all children
             var obj = $(ev.target);
             obj = obj.find('*').add(obj);
-            
+
             obj.each(function() {
                 if ( this.skybrush_background_done === undefined ) {
                     this.skybrush_background_done = true;
@@ -7267,7 +7267,7 @@
      *
      * The point is that this deals with creating and setting a cursor in
      * different ways, without caring about why, or what it is for.
-     * 
+     *
      * i.e. this deals with data urls and CSS classes, whilst BrushCursor deals
      * with crosshairs, squares and circles.
      *
@@ -7433,7 +7433,7 @@
             this.cursorClass = klass;
             this.cursorDataURL = null;
             this.fakeShown = false;
-                
+
             return this;
         },
 
@@ -7666,7 +7666,7 @@
         },
 
         /**
-         * Hides this cursor so that it is no longer shown, at all. This 
+         * Hides this cursor so that it is no longer shown, at all. This
          * includes both the real cursor, and the fake cursor built using an
          * HTML element.
          */
@@ -7683,7 +7683,7 @@
                 this.viewport.addClass( NO_CURSOR_CSS );
                 this.dom.className = 'skybrush_brush';
             }
-            
+
             return this;
         },
 
@@ -7701,7 +7701,7 @@
                     this.setCursorURLInner( this.cursorDataURL, this.displaySize );
                 }
             }
-            
+
             return this;
         }
     }
@@ -7713,7 +7713,7 @@
      *
      * If 'isTouch' is set, then only 'showTouch' and 'hideTouch'
      * will actually allow this to be seen or not. The other 'show' and 'hide'
-     * will still look like they work, and will as far as they can, except 
+     * will still look like they work, and will as far as they can, except
      * nothing actually appeares.
      *
      * The 'cursorTranslator' is used for translating cursor locations. That is
@@ -7774,7 +7774,7 @@
     BrushCursor.prototype.showTouch = function() {
         // don't show if hidden!
         if ( this.isTouch && ! this.isHidden ) {
-            this.showInner(); 
+            this.showInner();
         }
 
         return this;
@@ -7922,7 +7922,7 @@
      *
      * That is useful, if you are planning to refresh yourself, after calling
      * this.
-     * 
+     *
      * @param zoom The new zoom value.
      * @param refresh Optional, true if this should refresh, false if not. Defaults to true.
      */
@@ -7962,7 +7962,7 @@
      *
      * Note that this is not always in use, and so is optional.
      *
-     * There is also a performance cost when this is in use. But hey, it's 
+     * There is also a performance cost when this is in use. But hey, it's
      * kinda cool that you can do this.
      */
     var CursorLocationChanger = function( imageLocation ) {
@@ -7972,7 +7972,7 @@
         /*
          * Safari needs something, anything, appended to the style sheet for it to append.
          * IE however doesn't like this.
-         * 
+         *
          * FF and Chrome are too busy conoodling to care,
          * whilst Opera is sulking on it's own in the corner as usual.
          */
@@ -8003,7 +8003,7 @@
             testDiv.remove();
 
             if ( isUrlRule(cursor) ) {
-                this.getStylesheet().insertRule( this.generateCursorRule(klass, cursor), 0 );            
+                this.getStylesheet().insertRule( this.generateCursorRule(klass, cursor), 0 );
             }
         }
     };
@@ -8098,73 +8098,73 @@
      * The main entry point for creating a new SkyBrush
      * application. It works by taking a HTML DOM element, and
      * then filling this with all the bits used in SkyBrush.
-     * 
+     *
      * This includes the top bar, the viewport, the canvas,
      * the GUI tools, and so on.
-     * 
+     *
      * This SkyBrush object can then be used for interacting
      * with the SkyBrush application. For example setting an
      * image, creating a new blank image, or getting out what
      * has been painted so far.
-     * 
+     *
      * = DOM =
-     * 
+     *
      * When the app is created, SkyBrush will append all it's items
      * into the given stub. This means that SkyBrush will not replace
      * it, and will use this HTML element as the basis for SkyBrush.
-     * 
+     *
      * This DOM object should ideally be a div, and this is
      * presumed for any examples provided.
-     * 
+     *
      * The class 'skybrush' will also be added to the object,
      * if it does not have this class already.
-     * 
+     *
      * If no DOM is provided, then it will search for a HTML
      * element with the class 'skybrush', and attempt to use
      * this instead. If that fails, an error is thrown. : (
-     * 
+     *
      * = Options =
-     * 
+     *
      * This is an optional JSON-style object. Essentially
      * there are lots of optional parameters, and more might
      * be added in the future. So this is used to wrap all of
      * that up in one place.
-     * 
+     *
      * Options include:
-     * 
+     *
      *  image_location: the url for where the images are found.
      *  grab_ctrl_r: pass in false to not grab ctrl+r
-     *  
+     *
      *  width:  The starting width of the canvas, if not provided,
      *          a default width is used.
      *  height: The starting height of the canvas in SkyBrush,
      *          and if not provided, an initial one is used.
-     *  
+     *
      *  callback: a function which is called in the future,
      *            after this is all setup.
-     * 
+     *
      * Note that for iamge and cursor loctaions, if a relative
      * location is provided, then it is relative to this file.
-     * 
+     *
      * = Example Usage =
-     * 
+     *
      * Crate a SkyBrush painting app, with a blank image 320x240.
-     * 
+     *
      *     <div class="skybrush"></div>
-     * 
+     *
      *     var app = new SkyBrush( $('.skybrush') );
      *     app.newImage( 320, 240 );
-     * 
+     *
      * Create SkyBrush, but images and cursors are located at
      * a different location to the skybrush folder.
-     * 
+     *
      *     <div class="skybrush"></div>
-     * 
+     *
      *     var app = new SkyBrush( $('.skybrush'), {
      *             image_location : '/images/skybrush'
      *     } );
      *     app.newImage( 320, 240 );
-     * 
+     *
      * @constructor
          * @public
      * @param dom The dom element to be converted into SkyBrush.
@@ -8216,7 +8216,7 @@
             if ( ! container.jquery ) {
                 container = $( container );
             }
-            
+
             if ( container.size() === 0 ) {
                 throw new Error( 'no dom object given for skybrush to wrap' );
             }
@@ -8274,15 +8274,15 @@
         container.append( dom );
 
         var $canvas = dom.find('canvas.skybrush_canvas_draw'),
-            canvas, 
+            canvas,
             ctx;
 
         this.dom = dom;
 
-        // 
+        //
         // gui pane stuff
         //
-        
+
         this.guis = [];
         this.guiPane  = this.dom.find( '.skybrush_gui_pane' );
         this.guiDom   = this.guiPane.find( '.skybrush_gui_pane_content' ).get( 0 );
@@ -8372,7 +8372,7 @@
         var cursorTranslator = null;
         /*
          * Deal with the image translation options.
-         * 
+         *
          * This involves trying to do it in one, right now,
          * and otherwise having it setup to do it over time.
          */
@@ -8667,12 +8667,12 @@
     var NOT_ALPHA_NUMERIC_LOWER = /[^a-z0-9_]+/g;
 
     /**
-     * A very simple function. Makes a new div HTML element, sets the text 
+     * A very simple function. Makes a new div HTML element, sets the text
      * given inside of it, sets the class, and then returns the div.
      */
     var newTextDiv = function( klass, text ) {
         var div = document.createElement( 'div' );
-        
+
         div.textContent = text;
         div.className = klass;
 
@@ -8730,7 +8730,7 @@
                     break;
                 }
             }
-            
+
             while ( right --> left ) {
                 var c = text.charCodeAt( right );
 
@@ -8803,7 +8803,7 @@
          */
 
         var openToggle = $a(
-                        '<div class="skybrush_open_toggle_text">^^</div>',
+                        '<div class="skybrush_open_toggle_text">&#x1F845</div>',
                         'skybrush_header_button',
                         'skybrush_open_toggle'
                 ).
@@ -8886,7 +8886,7 @@
         copyButtons.appendChild( paste.get(0) );
 
         /*
-         * The current colour icon, and colour picker 
+         * The current colour icon, and colour picker
          */
 
         var currentColorBack = document.createElement('div');
@@ -8932,7 +8932,7 @@
         } );
 
         // colour info wrap
-        
+
         var colourInfo = document.createElement('div');
         colourInfo.className = 'skybrush_colour_info';
 
@@ -8962,7 +8962,7 @@
     var initializeSettings = function( painter ) {
 
         /*
-         * Resize & Scale 
+         * Resize & Scale
          */
 
         var infoOption = function( name, onSuccess, extraComponents ) {
@@ -9316,7 +9316,7 @@
                     }
                 })() );
 
-        /* 
+        /*
          * Colour Mixer
          *
          * This is added at the end so we don't have to hard code
@@ -9342,7 +9342,7 @@
             var strBackColor = hsvToColor( newHue, 1.0, 1.0 );
 
             // update the back of the mixer
-            colourBack.style.borderTopColor  = 
+            colourBack.style.borderTopColor  =
             colourBack.style.borderLeftColor =
                     strBackColor;
 
@@ -9453,7 +9453,7 @@
                         /*
                          * it's right on the edge of the colour mixer,
                          * technically inside, but visually outside.
-                         * 
+                         *
                          * So we send the event somewhere else.
                          */
                         } else {
@@ -9508,7 +9508,7 @@
         );
 
         /* Current Colour Info */
-        
+
         var getVal = function( input, max ) {
             var num = input.val();
 
@@ -9605,7 +9605,7 @@
         rgbForm.appendChild( aWrap );
 
         /*
-         * HSV Form 
+         * HSV Form
          */
 
         var hInput,
@@ -9701,7 +9701,7 @@
         var colorGUI = new GUI( 'Palette', 'colors' ).
                 appendTogether( currentColor, destinationAlpha ).
                 append( mixer );
-        
+
         var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
                 append( colors );
 
@@ -9710,7 +9710,7 @@
         /* Now generate the alpha gradient, now the canvas has reflowed */
 
         var $alphaCanvas = $(newCheckerboard(
-                alphaGradient.width(), 
+                alphaGradient.width(),
                 alphaGradient.height(),
                 true
         ));
@@ -9832,7 +9832,7 @@
         painter.onSetAlpha( function( alpha ) {
             var y = Math.floor( alpha*alphaBar.clientHeight );
             alphaBarLine.translate( 0, y );
- 
+
             if ( ! aInput.is(':focus') ) {
                 // concat alpha down to just two decimal places
                 aInput.val( alpha.toFixed(2) );
@@ -9863,7 +9863,7 @@
             commandBack.className = 'skybrush_command_back';
             command.appendChild( commandBack );
 
-            command.appendChild( 
+            command.appendChild(
                     $a( '' ).
                             vclick( function(ev) {
                                 ev.preventDefault();
@@ -10171,7 +10171,7 @@
         }
 
         var $target = $(ev.target);
-        
+
         /*
          * If we are drawing from totally outside SkyBrush,
          * skip it.
@@ -11072,7 +11072,7 @@
     }
 
     /**
-     * Closes the GUI pane which the user can open and close at the bottom of 
+     * Closes the GUI pane which the user can open and close at the bottom of
      * the screen.
      *
      * @return This SkyBrush instance.
@@ -11110,7 +11110,7 @@
      *         Otherwise false.
      */
     SkyBrush.prototype.isGUIsOverlapping = function() {
-        return this.guiPane.hasClass('sb_open') && 
+        return this.guiPane.hasClass('sb_open') &&
              ! this.viewport.parent().hasClass('sb_open');
     }
 
@@ -11142,12 +11142,12 @@
      *
      * This should be used when setting entirely new
      * images to SkyBrush.
-     * 
+     *
      * Note that setups such as the current colour,
      * alpha, and command will not be altered.
      * Only internal data structures, such as undo/redo,
      * will be wiped.
-     * 
+     *
      * @return This SkyBrush object.
      */
     SkyBrush.prototype.reset = function() {

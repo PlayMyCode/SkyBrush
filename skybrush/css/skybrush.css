@@ -1,11 +1,11 @@
 /**
  * @license
- * 
+ *
  * SkyBrush - skybrush.css
- * 
+ *
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -16,7 +16,7 @@
  *     * Neither the name of the <organization> nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,82 +31,82 @@
 
 /*
  * # CSS Style Guide #
- * 
+ *
  * All CSS rules need to be prefixed with either 'skybrush_' or 'sb_'.
  * This is to ensure SkyBrush doesn't conflict with existing CSS,
  * especially for stuff like 'hide', 'show' and 'wrap', which are
  * pretty common.
- * 
+ *
  * Originally SkyBrush also used some very long CSS rules, and this
  * allows us to remove them all, and set CSS properties with a less
  * comples single rule.
- * 
+ *
  * # Components: skybrush_
- * 
+ *
  * All components begin with 'skybrush_'. For example the 'gui'
  * becomes 'skybrush_gui'.
- * 
+ *
  * Rules are also concatonated togethor, to avoid cost, and to make
  * rules shorter. For example:
- * 
+ *
  *      .skybrush .gui .header
- * 
+ *
  * becomes:
- *      
+ *
  *      .skybrush_gui_header
- * 
+ *
  * # Use Child Selector Rule: .foo > .bar > .foobar
- * 
+ *
  * If you do need a multi-part rule, always use the explicit child
  * selector, over the less explicit one (where possible).
- * 
+ *
  * For example this is bad:
- * 
+ *
  *      .info_bar .wrap .inner
- * 
+ *
  * ... this is *much* better:
- * 
+ *
  *      .info_bar > .wrap .inner
- * 
+ *
  * ... and of course this is best:
- * 
+ *
  *      .skybrush_info_bar_inner
- * 
+ *
  * Does it really matter? Yes! Totally, especially when your dealing
  * with something quite large, it can make a *big* performance
  * difference in certain browser (*cough* Chrome *cough*).
- * 
+ *
  * # Types: sb_
- * 
+ *
  * Some components have a state, such as 'show' or 'hidden', and
  * controls have certain types such as 'slider'. These are prefixed
  * with 'sb_'.
- * 
+ *
  * For example:
- * 
+ *
  *      .skybrush_gui.hide
- * 
+ *
  * becomes:
- * 
+ *
  *      .skybrush_gui.sb_hide
- * 
- * # GUI Window Prefix: sb_gui_ 
- * 
+ *
+ * # GUI Window Prefix: sb_gui_
+ *
  * 'sb_' is also used for some other special prefixes, for when these
  * names are worked out in code.
- * 
+ *
  * For example we have a 'skybrush_gui' for colours, which has the
  * 'colors' css class. So the GUI is: .skybrush_gui.colors
- * 
+ *
  * However 'sb_gui_' is added to the type name, 'colors', and so this
  * becomes: .skybrush_gui.sb_gui_colors
- * 
+ *
  * Again this is to avoid clashes, in case 'colors' is used in
  * multiple places (both in SkyBrush and elsewhere). This way the rule
  * 'sb_gui_colors' always grabs the 'colors' GUI.
- * 
+ *
  * # Command Tool Button: sb_command_
- * 
+ *
  * The same is also true for 'sb_command_', which is used for the
  * command buttons. These are the pencil, line,  rectangle, brush,
  * colour picker and other command buttons. So for example 'rectangle'
@@ -115,7 +115,7 @@
 
 /*
  * Common properties for all elements in SkyBrush.
- * 
+ *
  * Such as all links having no underline, and all non-text inputs
  * having no user select, and common reset properties.
  */
@@ -185,7 +185,7 @@
         width: 100%;
 
         display: block;
-        
+
         position: relative;
     }
     .skybrush_slider_bar.sb_fake {
@@ -201,7 +201,7 @@
 
             border-radius: 2px;
             box-shadow: 0 0 5px rgba( 0, 51, 102, 0.35 );
-        
+
             top: 50%;
             margin-top: -1px;
         }
@@ -213,9 +213,9 @@
             position: absolute;
             top: -2px;
             margin-left: -4px;
-            
+
             display: block;
-            
+
             cursor: pointer;
         }
 
@@ -252,10 +252,10 @@
 .skybrush_gui_pane_content {
     outline: 0 !important;
 }
-    
-/* 
+
+/*
  * SkyBrush Core / Root
- * 
+ *
  * The main dom, it's viewports, and other starting places.
  */
 .skybrush {
@@ -264,12 +264,12 @@
 
     min-height: 600px;
     min-width : 944px;
-    
+
     overflow: hidden;
     position: relative;
-    
+
     cursor: default;
-    
+
     font-family: sans-serif;
 
     text-align: left;
@@ -302,16 +302,16 @@
         }
         .skybrush_button {
             margin: 0 6px;
-            
+
             background: white;
             border: 2px solid #668;
-            
+
             border-radius:4px;
-            
+
             font-weight:bold;
             font-family:helvetica neue,arial,sans-serif;
             font-size:12px;
-            
+
             padding:2px 4px;
             line-height: 38px;
             height: 38px;
@@ -322,7 +322,7 @@
             text-transform: uppercase;
             cursor:pointer;
             text-shadow:0 1px 0 #fff;
-            
+
             -webkit-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
                -moz-box-shadow:1px 2px 5px rgba(0,51,102,0.35);
                     box-shadow:1px 2px 5px rgba(0,51,102,0.35);
@@ -332,12 +332,12 @@
         position: absolute;
         left: 12px;
         bottom: 220px;
-        
+
         -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear;
            -moz-transition: visibility 0s linear 100ms, opacity 100ms linear;
              -o-transition: visibility 0s linear 100ms, opacity 100ms linear;
                 transition: visibility 0s linear 100ms, opacity 100ms linear;
-            
+
         visibility:hidden;
         opacity:0;
         height: auto;
@@ -477,7 +477,7 @@
         .skybrush_viewport_zoom.sb_show {
             opacity: 1;
             visibility: visible;
- 
+
             -webkit-transition: visibility 0s linear, opacity 100ms linear;
                -moz-transition: visibility 0s linear, opacity 100ms linear;
                  -o-transition: visibility 0s linear, opacity 100ms linear;
@@ -584,7 +584,7 @@
         }
             .skybrush_viewport_content > canvas {
                 position: absolute;
-                
+
                 image-rendering: optimize-contrast;
                 image-rendering: -moz-crisp-edges;
                 image-rendering: -webkit-optimize-contrast;
@@ -607,13 +607,13 @@
                 border: 1px solid transparent;
                 z-index: 2;
             }
-            
+
             /* The overlay, only shown in non-Firefox for scaling */
             .skybrush_canvas_upscale {
                 z-index: 1;
                 display: none;
                 opacity: 0;
-                
+
                 -webkit-transition: opacity 200ms linear 0s;
                    -moz-transition: opacity 200ms linear 0s;
                      -o-transition: opacity 200ms linear 0s;
@@ -674,12 +674,12 @@
     position: absolute;
     /* Above the overlay */
     z-index: 3;
-    
+
     -webkit-transition: visibility 0s linear 200ms, opacity 200ms linear;
        -moz-transition: visibility 0s linear 200ms, opacity 200ms linear;
          -o-transition: visibility 0s linear 200ms, opacity 200ms linear;
             transition: visibility 0s linear 200ms, opacity 200ms linear;
-            
+
     visibility:hidden;
     opacity:0;
 
@@ -688,7 +688,7 @@
 .skybrush_grid.sb_show {
     visibility: visible;
     opacity: 1;
-    
+
     -webkit-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
        -moz-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
          -o-transition: visibility 0s linear, opacity 200ms linear, width 200ms linear, height 200ms linear;
@@ -736,13 +736,13 @@
 .skybrush_copy {
     z-index: 4;
     border: 2px dashed #999;
-    
+
     -webkit-animation-name: skybrush_copy_border_anim;
        -moz-animation-name: skybrush_copy_border_anim;
         -ms-animation-name: skybrush_copy_border_anim;
          -o-animation-name: skybrush_copy_border_anim;
             animation-name: skybrush_copy_border_anim;
-    
+
     image-rendering: optimize-contrast;
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
@@ -773,18 +773,18 @@
        -moz-transition: opacity 200ms linear 0s;
          -o-transition: opacity 200ms linear 0s;
             transition: opacity 200ms linear 0s;
-    
+
     -webkit-transition-property: background-color, border-color;
        -moz-transition-property: background-color, border-color;
          -o-transition-property: background-color, border-color;
             transition-property: background-color, border-color;
-    
+
     background-color: transparent;
 }
 .skybrush_marquee.sb_temporary_hide {
     visibility: hidden !important;
     opacity: 0 !important;
-    
+
     -webkit-transition: none !important;
        -moz-transition: none !important;
          -o-transition: none !important;
@@ -925,12 +925,12 @@
 }
 .skybrush_gui {
     display: inline-block;
-    
+
     height: 100%;
 
     padding: 0;
     margin : 0;
-    
+
     z-index: 10;
 
     position: relative;
@@ -943,7 +943,7 @@
 }
 
 /* Set correct cursor for components.
- * 
+ *
  * Include the buttons as a workaround for an unknown Chrome
  * specific bug
  */
@@ -954,7 +954,7 @@
     cursor: pointer;
 }
 
-/* 
+/*
  * Given to a GUI when it is clicked on.
  * This allows it to come to the front,
  * and effectively have focus.
@@ -962,19 +962,19 @@
     .skybrush_gui_header {
         position: absolute;
         line-height: normal;
-        
+
         left: 0;
         top: 0;
         right: 0;
 
         width: 100%;
         height: 32px;
-        
+
         -moz-box-sizing: border-box;
              box-sizing: border-box;
-        
+
         padding: 7px 12px 4px 6px;
-        
+
         z-index: 1;
 
         color: white;
@@ -1010,7 +1010,7 @@
         pointer-events: none;
 
         border-right: 1px solid #000;
-        
+
         -webkit-transition: visibility 0s linear 100ms, opacity 100ms linear;
            -moz-transition: visibility 0s linear 100ms, opacity 100ms linear;
              -o-transition: visibility 0s linear 100ms, opacity 100ms linear;
@@ -1037,18 +1037,18 @@
         position: relative;
 
         height: 100%;
-        
+
         display: inline-block;
-        
+
         z-index: 0;
-        
+
         padding: 37px 6px 5px 6px;
 
         -moz-box-sizing: border-box;
              box-sizing: border-box;
 
     }
-    
+
     /* For the 'SWATCHES' and TOOL SETTINGS' headers */
     .skybrush_controls_header {
         float: left;
@@ -1092,21 +1092,21 @@
     .skybrush_color_picker_current_color_back,
     .skybrush_color_picker_current_color {
         border-radius: 2px;
-        
+
         box-shadow: 1px 1px 7px rgba( 0, 0, 0, 0.25 );
     }
     .skybrush_colors_palette {
         vertical-align: middle;
-        
+
         /* needed for border radius to work */
         overflow: hidden;
     }
         .skybrush_colors_palette_color {
             width:  32px;
             height: 28px;
-            
+
             float: left;
-    
+
             display: inline-block;
         }
         .skybrush_colors_palette_color:nth-child(8n+1) {
@@ -1148,7 +1148,7 @@
         .skybrush_color_mixer_color_layer {
             display: block;
             position: absolute;
-            
+
             top: 0;
             left: 0;
             bottom: 0;
@@ -1187,7 +1187,7 @@
             position: absolute;
             right: -10px;
             bottom: 9px;
-            
+
             width : 77px;
             height: 77px;
         }
@@ -1221,7 +1221,7 @@
                 }
     .skybrush_color_alpha_wrap {
         float: right;
-        
+
         margin: 0 12px 0 0;
         width: 24px;
         height: 100%;
@@ -1235,7 +1235,7 @@
             width: 100%;
             height: 100%;
             background: black;
-            
+
             position: relative;
         }
             .skybrush_color_alpha_gradient {
@@ -1257,13 +1257,13 @@
             }
     .skybrush_color_picker {
         clear: both;
-        
+
         height: 90px;
-        
+
         position: relative;
-        
+
         padding: 1px 9px 0;
-        
+
         float: left;
         clear: both;
     }
@@ -1303,7 +1303,7 @@
         text-align: center;
 
         width: 100%;
-        
+
         line-height: 32px;
 
         margin: 5px 0 5px 0;
@@ -1386,17 +1386,17 @@
                          -o-transition:      -o-transform 120ms linear;
                             transition:         transform 120ms linear;
 
-                    -webkit-transform: translateY(7px) rotate( 0 );
-                       -moz-transform: translateY(7px) rotate( 0 );
-                        -ms-transform: translateY(7px) rotate( 0 );
-                         -o-transform: translateY(7px) rotate( 0 );
-                            transform: translateY(7px) rotate( 0 );
+                    -webkit-transform: translateY(3px) rotate( 0 );
+                       -moz-transform: translateY(3px) rotate( 0 );
+                        -ms-transform: translateY(3px) rotate( 0 );
+                         -o-transform: translateY(3px) rotate( 0 );
+                            transform: translateY(3px) rotate( 0 );
                 }
                 .skybrush_gui_pane.sb_open .skybrush_open_toggle_text {
-                    -webkit-transform: translateY(-1px) rotate( 180deg );
-                        -ms-transform: translateY(-1px) rotate( 180deg );
-                         -o-transform: translateY(-1px) rotate( 180deg );
-                            transform: translateY(-1px) rotate( 180deg );
+                    -webkit-transform: translateY(1px) rotate( 180deg );
+                        -ms-transform: translateY(1px) rotate( 180deg );
+                         -o-transform: translateY(1px) rotate( 180deg );
+                            transform: translateY(1px) rotate( 180deg );
 
                     text-shadow: 1px -2px 1px rgba( 0, 0, 0, 0.7 );
                 }
@@ -1469,7 +1469,7 @@
         .skybrush_color_picker_current_color {
             background: white;
         }
-        
+
     .skybrush_button.sb_cut,
     .skybrush_button.sb_copy,
     .skybrush_button.sb_paste {
@@ -1503,7 +1503,7 @@
     }
         /*
          * Actual Command button setup.
-         * 
+         *
          * All of the commands share the same sprite sheet,
          * except the colour picker, which does it's own thing.
          */
@@ -1511,9 +1511,9 @@
             width:  44px;
             height: 44px;
             display: block;
-            
+
             float: left;
-            
+
             margin: 0 4px 4px 0;
 
             position: relative;
@@ -1786,7 +1786,7 @@
 
     /* above the canvas and overlay */
     z-index: 3;
-    
+
     background: transparent;
     background-repeat: no-repeat;
     cursor: none !important;
