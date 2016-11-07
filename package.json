@@ -1,0 +1,33 @@
+{
+  "name": "skybrush",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Joseph Lenton",
+  "description": "An embeddable HTML5 painting application",
+  "keywords": [
+    "paint",
+    "painting",
+    "html5",
+    "canvas"
+  ],
+  "homepage": "https://github.com/playmycode/skybrush#readme",
+  "bugs": {
+    "url": "https://github.com/playmycode/skybrush/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build:js": "node_modules/.bin/tsc",
+    "build": "npm run build:js",
+    "start:js": "node_modules/.bin/tsc --watch",
+    "start": "npm run start:js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/playmycode/skybrush.git"
+  },
+  "devDependencies": {
+    "almond": "0.3.3",
+    "typescript": "2.0.6"
+  }
+}
