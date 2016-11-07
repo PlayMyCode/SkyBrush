@@ -1109,6 +1109,9 @@
 
             display: inline-block;
         }
+        .skybrush_colors_palette_color.sb_show > .skybrush_colors_palette_color_border {
+            opacity: 0.75;
+        }
         .skybrush_colors_palette_color:nth-child(8n+1) {
             clear: left;
         }
@@ -1126,13 +1129,11 @@
                 box-shadow: inset 0 0 3px #000;
                 opacity: 0.55;
             }
-            .skybrush_colors_palette_color_border.sb_show {
-                opacity: 0.75;
-            }
+
             /*
-             * This fucks up on the ipad, so remove it.
+             * Todo, This fucks up on the ipad, so remove it.
              */
-            .skybrush_colors_palette_color_border.sb_show,
+            .skybrush_colors_palette_color.sb_show > .skybrush_colors_palette_color_border,
             .skybrush_colors_palette_color.sb_hover_border:hover > .skybrush_colors_palette_color_border {
                 display: block;
             }
