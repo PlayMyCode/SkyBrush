@@ -700,11 +700,11 @@
         display: block;
         background: rgba( 60, 130, 160, 0.8 );
     }
-        .skybrush_grid_line_vertical {
+        .skybrush_grid_line.is-vertical {
             height: 100%;
             width: 1px;
         }
-        .skybrush_grid_line_horizontal {
+        .skybrush_grid_line.is-horizontal {
             height: 1px;
             width: 100%;
         }

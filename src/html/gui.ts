@@ -37,9 +37,10 @@ export class GUI {
     const header  = document.createElement( 'div' );
     header.className = 'skybrush_gui_header';
 
-    const headerContent = document.createElement( 'div' );
+    const headerContent = document.createElement( 'div' )
     headerContent.className = 'skybrush_gui_header_text'
-    header.appendChild( appendHTML(headerContent, name) );
+    header.appendChild( headerContent )
+    header.appendChild( document.createTextNode(name) )
     header.addEventListener( 'selectstart', returnFalse )
 
     const $header = $(header)
@@ -109,14 +110,13 @@ export class GUI {
    *
    * @return This GUI object.
    */
-  append():GUI {
-    const content = this.content ;
+  append( content:HTMLElement ):GUI {
+    const guiBlock = newDiv( 'skybrush_gui_content_block' )
+    guiBlock.appendChild( content )
 
-    for ( let i = 0; i < arguments.length; i++ ) {
-      content.appendChild( appendHTML(newGUIBlock(), arguments[i]) );
-    }
+    this.content.appendChild( guiBlock )
 
-    return this;
+    return this
   }
 
   /**
@@ -126,20 +126,27 @@ export class GUI {
    * @return This GUI object.
    */
   appendTogether():GUI {
-    this.content.appendChild( appendHTML(newGUIBlock(), arguments) );
+    const guiBlock = newDiv( 'skybrush_gui_content_block' )
+    for ( let i = 0; i < arguments.length; i++ ) {
+      guiBlock.appendChild( arguments[i] )
+    }
 
-    return this;
+    this.content.appendChild( guiBlock )
+
+    return this
   }
 
   /**
    * This will add the elements given straight into the content, with no
    * intermediate wrapping of any kind.
    *
-   * @param dom The jQuery object to add to this GUI.
+   * @param dom HTMLElements to append to this GUI container.
    * @return This GUI.
    */
   appendDirect():GUI {
-    appendHTML( this.content, arguments )
+    for ( let i = 0; i < arguments.length; i++ ) {
+      this.content.appendChild( arguments[i] )
+    }
 
     return this
   }

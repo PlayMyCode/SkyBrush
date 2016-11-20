@@ -43,6 +43,9 @@ interface DraggingEvents {
 
 type AltShiftSkipState = 'none' | 'shift' | 'alt'
 
+type ProcessDragEvent =
+  ( ev:MouseEvent, left:number, top:number ) => void
+
 /**
  * The main entry point for creating a new SkyBrush
  * application. It works by taking a HTML DOM element, and
@@ -180,7 +183,7 @@ export class SkyBrush {
   }
 
   constructor(
-      container:HTMLElement|string,
+      container:HTMLElement,
       options?:SkyBrushOptions 
   ) {
     if ( ! container ) {
@@ -188,27 +191,6 @@ export class SkyBrush {
         throw new Error( 'no dom value provided' );
       } else {
         throw new Error( 'invalid dom value given' );
-      }
-    }
-
-    if ( 
-        ( (typeof container) == 'string' ) ||
-        ( container instanceof String )
-    ) {
-      const foundContainer = document.querySelector( container ) as HTMLElement|null
-
-      if ( foundContainer === null ) {
-        throw new Error( 'HTML element not found: \'' + container + '\'' );
-      }
-
-      container = foundContainer
-    } else {
-      if ( ! container.jquery ) {
-        container = $( container )
-      }
-
-      if ( container.size() === 0 ) {
-        throw new Error( 'no dom object given for skybrush to wrap' );
       }
     }
 
@@ -263,7 +245,7 @@ export class SkyBrush {
         '</div>'
     );
 
-    container.append( this.dom )
+    container.appendChild( this.dom )
 
     //
     // gui pane stuff
@@ -643,13 +625,13 @@ export class SkyBrush {
 
     return ! (
         this.processOnDraw( ev ) ||
-        processDrag( this, this.dragging.onMove, ev )
-    );
+        this.processDrag( this.dragging.onMove, ev )
+    )
   }
 
   runMouseUp( ev:MouseEvent ) {
     if ( this.isDragging() ) {
-      processDrag( this, this.dragging.onEnd, ev )
+      this.processDrag( this.dragging.onEnd, ev )
 
       this.dragging.onMove =
       this.dragging.onEnd  =
@@ -701,15 +683,16 @@ export class SkyBrush {
         ! ev.isInScrollBar(this.viewport)
     ) {
       if ( this.isDragging() ) {
-        processDrag( this, this.dragging.onStart, ev );
+        this.processDrag( this.dragging.onStart, ev )
+
       // hide the GUI pane, if it's been quickly opened
       } else {
         if ( this.isGUIsOverlapping() ) {
-          this.closeGUIPane();
+          this.closeGUIPane()
         }
 
-        this.isPainting = true;
-        return this.runStartDraw( ev );
+        this.isPainting = true
+        return this.runStartDraw( ev )
       }
     }
   }
@@ -724,7 +707,7 @@ export class SkyBrush {
 
     this.viewport.focus()
 
-    processCommand( this, 'onDown', ev )
+    this.processCommand( 'onDown', ev )
 
     return false
   }
@@ -733,7 +716,7 @@ export class SkyBrush {
     if ( this.isPainting ) {
       ev.preventDefault()
 
-      processCommand( this, 'onMove', ev )
+      this.processCommand( 'onMove', ev )
 
       return true
     }
@@ -752,8 +735,8 @@ export class SkyBrush {
    * @private
    * @param ev
    */
-  endDraw( ev ) {
-    processCommand( this, 'onUp', ev )
+  endDraw( ev:MouseEvent ) {
+    this.processCommand( 'onUp', ev )
 
     this.canvas.endDraw( this.command.popDrawArea() )
 
@@ -1595,6 +1578,35 @@ export class SkyBrush {
     this.setZoom( DEFAULT_ZOOM )
 
     return this
+  }
+
+  /*
+   * SkyBrush helper functions.
+   * They are essentially private methods.
+   */
+  private processDrag( fun:ProcessDragEvent, ev:MouseEvent ) {
+    if ( fun ) {
+      const loc = this.canvas.translateLocation( ev )
+      fun( ev, loc.left, loc.top )
+
+      ev.preventDefault()
+
+      return true
+
+    } else {
+      return false
+
+    }
+  }
+
+  private processCommand = function( name:string, ev:MouseEvent ) {
+    const fun = this.command[name]
+
+    if ( fun !== undefined ) {
+      const loc = this.canvas.translateLocation( ev )
+
+      this.command[name]( this.canvas, loc.left, loc.top, this, ev )
+    }
   }
 }
 

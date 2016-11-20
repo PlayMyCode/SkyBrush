@@ -131,40 +131,6 @@ export * from 'skybrush'
  */
 
 /**
- * We create this, to reference jQuery later.
- */
-var $;
-
-/*
- * Default Values for SkyBrush.
- * This is for the initial setup.
- */
-var initializeJQuery = (function() {
-  var isInitialized = false;
-
-  return function() {
-    if ( ! isInitialized ) {
-      isInitialized = true;
-
-      if ( ! $ ) {
-        $ = window['jquery'] || window['$'];
-
-        // ensure we give preference to 'jquery' over the dollar, incase it was replaced.
-        if ( ! $ ) {
-          throw Error("jQuery is required, and it cannot be found!");
-        }
-      }
-
-      USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera );
-      TOUCH_PIXEL_CONTENT = ( $.browser.mozilla && parseInt($.browser.version) < 23);
-      MAX_NATIVE_CURSOR_SIZE = USE_NATIVE_CURSOR ?
-          128 :
-            0 ;
-    }
-  }
-})();
-
-/**
  * The functions used for rendering the custom cursors.
  * These are functions, in the form:
  *
@@ -177,9 +143,9 @@ var initializeJQuery = (function() {
  * These functions should also set their own colours, and alpha
  * transparency, for when they draw.
  */
-var BRUSH_RENDER_FUNCTIONS = {
+const BRUSH_RENDER_FUNCTIONS = {
   CROSSHAIR: (function() {
-    var renderCrossHair = function(ctx, canvas, size) {
+    const renderCrossHair = function(ctx, canvas, size) {
       // top middle line
       ctx.moveTo( size/2, 0 );
       ctx.lineTo( size/2, size/2-2 );
@@ -200,7 +166,7 @@ var BRUSH_RENDER_FUNCTIONS = {
 
       // a dot in the centre
       ctx.fillRect( size/2-0.5, size/2-0.5, 1, 1 );
-    };
+    }
 
     return function(ctx, canvas, size) {
       ctx.globalAlpha = 0.75;
@@ -253,7 +219,7 @@ var BRUSH_RENDER_FUNCTIONS = {
         size-1.4,
         size-1.4
     );
-    ctx.stroke();
+    ctx.stroke()
 
     // an outer circle
     ctx.strokeStyle = '#000';
@@ -264,377 +230,365 @@ var BRUSH_RENDER_FUNCTIONS = {
         size,
         size
     );
-    ctx.stroke();
+    ctx.stroke()
   }
 }
 
 /**
  * @const
  */
-var DEFAULT_GRID_WIDTH  = 5, // pixels
-  DEFAULT_GRID_HEIGHT = 5, // pixels
+const DEFAULT_GRID_WIDTH  = 5 // pixels
+const DEFAULT_GRID_HEIGHT = 5 // pixels
 
-  /**
-   * These are for decided if a native cursor should be used, or not. At
-   * the time of writing, this is banned on Opera and IE.
-   *
-   * Although IE does not support cursor data uri's, it is the least
-   * laggy when using background-image.
-   *
-   * @see initializeJQuery
-   */
-  USE_NATIVE_CURSOR = false,
-  MAX_NATIVE_CURSOR_SIZE = 0,
+const USE_NATIVE_CURSOR = ! ( $.browser.msie || $.browser.opera )
 
-  /**
-   * Warning, this should always be greater than the time it takes to
-   * open or close the GUI pane, due to a bug in Chrome.
-   */
-  CANVAS_LAZY_REFLOW_DELAY = 180,
+/**
+ * When true, pixel content will be touched, in order to avoid issues
+ * with the canvas failing to be updated when drawn to.
+ *
+ * This fixes an old FireFox bug, when drawing to non-visible canvases,
+ * where the content failed to be drawn in time.
+ *
+ * By default, this is false.
+ */
+const TOUCH_PIXEL_CONTENT = ( $.browser.mozilla && parseInt($.browser.version) < 23)
+const MAX_NATIVE_CURSOR_SIZE = ( USE_NATIVE_CURSOR ?
+          128 :
+            0 )
 
-  /**
-   * When true, pixel content will be touched, in order to avoid issues
-   * with the canvas failing to be updated when drawn to.
-   *
-   * This fixes an old FireFox bug, when drawing to non-visible canvases,
-   * where the content failed to be drawn in time.
-   *
-   * By default, this is false.
-   */
-  TOUCH_PIXEL_CONTENT = false,
 
-  /**
-   * @const
-   * @type {string}
-   */
-  NO_CURSOR_CSS = 'sb_cursor_none',
+/**
+ * Warning, this should always be greater than the time it takes to
+ * open or close the GUI pane, due to a bug in Chrome.
+ */
+const CANVAS_LAZY_REFLOW_DELAY = 180
 
-  /**
-   * The size of the crosshair brush.
-   */
-  CROSSHAIR_CURSOR_SIZE = 19,
+/**
+ * @const
+ * @type {string}
+ */
+const NO_CURSOR_CSS = 'sb_cursor_none'
 
-  /**
-   * A data url, of a crosshair, for use as a cursor.
-   *
-   * It's generated once, to avoid generating it multiple times, during
-   * use.
-   */
-  CROSSHAIR_CURSOR_DATA_URL = (function() {
-    var canvas = document.createElement( 'canvas' );
-    canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE;
+/**
+ * The size of the crosshair brush.
+ */
+const CROSSHAIR_CURSOR_SIZE = 19
 
-    var ctx = canvas.getContext( '2d' );
+/**
+ * A data url, of a crosshair, for use as a cursor.
+ *
+ * It's generated once, to avoid generating it multiple times, during
+ * use.
+ */
+const CROSSHAIR_CURSOR_DATA_URL = (function() {
+  var canvas = document.createElement( 'canvas' );
+  canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE;
 
-    ctx.beginPath();
-    ctx.lineCap   = 'round';
-    ctx.lineWidth = 1;
+  var ctx = canvas.getContext( '2d' );
 
-    BRUSH_RENDER_FUNCTIONS.CROSSHAIR( ctx, canvas, CROSSHAIR_CURSOR_SIZE );
+  ctx.beginPath();
+  ctx.lineCap   = 'round';
+  ctx.lineWidth = 1;
 
-    return canvas.toDataURL();
-  })(),
+  BRUSH_RENDER_FUNCTIONS.CROSSHAIR( ctx, canvas, CROSSHAIR_CURSOR_SIZE );
 
-  /**
-   * The the total cursor size is below this,
-   * then it's swapped out,
-   * and a crosshair is used instead.
-   *
-   * @const
-   * @type {number}
-   */
-  BRUSH_CURSOR_MINIMUM_SIZE = 5,
+  return canvas.toDataURL();
+})()
 
-  /**
-   * The number of pixels to add onto the brush canvas,
-   * when it's being drawn.
-   *
-   * These are extra pixels around the edge, as a little padding.
-   *
-   * If the edge of the brush is too flat, because it's being cut off,
-   * then just increase this value and it should get fixed.
-   */
-  BRUSH_CURSOR_PADDING = 2,
+/**
+ * The the total cursor size is below this,
+ * then it's swapped out,
+ * and a crosshair is used instead.
+ *
+ * @const
+ * @type {number}
+ */
+const BRUSH_CURSOR_MINIMUM_SIZE = 5
 
-  /**
-   * If we are touch, or not.
-   *
-   * @const
-   * @type {boolean}
-   */
-  IS_TOUCH = !! window.Touch,
+/**
+ * The number of pixels to add onto the brush canvas,
+ * when it's being drawn.
+ *
+ * These are extra pixels around the edge, as a little padding.
+ *
+ * If the edge of the brush is too flat, because it's being cut off,
+ * then just increase this value and it should get fixed.
+ */
+const BRUSH_CURSOR_PADDING = 2
 
-  /**
-   * The default size for brushes.
-   *
-   * @const
-   * @type {number}
-   */
-  DEFAULT_BRUSH_SIZE = 2,
+/**
+ * If we are touch, or not.
+ *
+ * @const
+ * @type {boolean}
+ */
+const IS_TOUCH = !! window.Touch
 
-  /**
-   * The prefix added to command css classes.
-   *
-   * So 'picker' becomes 'sb_command_picker' if
-   * the prefix is 'sb_command_'.
-   *
-   * @const
-   * @type {string}
-   */
-  COMMAND_CSS_PREFIX = 'sb_command_',
+/**
+ * The default size for brushes.
+ *
+ * @const
+ * @type {number}
+ */
+const DEFAULT_BRUSH_SIZE = 2
 
-  /**
-   * @const
-   * @type {string}
-   */
-  CONTROL_CSS_PREFIX = 'sb_control_',
+/**
+ * The prefix added to command css classes.
+ *
+ * So 'picker' becomes 'sb_command_picker' if
+ * the prefix is 'sb_command_'.
+ *
+ * @const
+ * @type {string}
+ */
+const COMMAND_CSS_PREFIX = 'sb_command_'
 
-  /**
-   * Minimum width of a horizontal/vertical line on the colour
-   * pixker.
-   *
-   * @const
-   * @type {number}
-   */
-  COLOUR_MIXER_MIN_WIDTH = 3,
+/**
+ * @const
+ * @type {string}
+ */
+const CONTROL_CSS_PREFIX = 'sb_control_'
 
-  /**
-   * The width, in pixels, of the colour mixer.
-   *
-   * This should match the CSS.
-   *
-   * @const
-   * @type {number}
-   */
-  COLOUR_MIXER_WIDTH = 140,
+/**
+ * Minimum width of a horizontal/vertical line on the colour
+ * pixker.
+ *
+ * @const
+ * @type {number}
+ */
+const COLOUR_MIXER_MIN_WIDTH = 3
 
-  /**
-   * The width of the colour wheel,
-   * must match the CSS.
-   *
-   * @const
-   * @type {number}
-   */
-  COLOUR_WHEEL_WIDTH = 77,
+/**
+ * The width, in pixels, of the colour mixer.
+ *
+ * This should match the CSS.
+ *
+ * @const
+ * @type {number}
+ */
+const COLOUR_MIXER_WIDTH = 140
 
-  UPSCALE_BACK_OFFSET_MOD = 16,
+/**
+ * The width of the colour wheel,
+ * must match the CSS.
+ *
+ * @const
+ * @type {number}
+ */
+const COLOUR_WHEEL_WIDTH = 77
 
-  /**
-   * @const
-   * @type {string}
-   */
-  CONTROL_ID_CSS_PREFIX = '__skybrush_control_css_id_',
+const UPSCALE_BACK_OFFSET_MOD = 16
 
-  /**
-   * When scrolling, the canvas will wait this amount of time
-   * before it tries to display the upscale.
-   *
-   * This is to allow people to continously scroll without it
-   * freezing up on them.
-   *
-   * @const
-   * @type {number}
-   */
-  UPSCALE_SCROLL_DELAY = 350,
+/**
+ * @const
+ * @type {string}
+ */
+const CONTROL_ID_CSS_PREFIX = '__skybrush_control_css_id_'
 
-  /**
-   *
-   * @const
-   * @type {number}
-   */
-  UPSCALE_DIVIDE_AREA = 400,
+/**
+ * When scrolling, the canvas will wait this amount of time
+ * before it tries to display the upscale.
+ *
+ * This is to allow people to continously scroll without it
+ * freezing up on them.
+ *
+ * @const
+ * @type {number}
+ */
+const UPSCALE_SCROLL_DELAY = 350
 
-  /**
-   * When you click on a slider, it moves the slider to
-   * the nearest whole increment in that direction.
-   *
-   * This states how many increments there are across a
-   * sliding bar, in order to work out all these increments.
-   *
-   * @const
-   */
-  NUM_SLIDE_INCREMENTS = 16,
+/**
+ *
+ * @const
+ * @type {number}
+ */
+const UPSCALE_DIVIDE_AREA = 400
 
-  /**
-   * A value from 0.0 to 1.0.
-   *
-   * When you slide the slider up or down, using 'slideUp' or 'slideDown',
-   * a distance is calculated between the last position, and the next one.
-   * This is normalized to be a distance of 1.0.
-   *
-   * The distance of the slider mark, on the slider bar, is then worked
-   * out from the next position, again normalized to this 0.0 to 1.0 range.
-   * For example if the slider mark is half way, then the distance of 0.5.
-   * If it is 3/4 away from the next mark, then the distance is 0.75.
-   *
-   * If the distance is less then the SLIDER_ERROR, then the mark will jump
-   * over the next mark on the slider, and so skip it.
-   *
-   * @const
-   * @type {number}
-   */
-  SLIDER_ERROR = 0.33,
+/**
+ * When you click on a slider, it moves the slider to
+ * the nearest whole increment in that direction.
+ *
+ * This states how many increments there are across a
+ * sliding bar, in order to work out all these increments.
+ *
+ * @const
+ */
+const NUM_SLIDE_INCREMENTS = 16
 
-  /**
-   * This is the power to take alpha values to, in order to convert them to
-   * the same value as 'opacity'.
-   *
-   * Opacity is blended differently (higher alpha) then values drawn to the screen.
-   *
-   * @const
-   * @type {number}
-   */
-  ALPHA_TO_OPACITY_POWER = 1.09,
+/**
+ * A value from 0.0 to 1.0.
+ *
+ * When you slide the slider up or down, using 'slideUp' or 'slideDown',
+ * a distance is calculated between the last position, and the next one.
+ * This is normalized to be a distance of 1.0.
+ *
+ * The distance of the slider mark, on the slider bar, is then worked
+ * out from the next position, again normalized to this 0.0 to 1.0 range.
+ * For example if the slider mark is half way, then the distance of 0.5.
+ * If it is 3/4 away from the next mark, then the distance is 0.75.
+ *
+ * If the distance is less then the SLIDER_ERROR, then the mark will jump
+ * over the next mark on the slider, and so skip it.
+ *
+ * @const
+ * @type {number}
+ */
+const SLIDER_ERROR = 0.33
 
-  /**
-   * If the alpha is set to a value just below 1,
-   * which is within this dead zone, then it's blended up to 1.
-   *
-   * This is to make it easier to select an alpha of 1.
-   *
-   * @const
-   * @type {number}
-   */
-  ALPHA_DEAD_ZONE = 0.03,
+/**
+ * This is the power to take alpha values to, in order to convert them to
+ * the same value as 'opacity'.
+ *
+ * Opacity is blended differently (higher alpha) then values drawn to the screen.
+ *
+ * @const
+ * @type {number}
+ */
+const ALPHA_TO_OPACITY_POWER = 1.09
 
-  /**
-   * The speed of the animation when updating the canvas size/position
-   *
-   * @const
-   * @type {number}
-   */
-  CANVAS_UPDATE_SPEED = 200,
+/**
+ * If the alpha is set to a value just below 1,
+ * which is within this dead zone, then it's blended up to 1.
+ *
+ * This is to make it easier to select an alpha of 1.
+ *
+ * @const
+ * @type {number}
+ */
+const ALPHA_DEAD_ZONE = 0.03
 
-  /**
-   * The number of canvas' to store internally in the undo stack
-   * this equates to how many times you can click back 'undo'.
-   *
-   * @const
-   * @type {number}
-   */
-  UNDO_STACK_SIZE = 40,
+/**
+ * The speed of the animation when updating the canvas size/position
+ *
+ * @const
+ * @type {number}
+ */
+const CANVAS_UPDATE_SPEED = 200
 
-  /**
-   * Starting alpha value.
-   *
-   * @const
-   * @type {number}
-   */
-  DEFAULT_ALPHA = 1,
+/**
+ * The number of canvas' to store internally in the undo stack
+ * this equates to how many times you can click back 'undo'.
+ *
+ * @const
+ * @type {number}
+ */
+const UNDO_STACK_SIZE = 40
 
-  /**
-   * The maximum zoom level.
-   *
-   * min zoom is: 1 / MAX_ZOOM
-   *
-   * @const
-   * @type {number}
-   */
-  MAX_ZOOM = 16,
+/**
+ * Starting alpha value.
+ *
+ * @const
+ * @type {number}
+ */
+const DEFAULT_ALPHA = 1
 
-  /**
-   * The maximum brush size allowed.
-   *
-   * @const
-   * @type {number}
-   */
-  MAX_BRUSH_SIZE = 50,
+/**
+ * The maximum zoom level.
+ *
+ * min zoom is: 1 / MAX_ZOOM
+ *
+ * @const
+ * @type {number}
+ */
+const MAX_ZOOM = 16
 
-  /**
-   * In some places, we need a function that just returns false.
-   * In those occasions, this can be used.
-   */
-  RETURN_FALSE = function() { return false },
+/**
+ * The maximum brush size allowed.
+ *
+ * @const
+ * @type {number}
+ */
+const MAX_BRUSH_SIZE = 50
 
+/*
+ * WARNING! All colours _MUST_ be 6 values hex values!
+ */
+
+/**
+ * The default colour to set as the current colour,
+ * when Painter starts.
+ */
+const DEFAULT_COLOR = '#104662' // dark cyan-blue
+
+const NUM_COLORS_IN_PALETTE_COLUMN = 5
+
+/**
+ * The colours present in the colour palette.
+ *
+ * Add/remove from this list to have different colours.
+ *
+ * @const
+ * @type {Array.<string>}
+ */
+const DEFAULT_COLORS = (function() {
   /*
-   * WARNING! All colours _MUST_ be 6 values hex values!
+   * Colors are laid out in groups, we then re-arrange so they are
+   * laid out in columns instead, and can be 'just dumped', into the
+   * DOM.
    */
+  var colors = [
+      // for colours see: http://en.wikipedia.org/wiki/Web_colors
 
-  /**
-   * The default colour to set as the current colour,
-   * when Painter starts.
-   */
-  DEFAULT_COLOR = '#104662', // dark cyan-blue
+      /* Greys */
+      '#ffffff',
+      '#c3c1c1',
+      '#8b8a8a',
+      '#474747',
+      '#000000',
 
-  NUM_COLORS_IN_PALETTE_COLUMN = 5,
+      /*colours*/
+      '#ffcdcc',
+      '#ff8d8a',
+      '#ff0600',
+      '#990400',
+      '#630200',
 
-  /**
-   * The colours present in the colour palette.
-   *
-   * Add/remove from this list to have different colours.
-   *
-   * @const
-   * @type {Array.<string>}
-   */
-  DEFAULT_COLORS = (function() {
-    /*
-     * Colors are laid out in groups, we then re-arrange so they are
-     * laid out in columns instead, and can be 'just dumped', into the
-     * DOM.
-     */
-    var colors = [
-        // for colours see: http://en.wikipedia.org/wiki/Web_colors
+      '#FFE7CD',
+      '#FFC78A',
+      '#FF8601',
+      '#995001',
+      '#633400',
 
-        /* Greys */
-        '#ffffff',
-        '#c3c1c1',
-        '#8b8a8a',
-        '#474747',
-        '#000000',
+      '#FFFDCC',
+      '#FFFA8A',
+      '#FFF500',
+      '#999301',
+      '#635E00',
 
-        /*colours*/
-        '#ffcdcc',
-        '#ff8d8a',
-        '#ff0600',
-        '#990400',
-        '#630200',
+      '#CDF5D0',
+      '#8DE992',
+      '#06D211',
+      '#037E0A',
+      '#045207',
 
-        '#FFE7CD',
-        '#FFC78A',
-        '#FF8601',
-        '#995001',
-        '#633400',
+      '#D4F0FE',
+      '#9DDEFE',
+      '#28B5FD',
+      '#1A6D99',
+      '#104662',
 
-        '#FFFDCC',
-        '#FFFA8A',
-        '#FFF500',
-        '#999301',
-        '#635E00',
+      '#CCCEFF',
+      '#8A90FF',
+      '#000CFF',
+      '#010799',
+      '#000563',
 
-        '#CDF5D0',
-        '#8DE992',
-        '#06D211',
-        '#037E0A',
-        '#045207',
+      '#FFCCED',
+      '#FF8AD8',
+      '#FF00A8',
+      '#980065',
+      '#630041'
+  ];
 
-        '#D4F0FE',
-        '#9DDEFE',
-        '#28B5FD',
-        '#1A6D99',
-        '#104662',
-
-        '#CCCEFF',
-        '#8A90FF',
-        '#000CFF',
-        '#010799',
-        '#000563',
-
-        '#FFCCED',
-        '#FF8AD8',
-        '#FF00A8',
-        '#980065',
-        '#630041'
-    ];
-
-    var cols = new Array();
-    for ( var i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
-      for ( var j = i; j < colors.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
-        cols.push( colors[j] );
-      }
+  const cols = new Array();
+  for ( let i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
+    for ( let j = i; j < colors.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
+      cols.push( colors[j] );
     }
+  }
 
-    return cols;
-  })();
+  return cols;
+})()
 
 /**
  * Mouse constants, so the code is more readable.
@@ -643,9 +597,9 @@ var DEFAULT_GRID_WIDTH  = 5, // pixels
  * @private
  * @type {number}
  */
-var LEFT   = 1,
-  RIGHT  = 2,
-  MIDDLE = 3 ;
+const LEFT   = 1
+const RIGHT  = 2
+const MIDDLE = 3
 
 /**
  * An array used for fast hex value lookup.
@@ -655,7 +609,7 @@ var LEFT   = 1,
  * @const
  * @type {Array.<string>}
  */
-var INT_TO_HEX = [
+const INT_TO_HEX = [
     '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '0a', '0b', '0c', '0d', '0e', '0f',
     '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f',
     '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2a', '2b', '2c', '2d', '2e', '2f',
@@ -684,7 +638,7 @@ var INT_TO_HEX = [
  * @param max The maximum value allowed.
  * @return The percent converted to a value from min to max.
  */
-var percentToRange = function( p, min, max ) {
+function percentToRange( p, min, max ) {
   return (max-min)*p + min;
 }
 
@@ -700,310 +654,9 @@ var percentToRange = function( p, min, max ) {
  * @param max The minimum value in the range.
  * @return The percent result.
  */
-var rangeToPercent = function( n, min, max ) {
+function rangeToPercent( n, min, max ) {
   return ( n - min ) / ( max - min );
 }
-
-/**
- * Converts an RGB color to HSV, and returns the 'value' component.
- * The 'value' is in the range of 0.0 to 1.0.
- *
- * @param   {number} r       The red color value
- * @param   {number} g       The green color value
- * @param   {number} b       The blue color value
- * @return  {number} The value of the HSV value, between 0.0 and 1.0.
- */
-var rgbToHSVValue = function(r, g, b) {
-  if ( r > g ) {
-    if ( r > b ) {
-      return r / 255;
-    } else if ( g > b ) {
-      return g / 255;
-    } else {
-      return b / 255;
-    }
-  } else if ( g > b ) {
-    return g / 255;
-  } else {
-    return b / 255;
-  }
-}
-
-var rgbToHSVSaturation = function(r, g, b) {
-  if ( r === g && r === b ) {
-    return 0 ;
-
-  } else {
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
-
-    return diff / v ;
-  }
-}
-
-var rgbToHSVHue = function(r, g, b) {
-  if ( r === g && r === b ) {
-    return 0;
-
-  } else {
-    r = r / 255,
-    g = g / 255,
-    b = b / 255;
-
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
-
-    return (
-        ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
-        ( v === g ) ? ( (b - r) / diff + 2               ) :
-                ( (r - g) / diff + 4               )
-    ) / 6 ;
-  }
-}
-
-/**
- * Converts an RGB color value to HSV. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
- * Assumes r, g, and b are contained in the set [0, 255] and
- * returns h, s, and v in the set [0, 1].
- *
- * @param   {number} r       The red color value
- * @param   {number} g       The green color value
- * @param   {number} b       The blue color value
- * @return  {Array.<number>} The HSV representation
- */
-var rgbToHSV = function(r, g, b) {
-  // achromatic
-  if ( r === g && r === b ) {
-    return [ 0.0, 0.0, Math.max(r, g, b)/255.0 ] ;
-
-  } else {
-    r = r / 255.0,
-    g = g / 255.0,
-    b = b / 255.0;
-
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
-
-    return [
-        // h, the hue
-        (
-            ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
-            ( v === g ) ? ( (b - r) / diff + 2               ) :
-                    ( (r - g) / diff + 4               )
-        ) / 6,
-
-        // s, the saturation
-        diff / v,
-
-        // v, the value
-        v
-    ];
-  }
-}
-
-/**
- * Converts a given differences in x and y,
- * into an angle (i.e. Math.atan2( yDiff, xDiff ) ),
- * and then into a hue of the range: 0.0 to 1.0.
- *
- * @param yDiff:int
- * @param xDiff:int
- * @return:double The angle as a hue.
- */
-function atan2ToHue( yDiff, xDiff ) {
-  return ( Math.atan2( yDiff, xDiff ) + Math.PI ) / ( Math.PI*2 );
-}
-
-/**
- * @param   {number} h       The hue
- * @param   {number} s       The saturation
- * @param   {number} v       The value
- * @return  {number}         The red component, in the RGB colour model.
- */
-function hsvToR(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
-
-  if ( iMod === 0 ) {
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  } else if ( iMod === 1 ) {
-    return ((
-        // q
-        v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
-  } else if ( iMod === 2 ) {
-    return ((
-        // p
-        v*(1-s))
-    *255 + 0.5)|0;
-  } else if ( iMod === 3 ) {
-    return ((
-        // p
-        v*(1-s)
-    )*255 + 0.5)|0;
-  } else if ( iMod === 4 ) {
-    return ((
-        // t
-        (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
-  } else /* iMod === 5 */{
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  }
-}
-
-function hsvToB(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
-
-  if ( iMod === 0 ) {
-    return ((
-        // p
-        v*(1-s)
-    )*255 + 0.5)|0;
-  } else if ( iMod === 1 ) {
-    return ((
-        // p
-        v*(1-s)
-    )*255 + 0.5)|0;
-  } else if ( iMod === 2 ) {
-    return ((
-        // t
-        (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
-  } else if ( iMod === 3 ) {
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  } else if ( iMod === 4 ) {
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  } else /* iMod === 5 */{
-    return ((
-        // q
-        v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
-  }
-}
-
-function hsvToG(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
-
-  if ( iMod === 0 ) {
-    return ((
-        // t
-        (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
-  } else if ( iMod === 1 ) {
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  } else if ( iMod === 2 ) {
-    return ((
-        // v
-        v
-    )*255 + 0.5)|0;
-  } else if ( iMod === 3 ) {
-    return ((
-        // q
-        v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
-  } else if ( iMod === 4 ) {
-    return ((
-        // p
-        v*(1-s)
-    )*255 + 0.5)|0;
-  } else /* iMod === 5 */{
-    return ((
-        // p
-        v*(1-s)
-    )*255 + 0.5)|0;
-  }
-}
-
-/**
- * Converts an HSV color value to RGB. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
- * Assumes h, s, and v are contained in the set [0, 1] and
- * returns r, g, and b in the set [0, 255].
- *
- * @param   {number} h       The hue
- * @param   {number} s       The saturation
- * @param   {number} v       The value
- * @return  {Array.<number>} The RGB representation
- */
-function hsvToRGB(h, s, v){
-  var r, g, b;
-
-  var i = (h *  6)|0;
-  var f =  h *  6 - i;
-  var p =  v * (1 - s);
-  var q =  v * (1 - f * s);
-  var t =  v * (1 - (1 - f) * s);
-
-  var iMod = i % 6;
-
-       if ( iMod === 0 ) { r = v, g = t, b = p;
-  } else if ( iMod === 1 ) { r = q, g = v, b = p;
-  } else if ( iMod === 2 ) { r = p, g = v, b = t;
-  } else if ( iMod === 3 ) { r = p, g = q, b = v;
-  } else if ( iMod === 4 ) { r = t, g = p, b = v;
-  } else   /* iMod === 5 */{ r = v, g = p, b = q;
-  }
-
-  return [
-      (r*255 + 0.5)|0,
-      (g*255 + 0.5)|0,
-      (b*255 + 0.5)|0
-  ];
-}
-
-/**
- * Converts given hsv value, into a hex colour.
- * It's the same as 'rgbToColor', only it takes
- * HSV values instead.
- *
- * Example result: #d9aa23
- *
- * @param r The hue.
- * @param s The saturation, 0.0 to 1.0.
- * @param v The value, 0.0 to 1.0.
- * @return {string} A CSS hex string for this color.
- */
-var hsvToColor = function( h, s, v ) {
-  // hsvToR/G/B returns an int, so no rounding is needed!
-  return '#' +
-      INT_TO_HEX[ hsvToR(h, s, v) ] +
-      INT_TO_HEX[ hsvToG(h, s, v) ] +
-      INT_TO_HEX[ hsvToB(h, s, v) ] ;
-}
-
-/**
- * All components must be provided as values between 0 and 255.
- * Floating point values are allowed, but will be rounded to
- * the nearest whole number.
- *
- * Example result: #d9aa23
- *
- * @param r The red component.
- * @param g The green component.
- * @param b The blue component.
- * @return The given RGB values combined into a hex string.
- */
-var rgbToColor = function( r, g, b ) {
-  return '#' +
-      INT_TO_HEX[ (r+0.5) | 0 ] +
-      INT_TO_HEX[ (g+0.5) | 0 ] +
-      INT_TO_HEX[ (b+0.5) | 0 ] ;
-};
 
 /**
  * Set up sensible defaults for 2D canvas contexts.
@@ -1015,7 +668,7 @@ var rgbToColor = function( r, g, b ) {
  * @private
  * @param ctx
  */
-var initializeCtx = function( ctx ) {
+function initializeCtx( ctx ) {
   ctx.fillStyle   = 'white';
   ctx.strokeStyle = 'white';
   ctx.globalAlpha = 1;
@@ -1027,7 +680,7 @@ var initializeCtx = function( ctx ) {
 /**
  * Cleares the overlay on top of the painting canvas.
  */
-var clearCtx = function(ctx, x, y, w, h, buffer) {
+function clearCtx(ctx, x, y, w, h, buffer) {
   if ( x === undefined ) {
     x = 0;
     y = 0;
@@ -1382,19 +1035,19 @@ function copyNearestNeighbour(
     }
   } else {
     while ( drawY < endY ) {
-      var nextY = drawY + pixelHeight,
-        drawYI = ((0.5 + drawY) | 0);
-      var diffY = ((0.5 + nextY) | 0) - drawYI,
-        drawX = startX;
+      const nextY  = drawY + pixelHeight
+      const drawYI = ((0.5 + drawY) | 0)
+      const diffY  = ((0.5 + nextY) | 0) - drawYI
+      const drawX  = startX
 
       while ( drawX < endX ) {
-        var nextX = drawX + pixelWidth;
+        const nextX = drawX + pixelWidth
 
         // location of the pixel in both canvas and overlay
-        var ca = sData[ i + 3 ],
-          oa = includeOverlay ?
+        const ca = sData[ i + 3 ]
+        const oa = ( includeOverlay ?
               oData[ i + 3 ] :
-              0 ;
+              0 )
 
         /*
          * Skip Transparency When:
@@ -1404,41 +1057,43 @@ function copyNearestNeighbour(
         if ( ! (
             ca === 0 && ( oa === 0 || forceSrcAlpha )
         ) ) {
-          var nowDrawX = ( drawX+0.5 ) | 0;
-          var cRed   = sData[i  ],
-            cGreen = sData[i+1],
-            cBlue  = sData[i+2];
+          const nowDrawX = ( drawX+0.5 ) | 0
+          const cRed   = sData[i  ]
+          const cGreen = sData[i+1]
+          const cBlue  = sData[i+2]
 
-          var r, g, b;
+          let r = 0
+          let g = 0
+          let b = 0
 
           // overlay is blank
           if ( oa === 0 ) {
-            r = cRed;
-            g = cGreen;
-            b = cBlue;
+            r = cRed
+            g = cGreen
+            b = cBlue
 
             if ( ca !== lastAlpha ) {
-              dCtx.globalAlpha = (lastAlpha = ca) / 255.0;
+              dCtx.globalAlpha = (lastAlpha = ca) / 255.0
             }
           // full overlay alpha
           } else if ( oa === 255 && forceSrcAlpha === false ) {
-            r = oData[ i   ];
-            g = oData[ i+1 ];
-            b = oData[ i+2 ];
+            r = oData[ i   ]
+            g = oData[ i+1 ]
+            b = oData[ i+2 ]
 
             if ( lastAlpha !== 255 ) {
-              dCtx.globalAlpha = 1;
-              lastAlpha = 255;
+              dCtx.globalAlpha = 1
+              lastAlpha = 255
             }
           // canvas is blank
           } else if ( ca === 0 ) {
             // nothing will be drawn using forceSrcAlpha, so just move on
-            r = oData[ i   ];
-            g = oData[ i+1 ];
-            b = oData[ i+2 ];
+            r = oData[ i   ]
+            g = oData[ i+1 ]
+            b = oData[ i+2 ]
 
             if ( oa !== lastAlpha ) {
-              dCtx.globalAlpha = (lastAlpha = oa) / 255.0;
+              dCtx.globalAlpha = (lastAlpha = oa) / 255.0
             }
           // mix canvas and overlay
           } else if ( forceSrcAlpha ) {
@@ -1448,21 +1103,21 @@ function copyNearestNeighbour(
              * as the overlay will 100% win anyway.
              */
             if ( oa === 255 ) {
-              r = oData[ i   ];
-              g = oData[ i+1 ];
-              b = oData[ i+2 ];
+              r = oData[ i   ]
+              g = oData[ i+1 ]
+              b = oData[ i+2 ]
             } else {
-              oa /= 255.0;
-              var iOa = 1 - oa;
+              oa /= 255.0
+              const iOa = 1 - oa
 
-              r =   cRed*iOa + oData[ i   ]*oa;
-              g = cGreen*iOa + oData[ i+1 ]*oa;
-              b =  cBlue*iOa + oData[ i+2 ]*oa;
+              r =   cRed*iOa + oData[ i   ]*oa
+              g = cGreen*iOa + oData[ i+1 ]*oa
+              b =  cBlue*iOa + oData[ i+2 ]*oa
 
               // fast, positive only, rounding
-              r = (r+0.5) | 0;
-              g = (g+0.5) | 0;
-              b = (b+0.5) | 0;
+              r = (r+0.5) | 0
+              g = (g+0.5) | 0
+              b = (b+0.5) | 0
             }
 
             if ( ca !== lastAlpha ) {
@@ -1551,32 +1206,8 @@ function copyNearestNeighbour(
   }
 }
 
-var appendHTML = function( el, html ) {
-  if ( typeof html === 'string' ) {
-    el.insertAdjacentHTML( 'beforeend', html );
-  } else if (
-      ( html instanceof Array ) ||
-      ( ('' + html) === '[object Arguments]' )
-  ) {
-    var htmlLen = html.length;
-
-    for ( var i = 0; i < htmlLen; i++ ) {
-      appendHTML( el, html[i] );
-    }
-  } else if ( html.jquery ) {
-    el.appendChild( html.get(0) );
-  } else if ( html instanceof Element ) {
-    el.appendChild( html );
-  } else {
-    throw new Error( "unknown argument given, cannot add to element" );
-  }
-
-  return el;
-}
-
 /**
- * Creates a new JQuery wrapped Anchor, and returns it,
- * but with lots of defaults set.
+ * Creates a HTMLAnchorElement and returns it.
  *
  * These include '#' for the href, and to prevent the default action
  * of following the link.
@@ -1584,25 +1215,33 @@ var appendHTML = function( el, html ) {
  * You can also pass in more CSS classes after the 'text' parameter.
  *
  * @param text The text to appear on this anchor.
- * @return A jQuery wrapped anchor tag.
+ * @return A HTMLAnchorElement.
  */
-var $a = function( text ) {
-  var klass = '';
+function newAnchor( text:string ) {
+  let klass = ''
 
   for ( var i = 1; i < arguments.length; i++ ) {
-    klass += ' ' + arguments[i];
+    klass += ' ' + arguments[i]
   }
 
-  var anchor = document.createElement( 'a' );
-  anchor.setAttribute( 'href', '#' );
-  anchor.className = klass;
+  const anchor = document.createElement( 'a' )
+  anchor.setAttribute( 'href', '#' )
+  anchor.className = klass
 
   if ( text ) {
-    anchor.innerHTML = text;
+    anchor.innerHTML = text
   }
 
-  return $(anchor);
-};
+  return anchor
+}
+
+export interface SliderOptions {
+  min  : number ;
+  max  : number ;
+  step : number ;
+  value: number ;
+  onChange : ( val:number, percent:number ) => void ;
+}
 
 /**
  * A generic, reusable, horizontal slider.
@@ -1635,330 +1274,38 @@ var $a = function( text ) {
  * The idea is to push the clever code up the stack, so it's shared,
  * and keep the lower code where it's different as basic as possible.
  */
-var $slider = function() {
-  var sliderBar;
+export function newSlider( options:SliderOptions ) {
+  const sliderBarInput = newInput( 'range', 'skybrush_slider_bar' )
 
-  if ( $.support.input.range ) {
-    var sliderBarInput = newInput( 'range', 'skybrush_slider_bar' );
-
-    // default min/max/step values
-    sliderBarInput.setAttribute( 'min' , Number.toString(0) );
-    sliderBarInput.setAttribute( 'max' , Number.toString(1) );
-    sliderBarInput.setAttribute( 'step', Number.toString(1/NUM_SLIDE_INCREMENTS) );
-
-    // now setup the slider bar it's self
-
-    sliderBar = $( sliderBarInput ).
-        change( function() {
-          sliderBar.runOnSlide();
-        });
-
-    sliderBar.getStep = function() {
-      return Number( this.attr('step') );
-    };
-    sliderBar.setStep = function( step ) {
-      this.attr('step', step );
-    };
-
-    sliderBar.getMin = function() {
-      return Number( this.attr('min') );
-    };
-    sliderBar.getMax = function() {
-      return Number( this.attr('max') );
-    };
-    sliderBar.setMin = function( min ) {
-      this.attr( 'min', min );
-    };
-    sliderBar.setMax = function( max ) {
-      this.attr( 'max', max );
-    };
-
-    sliderBar.isFake = function() {
-      return false;
-    };
-
-    sliderBar.getVal = function() {
-      return Number( this.val() );
-    };
-  } else {
-    var slider = $a('', 'skybrush_slider_bar_slider').
-        killEvent( 'click', 'leftdown' ).
-        leftdown( function(ev) {
-          var $this = $(this);
-
-          $this.data('is_sliding', true);
-        } );
-
-    slider.data( 'is_sliding', false );
-
-    // stop sliding
-    $(document).leftup( function(ev) {
-      slider.data( 'is_sliding', false );
-    } );
-
-    /**
-     * A helper sliding function.
-     *
-     * It handles the maths, and the movement, of sliding the slider up
-     * or down $this, it's sliding bar.
-     *
-     * Things have to be passed in as it's a tad low level,
-     * and designed to avoid some repetition when used (like finding the slider).
-     */
-    var slideTo = function( $this, slider, slideUp) {
-      var sliderX = slider.position().left,
-        w = $this.width();
-      var slideInc = w / NUM_SLIDE_INCREMENTS;
-      var nowX = sliderX % slideInc;
-      var onTheStep = nowX == 0;
-
-      // work out the distance from the next mark, in the positive diretion (slide up)
-      var normalizedDist = nowX / slideInc;
-
-      var newX = sliderX - nowX;
-
-      if ( slideUp ) {
-        newX += slideInc;
-
-        if ( !onTheStep ) {
-          // skip the next mark, if we are really close to it
-          if ( (1-normalizedDist) < SLIDER_ERROR ) {
-            newX += slideInc;
-          }
-        }
-      // slide down + skip next down mark
-      } else if ( onTheStep || normalizedDist < SLIDER_ERROR ) {
-        newX -= slideInc;
-      }
-
-      newX = Math.limit( newX, 0, w );
-      var p = newX / w;
-
-      sliderBar.percent( newX / w );
-      sliderBar.runOnSlide();
-    };
-
-    const sliderBarInner = document.createElement('div')
-    sliderBarInner.className = 'skybrush_slider_bar_inner'
-
-    sliderBar = $a('', 'skybrush_slider_bar', 'sb_fake').
-        killEvent( 'click', 'leftdown' ).
-              append( sliderBarInner ).
-        append( slider ).
-
-        // zoom in/out when you click on the slider bar
-        click( function(ev) {
-          var $this = $(this);
-          var slider = $this.children('.skybrush_slider_bar_slider');
-
-          if ( ! slider.data('is_sliding') ) {
-            var mx = ev.pageX - $this.offset().left;
-            var sliderX = slider.position().left;
-            slideTo( $this, slider, (mx > sliderX) );
-          }
-        } ).
-
-        /*
-         * Browsers that support touch,
-         * also support proper sliders.
-         *
-         * So this should never be hit by a touch browser
-         * (hopefully).
-         */
-        mousemove( function(ev) {
-          var $this = $(this);
-          var slider = $this.children('.skybrush_slider_bar_slider');
-
-          if ( slider.data('is_sliding') ) {
-            var thisWidth = $this.width();
-
-            var x = Math.limit(
-                ev.offset($this).left,
-                0,
-                thisWidth
-            );
-
-            sliderBar.percent( x / thisWidth );
-            sliderBar.runOnSlide();
-          }
-        } );
-
-    sliderBar.setPercent = function( p ) {
-      p = Math.limit( p, 0.0, 1.0 );
-      this.percentVal = p;
-
-      var x = this.width() * p ;
-      this.
-          children('.skybrush_slider_bar_slider').
-          translate( x, 0 );
-
-      return this;
-    };
-
-    sliderBar.setPercentVal = function( val ) {
-      val = Math.round( val-this.minVal, this.increment );
-
-      return this.setPercent(
-          rangeToPercent(
-              val,
-              this.minVal,
-              this.maxVal
-          )
-      );
-    };
-
-    sliderBar.percent = function( p ) {
-      if ( arguments.length === 0 ) {
-        return this.percentVal;
-      } else {
-        sliderBar.setPercentVal(
-            percentToRange( p, sliderBar.getMin(), sliderBar.getMax() )
-        );
-      }
-    };
-
-    sliderBar.percentVal = 0;
-
-    /* The common interface */
-
-    sliderBar.getVal = function() {
-      return percentToRange( this.percentVal, this.minVal, this.maxVal );
-    };
-
-    sliderBar.val = function( val ) {
-      if ( arguments.length === 0 ) {
-        return percentToRange( this.percentVal, this.minVal, this.maxVal );
-      } else {
-        return this.setPercentVal( val );
-      }
-    };
-
-    sliderBar.getStep = function() {
-      return this.increment;
-    };
-    sliderBar.setStep = function( step ) {
-      this.increment = step;
-    };
-
-    sliderBar.getMin = function() {
-      return this.minVal;
-    };
-    sliderBar.getMax = function() {
-      return this.maxVal;
-    };
-    sliderBar.setMin = function( min ) {
-      this.minVal = min;
-    };
-    sliderBar.setMax = function( max ) {
-      this.maxVal = max;
-    };
-
-    sliderBar.isFake = function() {
-      return true;
-    };
-  }
-
-  /*
-   * The common sliding code.
-   *
-   * This code is built on top of both the HTML5 and
-   * my own sliders.
-   */
-
-  sliderBar.limit = function( min, max ) {
-    this.setMin( min );
-    this.setMax( max );
-
-    return this;
-  };
-
-  sliderBar.min = function( min ) {
-    if ( arguments.length === 0 ) {
-      return this.getMin();
-    } else {
-      this.setMin( min );
-      return this;
-    }
-  };
-
-  sliderBar.max = function( max ) {
-    if ( arguments.length === 0 ) {
-      return this.getMax();
-    } else {
-      this.setMax( max );
-      return this;
-    }
-  };
-
-  sliderBar.step = function( step ) {
-    if ( arguments.length === 0 ) {
-      return this.getStep();
-    } else {
-      this.setStep( step );
-      return this;
-    }
-  };
+  // default min/max/step values
+  sliderBarInput.min   = options.min
+  sliderBarInput.max   = options.max
+  sliderBarInput.step  = options.step
+  sliderBarInput.value = options.value
 
   /**
    * Allows adding slide events, run when this slides.
    */
-  sliderBar.slide = function(f) {
-    return this.bind( 'on_slide', f );
-  };
+  const onChange = options.onChange
+  sliderBarInput.addEventListener( 'change', () => {
+    const val = parseFloat( this.value )
+    const min = parseFlaot( this.min   )
+    const max = parseFlaot( this.max   )
 
-  sliderBar.setSlide = function(p) {
-    return this.val(
-        percentToRange(
-            Math.limit( p, 0.0, 1.0 ),
-            this.getMin(),
-            this.getMax()
-        )
-    );
-  };
+    const p = rangeToPercent( val, min, max )
 
-  sliderBar.runOnSlide = function() {
-    var val = this.getVal(),
-      min = this.getMin(),
-      max = this.getMax();
+    onChange( val, p )
+  })
 
-    var p = rangeToPercent( val, min, max );
+  return sliderBar
+}
 
-    this.trigger( 'on_slide', [val, p] );
-  };
+export function newGridLine( direction:GridDirection, x:number, y:number ) {
+  const gridLine = newDiv( 'skybrush_grid_line is-' + direction )
+  translate2D( gridLine, x, y )
 
-  sliderBar.slideUp = function() {
-    this.val( this.getVal() + this.getStep() );
-    this.runOnSlide();
-  };
-
-  sliderBar.slideDown = function() {
-    this.val( this.getVal() - this.getStep() );
-    this.runOnSlide();
-  };
-
-  sliderBar.limit( 0, 1 ).step( NUM_SLIDE_INCREMENTS );
-
-  return sliderBar;
-};
-
-/**
- * @private
- * @return A HTML5 Canvas.
- */
-var newCanvas = function( width, height ) {
-  var canvas = document.createElement('canvas');
-
-  if ( width !== undefined && height !== undefined ) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  canvas.ctx = canvas.getContext( '2d' );
-
-  initializeCtx( canvas.ctx );
-  canvas.ctx.save();
-
-  return canvas;
-};
+  return gridLine
+}
 
 /**
  * Sets up a circle path on the context given.
@@ -1966,23 +1313,27 @@ var newCanvas = function( width, height ) {
  * This is everthing involved with drawing a circle
  * _but_ the actual stroke/fill.
  */
-var circlePath = function( ctx, x, y, w, h ) {
-  var kappa = 0.5522848;
-  var ox = (w / 2) * kappa,   // control point offset horizontal
-    oy = (h / 2) * kappa,   // control point offset vertical
-    xe = x + w,             // x-end
-    ye = y + h,             // y-end
-    xm = x + w / 2,         // x-middle
-    ym = y + h / 2;         // y-middle
+export function circlePath( 
+    ctx:CanvasRenderingContext2D,
+    x:number, y:number,
+    w:number, h:number 
+) {
+  const kappa = 0.5522848
+  const ox = (w / 2) * kappa   // control point offset horizontal
+  const oy = (h / 2) * kappa   // control point offset vertical
+  const xe = x + w             // x-end
+  const ye = y + h             // y-end
+  const xm = x + w / 2         // x-middle
+  const ym = y + h / 2         // y-middle
 
-  ctx.beginPath();
-  ctx.moveTo( x, ym );
-  ctx.bezierCurveTo( x      , ym - oy, xm - ox, y      , xm, y  );
-  ctx.bezierCurveTo( xm + ox, y      , xe     , ym - oy, xe, ym );
-  ctx.bezierCurveTo( xe     , ym + oy, xm + ox, ye     , xm, ye );
-  ctx.bezierCurveTo( xm - ox, ye     , x      , ym + oy, x , ym );
-  ctx.closePath();
-};
+  ctx.beginPath()
+  ctx.moveTo( x, ym )
+  ctx.bezierCurveTo( x      , ym - oy, xm - ox, y      , xm, y  )
+  ctx.bezierCurveTo( xm + ox, y      , xe     , ym - oy, xe, ym )
+  ctx.bezierCurveTo( xe     , ym + oy, xm + ox, ye     , xm, ye )
+  ctx.bezierCurveTo( xm - ox, ye     , x      , ym + oy, x , ym )
+  ctx.closePath()
+}
 
 /**
  * Creates a new canvas, and returns it,
@@ -1991,39 +1342,32 @@ var circlePath = function( ctx, x, y, w, h ) {
  * The third argument states if it should
  * gradient the alpha across it, from left to right.
  */
-var newCheckerboard = function( w, h, gradientAlpha ) {
-  var canvas  = newCanvas( w, h );
-  var ctx     = canvas.ctx;
-  var ctxData = ctx.createImageData( w, h );
-  var data    = ctxData.data;
+export function newCheckerboard( w:number, h:number, gradientAlpha:boolean ) {
+  const canvas  = newCanvas( w, h )
+  const ctx     = canvas.ctx
+  const ctxData = ctx.createImageData( w, h )
+  const data    = ctxData.data
 
-  for ( var y = 0; y < h; y++ ) {
-    for ( var x = 0; x < w; x++ ) {
-      var i = (y*w + x) * 4;
-      var a = ( (1 - y/h)*255 + 0.5 ) | 0;
+  for ( let y = 0; y < h; y++ ) {
+    for ( let x = 0; x < w; x++ ) {
+      const i = (y*w + x) * 4
+      const a = ( (1 - y/h)*255 + 0.5 ) | 0
 
       // generate a Photoshop-like checker board
       data[i] = data[i+1] = data[i+2] =
           ( (((y/8) | 0) % 2) === (((x/8) | 0) % 2) ) ?
               254 :
-              203 ;
+              203 
 
       data[i+3] = gradientAlpha ?
           a :
-          1.0 ;
+          1.0
     }
   }
 
-  ctx.putImageData( ctxData, 0, 0 );
+  ctx.putImageData( ctxData, 0, 0 )
 
-  return canvas;
-}
-
-var newGUIBlock = function() {
-  var div = document.createElement('div');
-  div.className = 'skybrush_gui_content_block';
-
-  return div;
+  return canvas
 }
 
 /**
@@ -2042,36 +1386,36 @@ var newGUIBlock = function() {
  *
  * @param size The number of undo's allowed.
  */
-var UndoStack = function( size, firstCanvas ) {
-  // the +1 is for the checks later
-  this.size = size + 1;
+export class UndoStack {
+  constructor( size:number, firstCanvas:HTMLCanvasElement ) {
+    // the +1 is for the checks later
+    this.size = size + 1
 
-  this.reset( firstCanvas );
-};
+    this.reset( firstCanvas )
+  }
 
-UndoStack.prototype = {
-  reset: function( firstCanvas ) {
-    this.index = 0;
-    this.undoIndex = 0;
-    this.maxRedo = 0;
+  reset( firstCanvas ) {
+    this.index     = 0
+    this.undoIndex = 0
+    this.maxRedo   = 0
 
-    var first = newCanvas( firstCanvas.width, firstCanvas.height );
-    first.ctx.drawImage( firstCanvas, 0, 0 );
+    const first = newCanvas( firstCanvas.width, firstCanvas.height )
+    first.ctx.drawImage( firstCanvas, 0, 0 )
 
     // flush drawing changes if browser is badly written
     if ( TOUCH_PIXEL_CONTENT ) {
-      first.ctx.getImageData( 0, 0, 1, 1 );
+      first.ctx.getImageData( 0, 0, 1, 1 )
     }
 
-    this.canvases = [ first ];
-  },
+    this.canvases = [ first ]
+  }
 
   /**
    * @param canvas The current canvas.
    * @param drawInfo Information on what was just drawn.
    * @return canvas The canvas to use for the future.
    */
-  add: function( canvas, drawInfo ) {
+  add( canvas, drawInfo ) {
     var undoCanvas = null;
 
     // ensure we have space
@@ -2103,7 +1447,7 @@ UndoStack.prototype = {
     }
 
     this.canvases[ this.undoIndex ] = undoCanvas;
-  },
+  }
 
   /**
    * Invalidates all possible redo actions.
@@ -2118,30 +1462,30 @@ UndoStack.prototype = {
    *
    * In practice, this is done internally for you, when you add items.
    */
-  clearRedo: function() {
+  clearRedo() {
     for ( var i = this.undoIndex; i < this.canvases.length; i++ ) {
       this.canvases.pop();
     }
-  },
+  }
 
   /**
    * @return True if calling 'undo' will undo the current canvas.
    */
-  hasUndo: function() {
+  hasUndo() {
     return this.undoIndex > 0;
-  },
+  }
 
   /**
    * @return True if there is history to redo.
    */
-  hasRedo: function() {
+  hasRedo() {
     return this.undoIndex < this.maxRedo;
-  },
+  }
 
   /**
    * This does nothing if there is nothing to undo.
    */
-  undo: function() {
+  undo() {
     if ( this.hasUndo() ) {
       this.undoIndex--;
 
@@ -2151,7 +1495,7 @@ UndoStack.prototype = {
     } else {
       return null;
     }
-  },
+  }
 
   /**
    * This does nothing if there is nothing to redo.
@@ -2167,6 +1511,10 @@ UndoStack.prototype = {
   }
 }
 
+type GridDirection =
+    "horizontal" |
+    "vertical"
+
 /**
  * The GridManager wraps up all of the grid handling for the canvas.
  * It's very closely tied to the CanvasManger,
@@ -2175,23 +1523,41 @@ UndoStack.prototype = {
  *
  * @constructor
  */
-var GridManager = function( viewport:HTMLElement ) {
-  var dom = document.createElement( 'div' )
-  dom.className = 'skybrush_grid'
+export class GridManager {
+  private dom     : HTMLElement ;
+  
+  private offsetX : number ;
+  private offsetY : number ;
 
-  this.dom = dom
-  viewport.appendChild( dom )
+  private width   : number ;
+  private height  : number ;
 
-  this.offsetX = 0;
-  this.offsetY = 0;
-  this.width  = DEFAULT_GRID_WIDTH;
-  this.height = DEFAULT_GRID_HEIGHT;
+  private zoom    : number ;
 
-  this.zoom = 1;
-  this.isDirty = true;
-};
+  /**
+   * This updates in a lazy way.
+   * 
+   * The isDirty flag is denoted to state that the dom does need to update when
+   * it is shown.
+   */
+  private isDirty : boolean ;
 
-GridManager.prototype = {
+  constructor ( viewport:HTMLElement ) {
+    const dom = document.createElement( 'div' )
+    dom.className = 'skybrush_grid'
+
+    this.dom = dom
+    viewport.appendChild( dom )
+
+    this.offsetX = 0
+    this.offsetY = 0
+    this.width  = DEFAULT_GRID_WIDTH
+    this.height = DEFAULT_GRID_HEIGHT
+
+    this.zoom = 1
+    this.isDirty = true
+  }
+
   /**
    * Moves this grid to the area stated,
    * and re-organizes the grid to look how it's shown.
@@ -2201,15 +1567,15 @@ GridManager.prototype = {
    * this code, this method is provided to allow the canvas
    * to just pass the results on to this grid.
    */
-  updateViewport: function( canvasX, canvasY, width, height, zoom ) {
-    this.zoom = zoom;
-    this.dom.
-        width( width+1 ).
-        height( height+1 ).
-        translate( canvasX, canvasY );
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+    this.zoom = zoom
 
-    this.update( width+1, height+1 );
-  },
+    this.dom.style.width  = (width+1 ) + 'px'
+    this.dom.style.height = (height+1) + 'px'
+    translate2D( this.dom, canvasX, canvasY )
+
+    this.update( width+1, height+1 )
+  }
 
   /**
    * Updates the layout of the grid.
@@ -2220,68 +1586,49 @@ GridManager.prototype = {
    * Calls such as 'setSize' and 'setOffset' already call
    * this automatically.
    */
-  update: function( w, h ) {
-    this.dom.empty();
+  update( w:number, h:number ) {
+    this.dom.empty()
 
     if ( this.isShown() ) {
-      this.forceUpdate( w, h );
+      this.forceUpdate( w, h )
     } else {
-      this.isDirty = true;
+      this.isDirty = true
     }
-  },
+  }
 
   /**
    * Forces an update.
    *
    * This differs from the standard update, because this guarantees
    * that an update is performed, whilst the standard update might
-   * skip it, for performance reasons.
+   * skip it, for performance reasons.,
    */
-  forceUpdate: function( w, h ) {
-    var zoom = this.zoom,
-       dom = this.dom;
+  forceUpdate( w:number, h:number ) {
+    const zoom = this.zoom
+    const dom  = this.dom
 
-    if ( w === undefined ) {
-      w = dom.width();
-    }
-    if ( h === undefined ) {
-      h = dom.height();
-    }
+    const xInc = Math.max( zoom * this.width , 1 )
+    const yInc = Math.max( zoom * this.height, 1 )
 
-    var xInc = Math.max( zoom * this.width , 1 ),
-      yInc = Math.max( zoom * this.height, 1 );
+    const startX = ( this.offsetX % this.width  ) * zoom
+    const startY = ( this.offsetY % this.height ) * zoom
 
-    var startX = ( this.offsetX % this.width  ) * zoom,
-      startY = ( this.offsetY % this.height ) * zoom;
-
-    for ( var x = startX; x <= w; x += xInc ) {
-      dom.append(
-          $('<div>').
-              addClass('skybrush_grid_line').
-              addClass('skybrush_grid_line_vertical').
-              translate( x, 0 ).
-              height( h )
-      );
+    dom.innerHTML = ''
+    for ( let x = startX; x <= w; x += xInc ) {
+      dom.appendChild( newGridLine('vertical', x, 0) )
     }
 
-    for ( var y = startY; y <= h; y += yInc ) {
-      dom.append(
-          $('<div>').
-              addClass('skybrush_grid_line').
-              addClass('skybrush_grid_line_horizontal').
-              translate( 0, y ).
-              width( w )
-      );
+    for ( let y = startY; y <= h; y += yInc ) {
+      dom.appendChild( newGridLine('horizontal', 0, y) )
     }
 
-    this.isDirty = false;
-  },
-
+    this.isDirty = false
+  }
 
   /**
    * Sets the size of the grid squares, in pixels.
    */
-  setSize: function( w, h ) {
+  setSize( w, h ) {
     w = Math.max( w|0, 0 );
     h = Math.max( h|0, 0 );
 
@@ -2291,83 +1638,83 @@ GridManager.prototype = {
 
       this.update();
     }
-  },
+  }
 
-  getWidth: function() {
-    return this.width;
-  },
+  getWidth() {
+    return this.width
+  }
 
-  getHeight: function() {
-    return this.height;
-  },
+  getHeight() {
+    return this.height
+  }
 
-  getOffsetX: function() {
-    return this.offsetX;
-  },
+  getOffsetX() {
+    return this.offsetX
+  }
 
-  getOffsetY: function() {
-    return this.offsetY;
-  },
+  getOffsetY() {
+    return this.offsetY
+  }
 
   /**
    * Allows you to offset the location of the grid,
    * from the top left corner,
    * by the amounts given.
    */
-  setOffset: function( x:number, y:number ) {
+  setOffset( x:number, y:number ) {
     if ( isNaN(x) ) {
-      x = 0;
+      x = 0
     } else {
-      x = x|0;
+      x = x|0
     }
 
     if ( isNaN(y) ) {
-      y = 0;
+      y = 0
     } else {
-      y = y|0;
+      y = y|0
     }
 
     if ( x < 0 ) {
-      x = - ( x % this.width );
-      x = this.width - x;
+      x = - ( x % this.width )
+      x = this.width - x
     }
+
     if ( y < 0 ) {
-      y = - ( y % this.height );
-      y = this.height - y;
+      y = - ( y % this.height )
+      y = this.height - y
     }
 
-    var update = ( this.offsetX !== x || this.offsetY !== y );
-
+    const update = ( this.offsetX !== x || this.offsetY !== y )
     if ( update ) {
       this.offsetX = x,
-      this.offsetY = y;
+      this.offsetY = y
 
-      this.update();
+      this.update()
     }
 
-    return this;
-  },
+    return this
+  }
 
-  isShown: function() {
-    return this.dom.hasClass( 'sb_show' )
-  },
+  isShown() {
+    return this.dom.classList.contains( 'sb_show' )
+  }
 
-  show: function() {
+  show() {
     if ( this.isDirty ) {
-      this.forceUpdate()
+      this.forceUpdate( dom.width(), dom.height() )
     }
 
     this.dom.classList.add('sb_show')
 
     return this
-  },
+  }
 
-  hide: function() {
+  hide() {
     this.dom.classList.remove( 'sb_show' )
 
-    return this
+    return this;
   }
-};
+}
 
 /**
  * Originally the marquee selector and the grid and things like that were
@@ -2377,58 +1724,57 @@ GridManager.prototype = {
  * So this was created as an object they can use to help contain that common
  * code.
  */
-var ViewOverlay = function( viewport, className ) {
-  this.dom = document.createElement( 'div' )
-  this.dom.className = className
+export class ViewOverlay {
+  constructor( viewport:HTMLElement, className:string ) {
+    this.dom = newDiv( className )
 
-  viewport.append( this.dom )
+    viewport.append( this.dom )
 
-  this.x = 0
-  this.y = 0
-  this.w = 0
-  this.h = 0
+    this.x = 0
+    this.y = 0
+    this.w = 0
+    this.h = 0
 
-  this.zoom = 1
+    this.zoom = 1
 
-  this.canvasX = 0
-  this.canvasY = 0
+    this.canvasX = 0
+    this.canvasY = 0
 
-  this.lastLeft = 0
-  this.lastTop  = 0
+    this.lastLeft = 0
+    this.lastTop  = 0
 
-  // set to invalid values so the first time a width/height is set,
-  // it'll be guaranteed to go through
-  this.lastHeight = -1
-  this.lastWidth  = -1
-}
+    // set to invalid values so the first time a width/height is set,
+    // it'll be guaranteed to go through
+    this.lastHeight = -1
+    this.lastWidth  = -1
+  }
 
-ViewOverlay.prototype = {
-  addClass: function( klass ) {
+  addClass( klass ) {
     this.dom.classList.add( klass );
 
     return this;
-  },
+  }
 
-  hasClass: function( klass ) {
+  hasClass( klass ) {
     return this.dom.classList.contains( klass );
-  },
+  }
 
-  removeClass: function( klass ) {
+  removeClass( klass ) {
     this.dom.classList.remove( klass );
 
     return this;
-  },
+  }
 
-  append: function( child:HTMLElement ):ViewOverlay {
+  append( child:HTMLElement ):ViewOverlay {
     this.dom.appendChild( arguments[0] )
 
     return this
-  },
+  }
 
   /**
    * Takes canvas pixels, and resizes to DOM pixels.
    */
-  setCanvasSize: function( x:number, y:number, w:number, h:number ) {
+  setCanvasSize( x:number, y:number, w:number, h:number ) {
     const zoom = this.zoom;
 
     const left = (this.canvasX + x*zoom + 0.5)|0
@@ -2458,12 +1804,12 @@ ViewOverlay.prototype = {
     }
 
     return this
-  },
+  }
 
   /**
    * Tells this about any view changes in the SkyBrush viewport.
    */
-  updateViewport: function( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
     this.zoom    = zoom
     this.canvasX = canvasX
     this.canvasY = canvasY
@@ -2472,132 +1818,135 @@ ViewOverlay.prototype = {
   }
 }
 
-
 /**
  * This handles the clipping/select region on the Canvas.
  *
  * @constructor
  * @private
  */
-var Marquee = function( canvas, viewport, painter ) {
-  this.canvas = canvas;
+export class Marquee {
+  private topLeftHandle     : HTMLElement ;
+  private bottomRightHandle : HTMLElement ;
 
-  var topLeft           = document.createElement('div');
-  topLeft.className     = 'skybrush_marquee_handle sb_top_left sb_no_target';
+  constructor( canvas:CanvasManager, viewport:HTMLElement, painter:SkyBrush ) {
+    this.canvas = canvas
 
-  var bottomRight       = document.createElement('div');
-  bottomRight.className = 'skybrush_marquee_handle sb_bottom_right sb_no_target';
+    const topLeft         = document.createElement( 'div' )
+    topLeft.className     = 'skybrush_marquee_handle sb_top_left sb_no_target'
 
-  this.handles = $( topLeft, bottomRight );
+    const bottomRight     = document.createElement( 'div' )
+    bottomRight.className = 'skybrush_marquee_handle sb_bottom_right sb_no_target'
 
-  this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' ).
-      append( topLeft ).
-      append( bottomRight )
+    this.topLeftHandle     = topLeft
+    this.bottomRightHandle = bottomRight
 
-  this.position = { x: 0, y: 0, w: 0, h: 0 };
+    this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' ).
+        append( topLeft ).
+        append( bottomRight )
 
-  this.isShowingHandles = false;
+    this.position = { x: 0, y: 0, w: 0, h: 0 };
 
-  var self = this;
+    this.isShowingHandles = false;
 
-  var updateTopLeft = function(ev, x, y) {
-    var endX = self.position.x + self.position.w,
-      endY = self.position.y + self.position.h;
+    $( topLeft ).leftdown((ev) => {
+      ev.preventDefault()
+
+      const x = this.position.x
+      const y = this.position.h
+
+      this.startHighlight( false )
+
+      painter.startDrag(
+          updateTopLeft,
+
+          (ev, x, y) => {
+            updateTopLeft(ev, x, y)
+            this.stopHighlight()
+          }
+      )
+    })
+
+    $( bottomRight ).leftdown((ev) => {
+      ev.preventDefault();
+
+      const width  = this.position.w
+      const height = this.position.h
+
+      this.startHighlight( false );
+
+      painter.startDrag(
+          updateWidthHeight,
+
+          ( ev, x, y ) => {
+            updateWidthHeight(ev, x, y)
+            this.stopHighlight()
+          }
+      )
+    })
+  }
+
+  private updateTopLeft( ev:MouseEvent, x:number, y:number ) {
+    const endX = this.position.x + this.position.w
+    const endY = this.position.y + this.position.h
 
     if ( x > endX ) {
-      x = endX;
+      x = endX
     }
 
     if ( y > endY ) {
-      y = endY;
+      y = endY
     }
 
-    var w = endX - x,
-      h = endY - y;
+    const w = endX - x
+    const h = endY - y
 
-    self.selectArea( x, y, w, h );
-  };
+    this.selectArea( x, y, w, h )
+  }
 
-  $( topLeft ).leftdown( function(ev) {
-    ev.preventDefault();
+  private updateWidthHeight( ev:MouseEvent, x:number, y:number ) {
+    const newW = Math.max( 0, x - this.position.x )
+    const newH = Math.max( 0, y - this.position.y )
 
-    var x = self.position.x,
-      y = self.position.h;
-
-    self.startHighlight( false );
-
-    painter.startDrag(
-        updateTopLeft,
-
-        function(ev, x, y) {
-          updateTopLeft(ev, x, y);
-          self.stopHighlight();
-        }
-    );
-  } );
-
-  var updateWidthHeight = function(ev, x, y) {
-    var newW = Math.max( 0, x - self.position.x ),
-      newH = Math.max( 0, y - self.position.y );
-
-    self.selectArea(
-        self.position.x,
-        self.position.y,
+    this.selectArea(
+        this.position.x,
+        this.position.y,
         newW,
         newH
-    );
-  };
+    )
+  }
 
-  $( bottomRight ).leftdown( function(ev) {
-    ev.preventDefault();
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+    this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom )
+    this.update()
 
-    var width  = self.position.w,
-      height = self.position.h;
+    return this
+  }
 
-    self.startHighlight( false );
+  setCanvasSize( x:number, y:number, w:number, h:number ) {
+    this.viewOverlay.setCanvasSize( x, y, w, h )
 
-    painter.startDrag(
-        updateWidthHeight,
-
-        function(ev, x, y) {
-          updateWidthHeight(ev, x, y)
-          self.stopHighlight();
-        }
-    );
-  } );
-};
-
-Marquee.prototype = {
-  updateViewport: function( canvasX, canvasY, width, height, zoom ) {
-    this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom );
-    this.update();
-
-    return this;
-  },
-
-  setCanvasSize: function( x, y, w, h ) {
-    this.viewOverlay.setCanvasSize( x, y, w, h );
-
-    return this;
-  },
+    return this
+  }
 
   /**
    * Begins displaying the resize handles.
    */
-  showHandles: function() {
-    this.handles.addClass( 'sb_show' );
+  showHandles() {
+    this.topLeftHandle.classListk.add( 'sb_show' )
+    this.bottomRightHandle.classListk.add( 'sb_show' )
 
-    return this;
-  },
+    return this
+  }
 
   /**
    * Hides the resize handles.
    */
-  hideHandles: function() {
-    this.handles.classList.remove( 'sb_show' );
+  hideHandles() {
+    this.topLeftHandle.classListk.remove( 'sb_show' )
+    this.bottomRightHandle.classListk.remove( 'sb_show' )
 
-    return this;
-  },
+    return this
+  }
 
   /**
    * Puts this into highlighting mode.
@@ -2607,56 +1956,56 @@ Marquee.prototype = {
    *
    * @param clear True to clear this when it highlights, false to not. Defaults to true.
    */
-  startHighlight: function( clear ) {
-    this.viewOverlay.addClass( 'sb_highlight' );
+  startHighlight( clear:boolean = true ) {
+    this.viewOverlay.addClass( 'sb_highlight' )
 
-    if ( clear === undefined || clear ) {
-      this.clear();
+    if ( clear ) {
+      this.clear()
     } else {
-      this.viewOverlay.removeClass( 'sb_reposition' );
+      this.viewOverlay.removeClass( 'sb_reposition' )
     }
 
-    return this;
-  },
+    return this
+  }
 
   /**
    * Ends highlighting mode,
    * so the visual highlighting that this marquee
    * shows will now end.
    */
-  stopHighlight: function() {
-    var x = this.position.x,
-      y = this.position.y,
-      w = this.position.w,
-      h = this.position.h;
+  stopHighlight() {
+    const x = this.position.x
+    const y = this.position.y
+    const w = this.position.w
+    const h = this.position.h
 
-    this.viewOverlay.removeClass( 'sb_highlight' );
+    this.viewOverlay.removeClass( 'sb_highlight' )
 
     if (
         x < 0 ||
         y < 0 ||
-        w+x > this.canvas.width  ||
-        h+y > this.canvas.height
+        w+x > this.canvas.getWidth()  ||
+        h+y > this.canvas.getHeight()
     ) {
-      var x2 = Math.max( x, 0 ),
-        y2 = Math.max( y, 0 );
+      const x2 = Math.max( x, 0 )
+      const y2 = Math.max( y, 0 )
 
-      var w2 = Math.min( w+x, this.canvas.width  ) - x2,
-        h2 = Math.min( h+y, this.canvas.height ) - y2;
+      const w2 = Math.min( w+x, this.canvas.width  ) - x2
+      const h2 = Math.min( h+y, this.canvas.height ) - y2
 
-      this.selectArea( x2, y2, w2, h2 );
+      this.selectArea( x2, y2, w2, h2 )
     }
 
     if ( this.hasClipArea() ) {
-      this.canvas.setClip( this.position.x, this.position.y, this.position.w, this.position.h );
+      this.canvas.setClip( this.position.x, this.position.y, this.position.w, this.position.h )
     } else {
-      this.viewOverlay.removeClass('sb_show');
+      this.viewOverlay.removeClass('sb_show')
     }
 
-    return this;
-  },
+    return this
+  }
 
-  hasClipArea: function() {
+  hasClipArea() {
     return ! (
         this.position.w <= 0 ||
         this.position.h <= 0 ||
@@ -2664,8 +2013,8 @@ Marquee.prototype = {
         this.position.y+this.position.h < 0 ||
         this.position.x >= this.canvas.getWidth() ||
         this.position.y >= this.canvas.getHeight()
-    );
-  },
+    )
+  }
 
   /**
    * Selections the region given.
@@ -2673,50 +2022,50 @@ Marquee.prototype = {
    * If the region is outside of the canvas then it is counted
    * as a non-selection.
    */
-  select: function( x, y, x2, y2 ) {
+  select( x:number, y:number, x2:number, y2:number ) {
     return this.selectArea(
         Math.min( x, x2 ),
         Math.min( y, y2 ),
 
         Math.abs( x2-x ),
         Math.abs( y2-y )
-    );
-  },
+    )
+  }
 
-  xy: function( x, y ) {
-    return this.selectArea( x, y, self.position.w, self.position.h );
-  },
+  xy( x:number, y:number ) {
+    return this.selectArea( x, y, this.position.w, this.position.h );
+  }
 
-  selectArea: function( x, y, w, h ) {
+  selectArea( x:number, y:number, w:number, h:number ) {
     // floor all locations
-    this.position.x = x|0,
-    this.position.y = y|0,
-    this.position.w = w|0,
-    this.position.h = h|0;
+    this.position.x = x|0
+    this.position.y = y|0
+    this.position.w = w|0
+    this.position.h = h|0
 
-    return this.update();
-  },
+    return this.update()
+  }
 
   /**
    * Cleares the current selection on the Marquee.
    *
    * This is the same as selection a 0x0 region.
    */
-  clear: function() {
+  clear() {
     if ( this.viewOverlay.hasClass('sb_show') ) {
-      this.select( 0, 0, 0, 0 );
-      this.canvas.removeClip();
-      this.viewOverlay.removeClass( 'sb_reposition' );
+      this.select( 0, 0, 0, 0 )
+      this.canvas.removeClip()
+      this.viewOverlay.removeClass( 'sb_reposition' )
 
-      return this.update();
+      return this.update()
     }
 
-    return this;
-  },
+    return this
+  }
 
-  hasNoSelection: function() {
-    return ( this.position.w === 0 ) && ( this.position.h === 0 ) ;
-  },
+  hasNoSelection() {
+    return ( this.position.w === 0 ) && ( this.position.h === 0 )
+  }
 
   /**
    * Returns an object showing the current selection, in canvas pixels,
@@ -2724,41 +2073,43 @@ Marquee.prototype = {
    *
    * @return null if there is no selection, or an object describing it.
    */
-  getPosition: function() {
-    return this.viewOverlay.hasClass('sb_show') ?
+  getPosition() {
+    const hasSelection = this.viewOverlay.hasClass( 'sb_show' )
+
+    return hasSelection ?
         this.position :
         null ;
-  },
+  }
 
   /**
    * Cases this to hide/show it's self,
    * based on the current selection,
    * and if it is shown it will resize accordingly.
    */
-  update: function() {
+  update() {
     if ( dom.hasClass('sb_highlight' ) ) {
-      this.viewOverlay.addClass('sb_show');
+      this.viewOverlay.addClass('sb_show')
 
       if ( this.hasClipArea() ) {
-        this.viewOverlay.removeClass('sb_outside');
+        this.viewOverlay.removeClass('sb_outside')
       } else {
-        this.viewOverlay.addClass('sb_outside');
+        this.viewOverlay.addClass('sb_outside')
       }
 
       if ( this.hasNoSelection() ) {
-        this.viewOverlay.addClass('sb_temporary_hide');
+        this.viewOverlay.addClass('sb_temporary_hide')
       } else {
-        this.viewOverlay.removeClass('sb_temporary_hide');
+        this.viewOverlay.removeClass('sb_temporary_hide')
       }
     } else if ( this.hasClipArea() ) {
       this.viewOverlay.
           removeClass('sb_outside').
-          addClass('sb_reposition');
+          addClass('sb_reposition')
     } else {
       this.viewOverlay.
           removeClass('sb_outside').
           removeClass('sb_reposition').
-          removeClass('sb_show');
+          removeClass('sb_show')
     }
 
     /*
@@ -2772,12 +2123,19 @@ Marquee.prototype = {
           this.position.y,
           this.position.w,
           this.position.h
-      );
+      )
     }
 
-    return this;
+    return this
   }
-};
+}
+
+export interface Rectangle {
+  x : number ;
+  y : number ;
+  w : number ;
+  h : number ;
+}
 
 /**
  * The copy manager is simply some logic bound together
@@ -2796,137 +2154,141 @@ Marquee.prototype = {
  * @private
  * @constructor
  */
-var CopyManager = function( viewport ) {
-  this.viewOverlay = new ViewOverlay( viewport, 'skybrush_copy' )
+export class CopyManager {
+  constructor( viewport:HTMLElement ) {
+    this.viewOverlay = new ViewOverlay( viewport, 'skybrush_copy' )
 
-  this.copy = null
+    this.copy = null
 
-  this.copyX = 0
-  this.copyY = 0
+    this.copyX = 0
+    this.copyY = 0
 
-  /*
-   * When these two are not undefined,
-   * then we no longer in 'paste' mode.
-   */
-  this.pasteX = 0
-  this.pasteY = 0
-  this.isPastingFlag = false
-};
+    /*
+     * When these two are not undefined,
+     * then we no longer in 'paste' mode.
+     */
+    this.pasteX = 0
+    this.pasteY = 0
+    this.isPastingFlag = false
+  }
 
-CopyManager.prototype = {
-  updateViewport: function( canvasX, canvasY, width, height, zoom ) {
-    this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom );
-    this.update();
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+    this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom )
+    this.update()
 
-    return this;
-  },
+    return this
+  }
 
-  setCanvasSize: function( x, y, w, h ) {
-    this.viewOverlay.setCanvasSize( x, y, w, h );
+  setCanvasSize( x:number, y:number, w:number, h:number ) {
+    this.viewOverlay.setCanvasSize( x, y, w, h )
 
-    return this;
-  },
+    return this
+  }
 
-  update: function() {
+  update() {
     if ( this.isPasting() ) {
       this.setCanvasSize(
           this.pasteX    , this.pasteY     ,
           this.copy.width, this.copy.height
-      );
+      )
     }
-  },
+  }
 
-  draw: function( dest ) {
-    dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY );
+  draw( dest:HTMLCanvasElement ) {
+    dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY )
 
-    return this;
-  },
+    return this
+  }
 
-  isPasting: function() {
-    return this.isPastingFlag;
-  },
+  isPasting() {
+    return this.isPastingFlag
+  }
 
-  startPaste: function( dest ) {
+  startPaste( dest:HTMLCanvasElement ) {
     if ( this.copy !== null ) {
-      this.pasteX = this.pasteY = 0;
-      this.isPastingFlag = true;
+      this.pasteX = this.pasteY = 0
+      this.isPastingFlag = true
       this.viewOverlay.addClass( 'sb_show' )
 
       return this.movePaste( dest, this.copyX, this.copyY, true )
     }
-  },
+  }
 
-  movePaste: function( dest, x, y, finalize ) {
+  movePaste( dest:HTMLCanvasElement, x:number, y:number, finalize:boolean ) {
     if ( this.isPasting() ) {
-      x = (this.pasteX + (x || 0)) | 0,
-      y = (this.pasteY + (y || 0)) | 0;
+      x = (this.pasteX + (x || 0)) | 0
+      y = (this.pasteY + (y || 0)) | 0
 
-      dest.ctx.clearRect( 0, 0, dest.width, dest.height );
-      dest.ctx.drawImage( this.copy, x, y );
-      this.setCanvasSize( x, y, this.copy.width, this.copy.height );
+      dest.ctx.clearRect( 0, 0, dest.width, dest.height )
+      dest.ctx.drawImage( this.copy, x, y )
+      this.setCanvasSize( x, y, this.copy.width, this.copy.height )
 
       if ( finalize ) {
-        this.pasteX = x;
-        this.pasteY = y;
+        this.pasteX = x
+        this.pasteY = y
       }
     }
 
-    return this;
-  },
+    return this
+  }
 
-  setCopy: function( canvas, x, y, w, h ) {
+  setCopy( canvas:HTMLCanvasElement, x:number, y:number, w:number, h:number ) {
     if ( x === undefined ) {
-      x = 0,
-      y = 0,
-      w = canvas.width,
-      h = canvas.height;
+      x = 0
+      y = 0
+      w = canvas.width
+      h = canvas.height
+
     } else {
-      w = Math.min( w, canvas.width  ),
-      h = Math.min( h, canvas.height );
+      w = Math.min( w, canvas.width  )
+      h = Math.min( h, canvas.height )
     }
 
     if ( this.copy === null ) {
-      this.copy = newCanvas( w, h );
+      this.copy = newCanvas( w, h )
+
     } else {
-      this.copy.width  = w,
-      this.copy.height = h;
+      this.copy.width  = w
+      this.copy.height = h
     }
 
-    this.copy.ctx.drawImage( canvas, -x, -y );
-    this.copyX = x,
-    this.copyY = y;
+    this.copy.ctx.drawImage( canvas, -x, -y )
+    this.copyX = x
+    this.copyY = y
 
-    return this;
-  },
+    return this
+  }
 
-  overlapsPaste: function( area ) {
+  overlapsPaste( area:Rectangle ) {
     if ( this.isPasting() ) {
-      var x = this.pasteX,
-        y = this.pasteY,
-        w = this.copy.width,
-        h = this.copy.height;
+      const x = this.pasteX
+      const y = this.pasteY
+      const w = this.copy.width
+      const h = this.copy.height
 
-      return ! (
+      const isOutsideArea = (
           x > area.x+area.w ||
           y > area.y+area.h ||
           x+w < area.x ||
           y+h < area.y
-      );
+      )
+
+      return ! isOutsideArea
     }
 
-    return false;
-  },
+    return false
+  }
 
   /**
    * Cleares this from being in pasting mode.
    */
-  endPaste: function() {
-    this.isPastingFlag = false;
-    this.viewOverlay.removeClass( 'sb_show' );
+  endPaste() {
+    this.isPastingFlag = false
+    this.viewOverlay.removeClass( 'sb_show' )
 
-    return this;
+    return this
   }
-};
+}
 
 /**
  * This is a fat prototype that manages the whole canvas stack.
@@ -2963,1997 +2325,1891 @@ CopyManager.prototype = {
  * the properties set to the context is consistent. For example,
  * ensuring the current canvas 2D context is using the current colour.
  */
-var CanvasManager = function( viewport, painter ) {
-  /*
-   * Canvas HTML Elements
-   *
-   * Create and add, the actual bits that make up the canvas.
-   * The canvas it's self, the overlay, and the upscale.
-   */
+export class CanvasManager {
+  constructor( viewport:HTMLElement, painter:SkyBrush ) {
+    /*
+     * Canvas HTML Elements
+     *
+     * Create and add, the actual bits that make up the canvas.
+     * The canvas it's self, the overlay, and the upscale.
+     */
 
-  const canvas  = newCanvas();
-  const overlay = newCanvas();
-  const upscale = newCanvas();
+    const canvas  = newCanvas();
+    const overlay = newCanvas();
+    const upscale = newCanvas();
 
-  canvas.classList.add(  'skybrush_canvas_draw'    )
-  overlay.classList.add( 'skybrush_canvas_overlay' )
-  upscale.classList.add( 'skybrush_canvas_upscale' )
+    canvas.classList.add(  'skybrush_canvas_draw'    )
+    overlay.classList.add( 'skybrush_canvas_overlay' )
+    upscale.classList.add( 'skybrush_canvas_upscale' )
 
-  viewport.innerHTML = ''
-  viewport.appendChild( canvas  )
-  viewport.appendChild( overlay )
-  viewport.appendChild( upscale )
+    viewport.innerHTML = ''
+    viewport.appendChild( canvas  )
+    viewport.appendChild( overlay )
+    viewport.appendChild( upscale )
 
-  this.viewport = viewport;
+    this.viewport = viewport;
 
-  this.canvas   = canvas;
-  this.overlay  = overlay;
-  this.upscale  = upscale;
+    this.canvas   = canvas;
+    this.overlay  = overlay;
+    this.upscale  = upscale;
 
-  this.events = new events.Handler( this );
-  this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY );
-  this.clipping = null;
+    this.events = new events.Handler( this );
+    this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY );
+    this.clipping = null;
 
-  this.isUpscaleShown = false;
+    this.isUpscaleShown = false;
+
+    /**
+     * For lazy calls to updateCanvasSize, this will skip multiple calls in
+     * a row that occur, if updateCanvasSize has not yet been called.
+     *
+     * Essentially if you call lazyUpdateCanvasSize 3 times in a row, it'll
+     * only run the once due to this flag.
+     */
+    this.isAwaitingUpdate = null;
+
+    /*
+     * Events
+     *
+     * For when animation has ended,
+     * and disable selections for IE.
+     */
+    if ( $.browser.msie ) {
+      viewport.bind( 'selectstart', function() { return false; } );
+       $canvas.bind( 'selectstart', function() { return false; } );
+      $overlay.bind( 'selectstart', function() { return false; } );
+    }
+
+    this.lazyUpscaleTimeout = null;
+
+    this.width  = this.canvas.width,
+    this.height = this.canvas.height,
+    this.zoom   = 1 ;
+
+    this.undos = new UndoStack( UNDO_STACK_SIZE, this.canvas );
+    this.upscaleWorkers = [];
+    this.upscaleWorkersLength = 0;
+
+    /* Must be added at the end! */
+    viewport.
+        scroll(() => {
+          this.refreshUpscale()
+        })
+
+    /* Prevent Scrolling if we're scrolling using the viewport. */
+    var scrollTop = null;
+    $(window).scroll( function(ev) {
+      if ( scrollTop !== null) {
+        $(window).scrollTop( scrollTop );
+        scrollTop = null;
+      }
+    })
+
+    viewport.scroll( function(ev) {
+      scrollTop = $(window).scrollTop()
+    })
+
+    /*
+     * Ensure the canvas is always centred,
+     * including when the window size has changed.
+     */
+    painter.onResize(() => {
+      this.lazyUpdateCanvasSize()
+    })
+
+    this.grid    = new GridManager( viewport )
+    this.marquee = new Marquee( this, viewport, painter )
+    this.copyObj = new CopyManager( viewport )
+
+    painter.onSetCommand(( command ) => {
+      if ( command.name.toLowerCase() !== 'move' ) {
+        this.drawAndEndPaste()
+      }
+    })
+
+    painter.onSetAlpha(( alpha ) => {
+      if ( this.copyObj.isPasting() ) {
+        this.copyObj.movePaste( this.overlay, 0, 0 )
+      }
+    })
+  }
 
   /**
-   * For lazy calls to updateCanvasSize, this will skip multiple calls in
-   * a row that occur, if updateCanvasSize has not yet been called.
-   *
-   * Essentially if you call lazyUpdateCanvasSize 3 times in a row, it'll
-   * only run the once due to this flag.
+   * @return The current contents of the canvas as an image url.
    */
-  this.isAwaitingUpdate = null;
+  toDataURL( type ) {
+    if ( ! type ) {
+      type = "image/png";
+    }
 
-  /*
-   * Events
-   *
-   * For when animation has ended,
-   * and disable selections for IE.
-   */
-  if ( $.browser.msie ) {
-    viewport.bind( 'selectstart', function() { return false; } );
-     $canvas.bind( 'selectstart', function() { return false; } );
-    $overlay.bind( 'selectstart', function() { return false; } );
+    return this.canvas.toDataURL( type );
   }
 
-  this.lazyUpscaleTimeout = null;
-
-  this.width  = this.canvas.width,
-  this.height = this.canvas.height,
-  this.zoom   = 1 ;
-
-  this.undos = new UndoStack( UNDO_STACK_SIZE, this.canvas );
-  this.upscaleWorkers = [];
-  this.upscaleWorkersLength = 0;
-
-  var self = this;
-
-  /* Must be added at the end! */
-  viewport.
-      scroll( function() {
-        self.refreshUpscale();
-      });
-
-  /* Prevent Scrolling if we're scrolling using the viewport. */
-  var scrollTop = null;
-  $(window).scroll( function(ev) {
-    if ( scrollTop !== null) {
-      $(window).scrollTop( scrollTop );
-      scrollTop = null;
-    }
-  } );
-  viewport.scroll( function(ev) {
-    scrollTop = $(window).scrollTop();
-  } );
-
-  /*
-   * Ensure the canvas is always centred,
-   * including when the window size has changed.
+  /**
+   * @return The marquee manager.
    */
-  painter.onResize( function() {
-    self.lazyUpdateCanvasSize();
-  } );
-
-  this.grid    = new GridManager( viewport );
-  this.marquee = new Marquee( this, viewport, painter );
-  this.copyObj = new CopyManager( viewport );
-
-  painter.onSetCommand( function( command ) {
-    if ( command.name.toLowerCase() !== 'move' ) {
-      self.drawAndEndPaste();
-    }
-  } );
-  painter.onSetAlpha( function( alpha ) {
-    if ( self.copyObj.isPasting() ) {
-      self.copyObj.movePaste( self.overlay, 0, 0 );
-    }
-  } );
-};
-
-/**
- * @return The current contents of the canvas as an image url.
- */
-CanvasManager.prototype.toDataURL = function( type ) {
-  if ( ! type ) {
-    type = "image/png";
+  getMarquee() {
+    return this.marquee;
   }
 
-  return this.canvas.toDataURL( type );
-};
+  /**
+   * @return The GridManager used on this canvas.
+   */
+  getGrid() {
+    return this.grid;
+  }
 
-/**
- * @return The marquee manager.
- */
-CanvasManager.prototype.getMarquee = function() {
-  return this.marquee;
-};
+  hideOverlay() {
+    this.$overlay.hide();
+  }
 
-/**
- * @return The GridManager used on this canvas.
- */
-CanvasManager.prototype.getGrid = function() {
-  return this.grid;
-};
+  /**
+   * Takes an event, and works out where it's clicking in relation
+   * to the canvas. The result is then returned as a JS object,
+   * with 'left' and 'top' referring to the locations.
+   *
+   * @param ev A mouse event to translate.
+   * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
+   */
+  translateLocation(ev) {
+    var pos  = ev.offset( this.$canvas ),
+      zoom = this.zoom ;
 
-CanvasManager.prototype.hideOverlay = function() {
-  this.$overlay.hide();
-};
+    pos.left /= zoom;
+    pos.top  /= zoom;
 
-/**
- * Takes an event, and works out where it's clicking in relation
- * to the canvas. The result is then returned as a JS object,
- * with 'left' and 'top' referring to the locations.
- *
- * @param ev A mouse event to translate.
- * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
- */
-CanvasManager.prototype.translateLocation = function(ev) {
-  var pos  = ev.offset( this.$canvas ),
-    zoom = this.zoom ;
+    return pos;
+  };
 
-  pos.left /= zoom;
-  pos.top  /= zoom;
+  /**
+   * @return The offset of the underlying canvas object.
+   */
+  offset() {
+    return this.$canvas.offset();
+  };
 
-  return pos;
-};
+  onEndDraw( fun ) {
+    this.events.add( 'onDraw', fun );
+  };
 
-/**
- * @return The offset of the underlying canvas object.
- */
-CanvasManager.prototype.offset = function() {
-  return this.$canvas.offset();
-};
+  /**
+   * Called when drawing to the overlay has ended,
+   * so this canvas knows that the drawing command is over.
+   *
+   * This allows this to update it's undo stack,
+   * and perform other post-draw tasks.
+   */
+  endDraw( updateArea ) {
+    if ( updateArea ) {
+      var refresh = false,
+        ux, uy, uw, uh;
 
-CanvasManager.prototype.onEndDraw = function( fun ) {
-  this.events.add( 'onDraw', fun );
-};
+      if ( updateArea !== true ) {
+        ux = updateArea.x,
+        uy = updateArea.y;
 
-/**
- * Called when drawing to the overlay has ended,
- * so this canvas knows that the drawing command is over.
- *
- * This allows this to update it's undo stack,
- * and perform other post-draw tasks.
- */
-CanvasManager.prototype.endDraw = function( updateArea ) {
-  if ( updateArea ) {
-    var refresh = false,
-      ux, uy, uw, uh;
+        /*
+         * Supports using both 'w' and 'h' in the update area,
+         * or 'endX' and 'endY'.
+         */
+        if ( updateArea.w !== undefined ) {
+          uw = updateArea.w;
+        } else {
+          uw = updateArea.endX - updateArea.x;
+        }
+        if ( updateArea.h !== undefined ) {
+          uh = updateArea.h;
+        } else {
+          uh = updateArea.endY - updateArea.y;
+        }
 
-    if ( updateArea !== true ) {
-      ux = updateArea.x,
-      uy = updateArea.y;
+        // if we are updating outside the canvas, leave early
+        if (
+            ux+uw < 0 || uy+uh < 0 ||
+            ux > this.width || uy > this.height
+        ) {
+          return false;
+        } else {
+          /*
+          * No point refreshing outside of the clipping area,
+          * or if drawing too place outside the clipping area.
+          *
+          * So we quit early if either has happened.
+          *
+          * If drawing has taken place in the clipping,
+          * then we also work out the smallest update area.
+          */
+          var clip = this.clipping;
+          if ( clip !== null ) {
+            if (
+                ux > clip.x + clip.w ||
+                uy > clip.y + clip.h ||
+                ux+uw < clip.x ||
+                uy+uh < clip.y
+            ) {
+              return false;
+            } else {
+              ux = Math.max( ux, clip.x );
+              uy = Math.max( uy, clip.y );
+              uw = Math.min( uw, clip.w );
+              uh = Math.min( uh, clip.h );
+            }
+          }
+
+          refresh = true;
+        }
+      }
+
+      this.drawSafeAlpha(() => {
+        this.canvas.ctx.drawImage( this.overlay, 0, 0 )
+      })
+
+      this.overlay.ctx.clearRect( 0, 0, this.overlay.width, this.overlay.height )
+
+      if ( refresh ) {
+        this.redrawUpscale( ux, uy, uw, uh )
+      }
+
+      // reshow the overlay, in case a command hid it
+      this.$overlay.show()
+
+      this.undos.add( this.canvas )
+
+      // finally, run the events!
+      this.events.run( 'onDraw' )
+    }
+  }
+
+  getWidth() {
+    return this.width
+  }
+
+  getHeight() {
+    return this.height;
+  };
+
+  /**
+   * @return The Zoom value.
+   */
+  getZoom() {
+    return this.zoom;
+  };
+
+  /**
+   * Changes the zoom to match.
+   */
+  setZoom( zoom, x, y ) {
+    this.zoom = zoom;
+
+    this.updateCanvasSize( x, y );
+  };
+
+  /**
+   * This is a lazy version of 'updateCanvasSize'. This will not be called
+   * straight away, but instead delayed and called in the future.
+   *
+   * Not that multiple calls performed in a row will be ignored, if it didn't
+   * actually run yet. It will only call once for each time it is called
+   * multiple times.
+   */
+  lazyUpdateCanvasSize() {
+    if ( ! this.isAwaitingUpdate !== null ) {
+      clearTimeout( this.isAwaitingUpdate )
+    }
+
+    this.isAwaitingUpdate = setTimeout(() => {
+      this.isAwaitingUpdate = null;
+
+      this.updateCanvasSize()
+    }, CANVAS_LAZY_REFLOW_DELAY )
+
+    return this
+  }
+
+  /**
+   * Resizes and moves around the canvas, overlay, viewport, and the upscale.
+   * It essentially resets the layout, based on the current size and zoom settings.
+   *
+   * The idea is that you can alter the setup, and then just call this to
+   * refresh the layout, so your changes get implemented.
+   *
+   * This strategy is used because the layout is based on both size and zoom;
+   * these two properties are connected here.
+   *
+   * The zoomX/zoomY should be in the range of the actual drawing canvas.
+   * The idea is that they are the location where someone has clicked,
+   * using a command, which has all it's locations normalized.
+   *
+   * To use zoomX and zoomY, _both_ must be provided. If you don't want
+   * a zoomY, then just pass in 0 for it.
+   *
+   * @param zoomX Optional, an x location to zoom in/out of.
+   * @param zoomY Optional, a y location to zoom in/out of.
+   */
+  updateCanvasSize( zoomX, zoomY ) {
+    var zoom     = this.zoom,
+      $canvas  = this.$canvas,
+      $overlay = this.$overlay,
+      viewport = this.viewport,
+      upscale  = this.upscale;
+
+    var newWidth   = Math.round( this.width  * zoom ),
+      newHeight  = Math.round( this.height * zoom );
+
+    var canvasParent = $canvas.parent();
+
+    var moveX = (canvasParent.width()  - newWidth )/2,
+      moveY = (canvasParent.height() - newHeight)/2;
+
+    var canvasX = ( moveX >= 0 ?  moveX : 0 ),
+      canvasY = ( moveY >= 0 ?  moveY : 0 );
+
+    var left = (canvasX+0.5)|0,
+      top  = (canvasY+0.5)|0;
+
+    /* Work out, and animate, the scroll change */
+
+    var hasScrollLeft = viewport.scrollLeftAvailable(),
+      hasScrollTop  = viewport.scrollTopAvailable();
+
+    var zoomOffsetX = 0,
+      zoomOffsetY = 0;
+
+    if (
+        zoomX !== undefined &&
+        zoomX !== false &&
+        hasScrollLeft
+    ) {
+      /*
+       * A value from 0.0 to 1.0, representing the zoom location.
+       */
+      var zoomXP;
 
       /*
-       * Supports using both 'w' and 'h' in the update area,
-       * or 'endX' and 'endY'.
+       * zoom based on a canvas pixel location,
+       * or just use the center of the canvas.
        */
-      if ( updateArea.w !== undefined ) {
-        uw = updateArea.w;
+      var zoomXP = ( zoomX !== true ) ?
+          zoomX / this.width :
+          0.5 ;
+
+      // and then convert from: [0.0, 1.0] to [-1.0, 1.0]
+      zoomXP = zoomXP*2 - 1;
+
+      /*
+       * Divide newWidth by half, so that when it's multiplied against zoomXP,
+       * we are in the range of: [-newWidth/2, newWidth/2].
+       *
+       * This way it'll scroll left when zoomXP is negative, and right
+       * when it's positive.
+       *
+       * newWidth is divided again, making it newWidth/4, as the scrolling is
+       * too extreme.
+       */
+      zoomOffsetX = (newWidth/4) * zoomXP;
+    }
+
+    // and now for the zoom Y
+    if (
+        zoomY !== undefined &&
+        zoomY !== false &&
+        hasScrollTop
+    ) {
+      var zoomYP = ( zoomY !== true ) ?
+          zoomY / this.height :
+          0.5 ;
+
+      zoomYP = zoomYP*2 - 1;
+
+      zoomOffsetY = (newHeight/4) * zoomYP;
+    }
+
+    // If no scroll bar right now, try to scroll to the middle (doesn't matter if it fails).
+    var scrollTopP  = ( hasScrollTop  === 0 ) ? 0.5 : viewport.scrollTopPercent(),
+      scrollLeftP = ( hasScrollLeft === 0 ) ? 0.5 : viewport.scrollLeftPercent();
+
+    var heightChange = newHeight / $canvas.height(),
+      widthChange  = newHeight / $canvas.height();
+
+    var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
+      scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
+
+    /*
+     * Now apply the changes.
+     *
+     * We do it here, so it doesn't affect the calculations above.
+     */
+
+    $canvas.
+        width( newWidth ).
+        height( newHeight ).
+        translate( left, top );
+    $overlay.
+        width( newWidth ).
+        height( newHeight ).
+        translate( left, top );
+
+    this.refreshUpscale();
+
+    viewport.clearQueue().animate(
+        {
+            scrollTop  : scrollTop,
+            scrollLeft : scrollLeft
+        },
+        CANVAS_UPDATE_SPEED
+    );
+
+    var viewWidth  = Math.min( newWidth , viewport.width()  ),
+      viewHeight = Math.min( newHeight, viewport.height() );
+    this.grid.   updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
+    this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
+    this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
+
+    if ( this.isAwaitingUpdate !== null ) {
+      clearTimeout( this.isAwaitingUpdate );
+
+      this.isAwaitingUpdate = null;
+    }
+  };
+
+  /**
+   * Cleares all of the future upscale refresh jobs to perform.
+   */
+  clearUpscaleWorkers() {
+    for ( let i = 0; i < this.upscaleWorkersLength; i++ ) {
+      cancelAnimationFrame( this.upscaleWorkers[i] )
+      this.upscaleWorkers[i] = null
+    }
+
+    this.upscaleWorkersLength = 0
+  }
+
+  /**
+   * Adds redrawUpscale jobs to be performed in the future.
+   */
+  futureRedrawUpscale( x:number, y:number, w:number, h:number, includeOverlay:boolean ) {
+    this.upscaleWorkers[ this.upscaleWorkersLength++ ] =
+        requestAnimationFrame(() => {
+          this.redrawUpscale( x, y, w, h, includeOverlay )
+        })
+  }
+
+  /**
+   * Hides the upscale, and then redisplays it in the future.
+   *
+   * The idea is pretty simple, redrawing the upscale takes a
+   * lot of time. So if we are zooming or scrolling, you don't
+   * want to do this constantly. This aims to solve that problem
+   * by updating in the future, once the scrolling has stopped.
+   *
+   * Repeat calls will cause previous ones to be cancelled.
+   */
+  /* This uses 'setTimeout' as scrolling/zooming wouldn't be fully finished
+   * when it gets called. This allows us to have a delay for full reflow.
+   *
+   * It also allows us to cancel the action, if it's already running.
+   * For example so people can scroll continously, without having to
+   * have it re-upscale constantly as they do this.
+   *
+   * Another example is that when you zoom in, it'll also scroll, to
+   * position the upscale canvas. One of these will automatically be
+   * cancelled since this will get called twice.
+   */
+  refreshUpscale() {
+    /*
+     * Hide the current upscale.
+     */
+    if ( this.isUpscaleShown ) {
+      this.$upscale.hide();
+      this.clearUpscaleWorkers();
+
+      this.isUpscaleShown = false;
+    }
+
+    /*
+     * The algorithm is to just match the viewarea,
+     * or the canvas, which ever is smaller.
+     */
+    this.showUpscaleEvent.run(() => {
+      this.isUpscaleShown = true;
+
+      const zoom = this.zoom;
+
+      const viewport = this.viewport
+      const canvas   = this.canvas
+      const upscale  = this.upscale
+
+      upscale.classList.remove( 'sb_offscreenX' );
+      upscale.classList.remove( 'sb_offscreenY' );
+
+      /*
+       * First the size.
+       */
+
+      // show the upscale when using positive zoom
+      var scrollSize = viewport.scrollBarSize();
+
+      var viewWidth    = viewport.width()   - scrollSize.right,
+        viewHeight   = viewport.height() - scrollSize.bottom;
+      var canvasWidth  = $canvas.width(),
+        canvasHeight = $canvas.height();
+
+      var upWidth;
+      if ( canvasWidth < viewWidth ) {
+        upWidth = canvasWidth;
       } else {
-        uw = updateArea.endX - updateArea.x;
-      }
-      if ( updateArea.h !== undefined ) {
-        uh = updateArea.h;
-      } else {
-        uh = updateArea.endY - updateArea.y;
+        upWidth = viewWidth;
       }
 
-      // if we are updating outside the canvas, leave early
-      if (
-          ux+uw < 0 || uy+uh < 0 ||
-          ux > this.width || uy > this.height
-      ) {
-        return false;
+      var upHeight;
+      if ( canvasHeight < viewHeight ) {
+        upHeight = canvasHeight;
       } else {
-        /*
-        * No point refreshing outside of the clipping area,
-        * or if drawing too place outside the clipping area.
-        *
-        * So we quit early if either has happened.
-        *
-        * If drawing has taken place in the clipping,
-        * then we also work out the smallest update area.
-        */
-        var clip = this.clipping;
-        if ( clip !== null ) {
-          if (
-              ux > clip.x + clip.w ||
-              uy > clip.y + clip.h ||
-              ux+uw < clip.x ||
-              uy+uh < clip.y
-          ) {
-            return false;
-          } else {
-            ux = Math.max( ux, clip.x );
-            uy = Math.max( uy, clip.y );
-            uw = Math.min( uw, clip.w );
-            uh = Math.min( uh, clip.h );
+        upHeight = viewHeight;
+      }
+
+      upscale.width  = upWidth;
+      upscale.height = upHeight;
+
+      /*
+       * Now the position.
+       */
+
+      var top,
+        left;
+
+      var scrollTop  = viewport.scrollTop(),
+        scrollLeft = viewport.scrollLeft();
+
+      var canvasPos = $canvas.translate();
+      if ( canvasWidth < viewWidth ) {
+        left = canvasPos.x;
+      } else {
+        left = scrollLeft;
+        upscale.classList.add( 'sb_offscreenX' );
+      }
+
+      if ( canvasHeight < viewHeight ) {
+        top = canvasPos.y;
+      } else {
+        top = scrollTop;
+        upscale.classList.add( 'sb_offscreenY' );
+      }
+
+      // Fade in the upscale change.
+      // The double opacity setting is needed to trigger the CSS animation.
+      var position =
+          (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
+          (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
+
+      $upscale.
+          show().
+          css({
+              opacity: 0,
+              'background-position': position
+          }).
+          translate(
+              (left+0.5)|0,
+              (top+0.5)|0
+          );
+
+      requestAnimationFrame(() => {
+        // upscale _after_ making it visible
+        this.redrawUpscale();
+
+        upscale.style.opacity = '1'
+      })
+    } );
+  };
+
+  isPasting() {
+    return this.copyObj.isPasting();
+  };
+
+  isInPaste( x, y ) {
+    return this.copyObj.overlapsPaste({
+        x: x|0,
+        y: y|0,
+        w: 1,
+        h: 1
+    });
+  };
+
+  movePaste( x, y, finalize ) {
+    if ( this.copyObj.isPasting() ) {
+      this.copyObj.movePaste( this.overlay, x, y, finalize );
+    }
+
+    return this;
+  };
+
+  /**
+   * If SkyBrush is currently pasting ...
+   *  - draw the pasting content to the canvas
+   *  - clear the pasting overlay (the bit that shows where it will be pasted)
+   */
+  drawAndEndPaste() {
+    if ( this.copyObj.isPasting() ) {
+      var clip = this.getFullClip();
+
+      if ( this.copyObj.overlapsPaste(clip) ) {
+        this.drawSafe( function() {
+          this.copyObj.draw( this.canvas );
+          this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
+          this.endDraw( clip );
+        } );
+      }
+
+      this.endPaste();
+    }
+
+    return this;
+  };
+
+  paste() {
+    this.drawAndEndPaste();
+    this.copyObj.startPaste( this.overlay );
+    this.events.run( 'onPaste' );
+
+    return this;
+  };
+
+  /**
+   * If SkyBrush is currently pasting ...
+   *  - clears the pasting overlay bit
+   *
+   * Note this *doesn't* draw the paste to the screen; it just ends the
+   * pasting mode.
+   */
+  endPaste() {
+    if ( this.copyObj.isPasting() ) {
+      this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
+      this.copyObj.endPaste();
+    }
+
+    return this;
+  };
+
+  onPaste( fun ) {
+    this.events.add( 'onPaste', fun );
+
+    return this;
+  };
+
+  cut() {
+    var clip = this.getFullClip();
+    this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
+    this.drawSafe( function() {
+        this.canvas.ctx.clearRect( clip.x, clip.y, clip.w, clip.h );
+    } );
+    this.endDraw( clip );
+
+    this.events.run( 'onCopy' );
+    this.marquee.clear();
+
+    return this;
+  };
+
+  copy() {
+    var clip = this.getFullClip();
+
+    this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
+    this.events.run( 'onCopy' );
+    this.marquee.clear();
+
+    return this;
+  };
+
+  onCopy( fun ) {
+    this.events.add( 'onCopy', fun );
+    return this;
+  };
+
+  removeClip() {
+    var ctx     = this.canvas.ctx,
+      overCtx = this.overlay.ctx;
+
+    if ( this.clipping !== null ) {
+      var ctxSetup = backupCtx( ctx );
+      ctx.restore();
+      restoreCtx( ctx, ctxSetup );
+
+      ctxSetup = backupCtx( overCtx );
+      overCtx.restore();
+      restoreCtx( overCtx, ctxSetup );
+
+      this.clipping = null;
+    }
+
+    this.events.run( 'onClip', this.clipping );
+
+    return this;
+  };
+
+  onClip( f ) {
+    this.events.add( 'onClip', f );
+
+    return this;
+  };
+
+  getClip() {
+    return this.clipping;
+  };
+
+  getFullClip() {
+    if ( this.clipping ) {
+      return this.clipping;
+    } else {
+      return {
+          x: 0,
+          y: 0,
+          w: this.width,
+          h: this.height
+      };
+    }
+  };
+
+  setClip(x, y, w, h) {
+    var cCtx = this.canvas.ctx,
+      oCtx = this.overlay.ctx;
+
+    this.removeClip();
+
+    this.clipping = {
+        x: x,
+        y: y,
+        w: w,
+        h: h
+    };
+
+    cCtx.save();
+    cCtx.beginPath();
+    cCtx.rect( x, y, w, h );
+    cCtx.clip();
+
+    oCtx.save();
+    oCtx.beginPath();
+    oCtx.rect( x, y, w, h );
+    oCtx.clip();
+
+    this.events.run( 'onClip', this.clipping );
+
+    return this;
+  };
+
+  /**
+   * Redraws the contents of the upscaled canvas.
+   *
+   * Usagae:
+   *     // redraw all of the viewport
+   *     canvasManager.redrawUpscale();
+   *
+   *     // redraws a dirty rectangle, the area specified, in teh upscale
+   *     canvasManager.redrawUpscale( x, y, w, h );
+   *
+   * Note: the location is the area on the target drawing canvas,
+   * where items are drawn to. Not the area on the upscale canvas.
+   *
+   * @param x
+   * @param y
+   * @param w
+   * @param h
+   * @param Optional, extra pixels to add on to the x, y, w and h.
+   */
+  redrawUpscale( x, y, w, h, includeOverlay, buffer ) {
+    if ( Math.abs(w) < 1 ) {
+      if ( w < 1 ) {
+        w = w;
+      } else {
+        w = -1;
+      }
+    }
+
+    if ( Math.abs(h) < 1 ) {
+      if ( h < 1 ) {
+        h = 1;
+      } else {
+        h = -1;
+      }
+    }
+
+    /*
+     * This is to allow easier usage.
+     * So you can update in the negative direction.
+     */
+    if ( w < 0 ) {
+      w = -w;
+      x -= w;
+    }
+
+    if ( h < 0 ) {
+      h = -h;
+      y -= h;
+    }
+
+    if ( buffer !== undefined ) {
+      x -= buffer;
+      y -= buffer;
+      h += buffer*2;
+      w += buffer*2;
+    }
+
+    /*
+     * After handling the buffer, and other possible values,
+     * if the width/height are empty, then quit early.
+     */
+    if ( w === 0 || h === 0 ) {
+      return false;
+    }
+
+    var $canvas  = this.$canvas,
+      canvas   = this.canvas,
+      $upscale = this.$upscale,
+      upscale  = this.upscale,
+      viewport = this.viewport;
+
+    var zoom = this.zoom;
+
+    // 1) handle the no-args version (update whole screen)
+    if ( x === undefined ) {
+      /*
+       * The maths for this bit proved to be really difficult to work out.
+       * It would be out by just a couple of sub-pixels (no idea why).
+       *
+       * So we just fake a draw event (drawing to top left corner),
+       * and it's drawing to the whole canvas (full with/height).
+       */
+      var pos = this.viewport.offset();
+      var fakeEv = $.Event( 'mousemove', {
+          pageX : pos.left,
+          pageY : pos.top
+      });
+
+      var location = this.translateLocation( fakeEv );
+
+      x = location.left;
+      y = location.top;
+      w = this.width;
+      h = this.height;
+    }
+
+    // take off 1 to account for the canvas border
+    var scrollTop  = this.viewport.scrollTop(),
+      scrollLeft = this.viewport.scrollLeft();
+
+    // 2) work out how much of the drawing canvas is actually visible
+    x = Math.max( x,
+        scrollLeft / zoom
+    );
+    y = Math.max( y,
+        scrollTop / zoom
+    );
+    w = Math.min( w,
+        Math.min(canvas.width , this.viewport.width()/zoom )
+    );
+    h = Math.min( h,
+        Math.min(canvas.height, this.viewport.height()/zoom )
+    );
+
+    /* Check for updating outside of the canvas,
+     * and if so, we leave early (no refresh needed).
+     */
+    if ( x+w < 0 || y+h < 0 || x > this.canvas.width || y > this.canvas.height ) {
+      return false;
+    }
+
+    /* Need to be rounded for the canvas data we access later. */
+    x = Math.round(x);
+    y = Math.round(y);
+
+    w = Math.round(w);
+    h = Math.round(h);
+
+    /*
+     * Widen the draw area by a pixel to encompas the outer edge,
+     * this is to prevent slight 1px gaps along the edges of the upscale canvas.
+     */
+
+    if ( x > 0 ) {
+      x--;
+    }
+
+    if ( y > 0 ) {
+      y--;
+    }
+
+    var wDiff = Math.min( 1, canvas.width  - w ),
+      hDiff = Math.min( 1, canvas.height - h );
+
+    w += wDiff;
+    h += hDiff;
+
+    // 3) work out the same locations, on the upscale canvas
+    var ux, uy, uw, uh ;
+
+    ux = x*zoom - scrollLeft;
+    uy = y*zoom - scrollTop;
+    uw = w*zoom;
+    uh = h*zoom;
+
+    // clear our refresh area
+    var ctx = canvas.ctx,
+      destAlpha = ( ctx.globalCompositeOperation == 'source-atop' ),
+      uCtx = upscale.ctx;
+
+    /*
+     * This can go one of three ways:
+     *  = draw using downscaling (zoom is 100%, or lower)
+     *  = draw cheap (using canvas scaling) and sub-divide work
+     *  = manually upscale pixels
+     */
+
+    var divideWork = (w*h) > ((UPSCALE_DIVIDE_AREA+6)*(UPSCALE_DIVIDE_AREA+6));
+
+    if ( divideWork || zoom <= 1 ) {
+      var xDiff = Math.max( 0, (x+w) - canvas.width  ),
+        yDiff = Math.max( 0, (y+h) - canvas.height );
+
+      var ux2 = Math.round(ux),
+        uy2 = Math.round(uy),
+        uw2 = Math.round(uw - xDiff*zoom),
+        uh2 = Math.round(uh - yDiff*zoom);
+
+      // if we clip the edge,
+      // then clamp the max width/height onto the edges
+      // (otherwise Chrome crashes)
+      if ( x+w > canvas.width ) {
+        w -= (x+w) - canvas.width;
+        uw2 = upscale.width - ux2;
+      }
+      if ( y+h > canvas.height ) {
+        h -= (y+h) - canvas.height;
+        uh2 = upscale.height - uy2;
+      }
+
+      /*
+       * Note that the zoom _must_ be first,
+       * so it takes precendence over dividing work
+       * (as it's much cheaper).
+       */
+      /*
+       * If zoom is at 1, then there is no change in scaing.
+       * So we just draw normally, and quit.
+       */
+      if ( zoom <= 1 ) {
+        uCtx.clearRect( ux2, uy2, uw2, uh2 );
+
+        uCtx.globalAlpha = 1.0;
+        uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+        if ( includeOverlay ) {
+          if ( destAlpha ) {
+            uCtx.globalCompositeOperation = 'source-atop';
+          }
+
+          uCtx.drawImage( this.overlay, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+          if ( destAlpha ) {
+            uCtx.globalCompositeOperation = 'source-over';
           }
         }
 
-        refresh = true;
+      /*
+       * Sub divide up work if we'll be doing loads of it.
+       * Instead the work is done over multiple calls.
+       */
+      } else if ( divideWork ) {
+        // cheap draw, so we don't get huge empty areas
+        uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
+
+        for ( var i = x; i < (w+x); i += UPSCALE_DIVIDE_AREA ) {
+          for ( var j = y; j < (h+y); j += UPSCALE_DIVIDE_AREA ) {
+            var updateW = Math.min( (w+x)-i, UPSCALE_DIVIDE_AREA ),
+              updateH = Math.min( (h+y)-j, UPSCALE_DIVIDE_AREA );
+
+            this.futureRedrawUpscale( i, j, updateW, updateH, includeOverlay );
+          }
+        }
       }
-    }
-
-    var self = this;
-    this.drawSafeAlpha( function() {
-        self.canvas.ctx.drawImage( self.overlay, 0, 0 );
-    } );
-
-    this.overlay.ctx.clearRect( 0, 0, this.overlay.width, this.overlay.height );
-
-    if ( refresh ) {
-      this.redrawUpscale( ux, uy, uw, uh );
-    }
-
-    // reshow the overlay, in case a command hid it
-    this.$overlay.show();
-
-    this.undos.add( this.canvas );
-
-    // finally, run the events!
-    this.events.run( 'onDraw' );
-  }
-};
-
-CanvasManager.prototype.getWidth = function() {
-  return this.width;
-};
-
-CanvasManager.prototype.getHeight = function() {
-  return this.height;
-};
-
-/**
- * @return The Zoom value.
- */
-CanvasManager.prototype.getZoom = function() {
-  return this.zoom;
-};
-
-/**
- * Changes the zoom to match.
- */
-CanvasManager.prototype.setZoom = function( zoom, x, y ) {
-  this.zoom = zoom;
-
-  this.updateCanvasSize( x, y );
-};
-
-/**
- * This is a lazy version of 'updateCanvasSize'. This will not be called
- * straight away, but instead delayed and called in the future.
- *
- * Not that multiple calls performed in a row will be ignored, if it didn't
- * actually run yet. It will only call once for each time it is called
- * multiple times.
- */
-CanvasManager.prototype.lazyUpdateCanvasSize = function() {
-  if ( ! this.isAwaitingUpdate !== null ) {
-    clearTimeout( this.isAwaitingUpdate );
-  }
-
-  var self = this;
-  this.isAwaitingUpdate = setTimeout(function() {
-    this.isAwaitingUpdate = null;
-
-    self.updateCanvasSize();
-  }, CANVAS_LAZY_REFLOW_DELAY );
-
-  return this;
-}
-
-/**
- * Resizes and moves around the canvas, overlay, viewport, and the upscale.
- * It essentially resets the layout, based on the current size and zoom settings.
- *
- * The idea is that you can alter the setup, and then just call this to
- * refresh the layout, so your changes get implemented.
- *
- * This strategy is used because the layout is based on both size and zoom;
- * these two properties are connected here.
- *
- * The zoomX/zoomY should be in the range of the actual drawing canvas.
- * The idea is that they are the location where someone has clicked,
- * using a command, which has all it's locations normalized.
- *
- * To use zoomX and zoomY, _both_ must be provided. If you don't want
- * a zoomY, then just pass in 0 for it.
- *
- * @param zoomX Optional, an x location to zoom in/out of.
- * @param zoomY Optional, a y location to zoom in/out of.
- */
-CanvasManager.prototype.updateCanvasSize = function( zoomX, zoomY ) {
-  var zoom     = this.zoom,
-    $canvas  = this.$canvas,
-    $overlay = this.$overlay,
-    viewport = this.viewport,
-    upscale  = this.upscale;
-
-  var newWidth   = Math.round( this.width  * zoom ),
-    newHeight  = Math.round( this.height * zoom );
-
-  var canvasParent = $canvas.parent();
-
-  var moveX = (canvasParent.width()  - newWidth )/2,
-    moveY = (canvasParent.height() - newHeight)/2;
-
-  var canvasX = ( moveX >= 0 ?  moveX : 0 ),
-    canvasY = ( moveY >= 0 ?  moveY : 0 );
-
-  var left = (canvasX+0.5)|0,
-    top  = (canvasY+0.5)|0;
-
-  /* Work out, and animate, the scroll change */
-
-  var hasScrollLeft = viewport.scrollLeftAvailable(),
-    hasScrollTop  = viewport.scrollTopAvailable();
-
-  var zoomOffsetX = 0,
-    zoomOffsetY = 0;
-
-  if (
-      zoomX !== undefined &&
-      zoomX !== false &&
-      hasScrollLeft
-  ) {
-    /*
-     * A value from 0.0 to 1.0, representing the zoom location.
-     */
-    var zoomXP;
-
-    /*
-     * zoom based on a canvas pixel location,
-     * or just use the center of the canvas.
-     */
-    var zoomXP = ( zoomX !== true ) ?
-        zoomX / this.width :
-        0.5 ;
-
-    // and then convert from: [0.0, 1.0] to [-1.0, 1.0]
-    zoomXP = zoomXP*2 - 1;
-
-    /*
-     * Divide newWidth by half, so that when it's multiplied against zoomXP,
-     * we are in the range of: [-newWidth/2, newWidth/2].
-     *
-     * This way it'll scroll left when zoomXP is negative, and right
-     * when it's positive.
-     *
-     * newWidth is divided again, making it newWidth/4, as the scrolling is
-     * too extreme.
-     */
-    zoomOffsetX = (newWidth/4) * zoomXP;
-  }
-
-  // and now for the zoom Y
-  if (
-      zoomY !== undefined &&
-      zoomY !== false &&
-      hasScrollTop
-  ) {
-    var zoomYP = ( zoomY !== true ) ?
-        zoomY / this.height :
-        0.5 ;
-
-    zoomYP = zoomYP*2 - 1;
-
-    zoomOffsetY = (newHeight/4) * zoomYP;
-  }
-
-  // If no scroll bar right now, try to scroll to the middle (doesn't matter if it fails).
-  var scrollTopP  = ( hasScrollTop  === 0 ) ? 0.5 : viewport.scrollTopPercent(),
-    scrollLeftP = ( hasScrollLeft === 0 ) ? 0.5 : viewport.scrollLeftPercent();
-
-  var heightChange = newHeight / $canvas.height(),
-    widthChange  = newHeight / $canvas.height();
-
-  var scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY,
-    scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX;
-
-  /*
-   * Now apply the changes.
-   *
-   * We do it here, so it doesn't affect the calculations above.
-   */
-
-  $canvas.
-      width( newWidth ).
-      height( newHeight ).
-      translate( left, top );
-  $overlay.
-      width( newWidth ).
-      height( newHeight ).
-      translate( left, top );
-
-  this.refreshUpscale();
-
-  viewport.clearQueue().animate(
-      {
-          scrollTop  : scrollTop,
-          scrollLeft : scrollLeft
-      },
-      CANVAS_UPDATE_SPEED
-  );
-
-  var viewWidth  = Math.min( newWidth , viewport.width()  ),
-    viewHeight = Math.min( newHeight, viewport.height() );
-  this.grid.   updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
-  this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
-  this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom );
-
-  if ( this.isAwaitingUpdate !== null ) {
-    clearTimeout( this.isAwaitingUpdate );
-
-    this.isAwaitingUpdate = null;
-  }
-};
-
-/**
- * Cleares all of the future upscale refresh jobs to perform.
- */
-CanvasManager.prototype.clearUpscaleWorkers = function() {
-  for ( var i = 0; i < this.upscaleWorkersLength; i++ ) {
-    clearTimeout( this.upscaleWorkers[i] );
-    this.upscaleWorkers[i] = null;
-  }
-
-  this.upscaleWorkersLength = 0;
-};
-
-/**
- * Adds redrawUpscale jobs to be performed in the future.
- */
-CanvasManager.prototype.futureRedrawUpscale = function( x, y, w, h, includeOverlay ) {
-  var self = this;
-  this.upscaleWorkers[ this.upscaleWorkersLength++ ] =
-      setTimeout( function() {
-        self.redrawUpscale( x, y, w, h, includeOverlay );
-      }, 10 );
-};
-
-/**
- * Hides the upscale, and then redisplays it in the future.
- *
- * The idea is pretty simple, redrawing the upscale takes a
- * lot of time. So if we are zooming or scrolling, you don't
- * want to do this constantly. This aims to solve that problem
- * by updating in the future, once the scrolling has stopped.
- *
- * Repeat calls will cause previous ones to be cancelled.
- */
-/* This uses 'setTimeout' as scrolling/zooming wouldn't be fully finished
- * when it gets called. This allows us to have a delay for full reflow.
- *
- * It also allows us to cancel the action, if it's already running.
- * For example so people can scroll continously, without having to
- * have it re-upscale constantly as they do this.
- *
- * Another example is that when you zoom in, it'll also scroll, to
- * position the upscale canvas. One of these will automatically be
- * cancelled since this will get called twice.
- */
-CanvasManager.prototype.refreshUpscale = function() {
-  /*
-   * Hide the current upscale.
-   */
-  if ( this.isUpscaleShown ) {
-    this.$upscale.hide();
-    this.clearUpscaleWorkers();
-
-    this.isUpscaleShown = false;
-  }
-
-  /*
-   * The algorithm is to just match the viewarea,
-   * or the canvas, which ever is smaller.
-   */
-  this.showUpscaleEvent.run(() => {
-    this.isUpscaleShown = true;
-
-    const zoom = this.zoom;
-
-    const viewport = this.viewport
-    const canvas   = this.canvas
-    const upscale  = this.upscale
-
-    upscale.classList.remove( 'sb_offscreenX' );
-    upscale.classList.remove( 'sb_offscreenY' );
-
-    /*
-     * First the size.
-     */
-
-    // show the upscale when using positive zoom
-    var scrollSize = viewport.scrollBarSize();
-
-    var viewWidth    = viewport.width()   - scrollSize.right,
-      viewHeight   = viewport.height() - scrollSize.bottom;
-    var canvasWidth  = $canvas.width(),
-      canvasHeight = $canvas.height();
-
-    var upWidth;
-    if ( canvasWidth < viewWidth ) {
-      upWidth = canvasWidth;
     } else {
-      upWidth = viewWidth;
+      // 5) draw!
+      copyNearestNeighbour(
+          upscale,                        // dest
+          ux, uy, uw, uh,                 // dest x, y, w, h
+          zoom, zoom,                     // dest pixel size
+
+          ctx.getImageData(x, y, w, h),   // src
+          x, y, w, h,                     // src  x, y, w, h
+          includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : null,
+
+          ( ctx.globalCompositeOperation == 'source-atop' ) // bitmask pixels
+      );
     }
 
-    var upHeight;
-    if ( canvasHeight < viewHeight ) {
-      upHeight = canvasHeight;
-    } else {
-      upHeight = viewHeight;
-    }
-
-    upscale.width  = upWidth;
-    upscale.height = upHeight;
-
-    /*
-     * Now the position.
-     */
-
-    var top,
-      left;
-
-    var scrollTop  = viewport.scrollTop(),
-      scrollLeft = viewport.scrollLeft();
-
-    var canvasPos = $canvas.translate();
-    if ( canvasWidth < viewWidth ) {
-      left = canvasPos.x;
-    } else {
-      left = scrollLeft;
-      upscale.classList.add( 'sb_offscreenX' );
-    }
-
-    if ( canvasHeight < viewHeight ) {
-      top = canvasPos.y;
-    } else {
-      top = scrollTop;
-      upscale.classList.add( 'sb_offscreenY' );
-    }
-
-    // Fade in the upscale change.
-    // The double opacity setting is needed to trigger the CSS animation.
-    var position =
-        (- ( scrollLeft % UPSCALE_BACK_OFFSET_MOD )) + 'px ' +
-        (- ( scrollTop  % UPSCALE_BACK_OFFSET_MOD )) + 'px' ;
-
-    $upscale.
-        show().
-        css({
-            opacity: 0,
-            'background-position': position
-        }).
-        translate(
-            (left+0.5)|0,
-            (top+0.5)|0
-        );
-
-    requestAnimationFrame(() => {
-      // upscale _after_ making it visible
-      this.redrawUpscale();
-
-      upscale.style.opacity = '1'
-    })
-  } );
-};
-
-CanvasManager.prototype.isPasting = function() {
-  return this.copyObj.isPasting();
-};
-
-CanvasManager.prototype.isInPaste = function( x, y ) {
-  return this.copyObj.overlapsPaste({
-      x: x|0,
-      y: y|0,
-      w: 1,
-      h: 1
-  });
-};
-
-CanvasManager.prototype.movePaste = function( x, y, finalize ) {
-  if ( this.copyObj.isPasting() ) {
-    this.copyObj.movePaste( this.overlay, x, y, finalize );
-  }
-
-  return this;
-};
-
-/**
- * If SkyBrush is currently pasting ...
- *  - draw the pasting content to the canvas
- *  - clear the pasting overlay (the bit that shows where it will be pasted)
- */
-CanvasManager.prototype.drawAndEndPaste = function() {
-  if ( this.copyObj.isPasting() ) {
-    var clip = this.getFullClip();
-
-    if ( this.copyObj.overlapsPaste(clip) ) {
-      this.drawSafe( function() {
-        this.copyObj.draw( this.canvas );
-        this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
-        this.endDraw( clip );
-      } );
-    }
-
-    this.endPaste();
-  }
-
-  return this;
-};
-
-CanvasManager.prototype.paste = function() {
-  this.drawAndEndPaste();
-  this.copyObj.startPaste( this.overlay );
-  this.events.run( 'onPaste' );
-
-  return this;
-};
-
-/**
- * If SkyBrush is currently pasting ...
- *  - clears the pasting overlay bit
- *
- * Note this *doesn't* draw the paste to the screen; it just ends the
- * pasting mode.
- */
-CanvasManager.prototype.endPaste = function() {
-  if ( this.copyObj.isPasting() ) {
-    this.overlay.ctx.clearRect( 0, 0, this.width, this.height );
-    this.copyObj.endPaste();
-  }
-
-  return this;
-};
-
-CanvasManager.prototype.onPaste = function( fun ) {
-  this.events.add( 'onPaste', fun );
-
-  return this;
-};
-
-CanvasManager.prototype.cut = function() {
-  var clip = this.getFullClip();
-  this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
-  this.drawSafe( function() {
-      this.canvas.ctx.clearRect( clip.x, clip.y, clip.w, clip.h );
-  } );
-  this.endDraw( clip );
-
-  this.events.run( 'onCopy' );
-  this.marquee.clear();
-
-  return this;
-};
-
-CanvasManager.prototype.copy = function() {
-  var clip = this.getFullClip();
-
-  this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h );
-  this.events.run( 'onCopy' );
-  this.marquee.clear();
-
-  return this;
-};
-
-CanvasManager.prototype.onCopy = function( fun ) {
-  this.events.add( 'onCopy', fun );
-  return this;
-};
-
-CanvasManager.prototype.removeClip = function() {
-  var ctx     = this.canvas.ctx,
-    overCtx = this.overlay.ctx;
-
-  if ( this.clipping !== null ) {
-    var ctxSetup = backupCtx( ctx );
-    ctx.restore();
-    restoreCtx( ctx, ctxSetup );
-
-    ctxSetup = backupCtx( overCtx );
-    overCtx.restore();
-    restoreCtx( overCtx, ctxSetup );
-
-    this.clipping = null;
-  }
-
-  this.events.run( 'onClip', this.clipping );
-
-  return this;
-};
-
-CanvasManager.prototype.onClip = function( f ) {
-  this.events.add( 'onClip', f );
-
-  return this;
-};
-
-CanvasManager.prototype.getClip = function() {
-  return this.clipping;
-};
-
-CanvasManager.prototype.getFullClip = function() {
-  if ( this.clipping ) {
-    return this.clipping;
-  } else {
-    return {
-        x: 0,
-        y: 0,
-        w: this.width,
-        h: this.height
-    };
-  }
-};
-
-CanvasManager.prototype.setClip = function(x, y, w, h) {
-  var cCtx = this.canvas.ctx,
-    oCtx = this.overlay.ctx;
-
-  this.removeClip();
-
-  this.clipping = {
-      x: x,
-      y: y,
-      w: w,
-      h: h
+    return true;
   };
 
-  cCtx.save();
-  cCtx.beginPath();
-  cCtx.rect( x, y, w, h );
-  cCtx.clip();
-
-  oCtx.save();
-  oCtx.beginPath();
-  oCtx.rect( x, y, w, h );
-  oCtx.clip();
-
-  this.events.run( 'onClip', this.clipping );
-
-  return this;
-};
-
-/**
- * Redraws the contents of the upscaled canvas.
- *
- * Usagae:
- *     // redraw all of the viewport
- *     canvasManager.redrawUpscale();
- *
- *     // redraws a dirty rectangle, the area specified, in teh upscale
- *     canvasManager.redrawUpscale( x, y, w, h );
- *
- * Note: the location is the area on the target drawing canvas,
- * where items are drawn to. Not the area on the upscale canvas.
- *
- * @param x
- * @param y
- * @param w
- * @param h
- * @param Optional, extra pixels to add on to the x, y, w and h.
- */
-CanvasManager.prototype.redrawUpscale = function( x, y, w, h, includeOverlay, buffer ) {
-  if ( Math.abs(w) < 1 ) {
-    if ( w < 1 ) {
-      w = w;
-    } else {
-      w = -1;
+  resize( newWidth, newHeight ) {
+    if ( this.setSize( newWidth, newHeight ) ) {
+      this.endDraw( true );
     }
-  }
+  };
 
-  if ( Math.abs(h) < 1 ) {
-    if ( h < 1 ) {
-      h = 1;
-    } else {
-      h = -1;
-    }
-  }
+  scale( newWidth, newHeight, isSmooth ) {
+    if ( newWidth != this.width || newHeight != this.height ) {
+      this.drawAndEndPaste();
 
-  /*
-   * This is to allow easier usage.
-   * So you can update in the negative direction.
-   */
-  if ( w < 0 ) {
-    w = -w;
-    x -= w;
-  }
+      // use existing smoothing
+      if ( isSmooth ) {
+        var temp = newCanvas( newWidth, newHeight );
 
-  if ( h < 0 ) {
-    h = -h;
-    y -= h;
-  }
-
-  if ( buffer !== undefined ) {
-    x -= buffer;
-    y -= buffer;
-    h += buffer*2;
-    w += buffer*2;
-  }
-
-  /*
-   * After handling the buffer, and other possible values,
-   * if the width/height are empty, then quit early.
-   */
-  if ( w === 0 || h === 0 ) {
-    return false;
-  }
-
-  var $canvas  = this.$canvas,
-    canvas   = this.canvas,
-    $upscale = this.$upscale,
-    upscale  = this.upscale,
-    viewport = this.viewport;
-
-  var zoom = this.zoom;
-
-  // 1) handle the no-args version (update whole screen)
-  if ( x === undefined ) {
-    /*
-     * The maths for this bit proved to be really difficult to work out.
-     * It would be out by just a couple of sub-pixels (no idea why).
-     *
-     * So we just fake a draw event (drawing to top left corner),
-     * and it's drawing to the whole canvas (full with/height).
-     */
-    var pos = this.viewport.offset();
-    var fakeEv = $.Event( 'mousemove', {
-        pageX : pos.left,
-        pageY : pos.top
-    });
-
-    var location = this.translateLocation( fakeEv );
-
-    x = location.left;
-    y = location.top;
-    w = this.width;
-    h = this.height;
-  }
-
-  // take off 1 to account for the canvas border
-  var scrollTop  = this.viewport.scrollTop(),
-    scrollLeft = this.viewport.scrollLeft();
-
-  // 2) work out how much of the drawing canvas is actually visible
-  x = Math.max( x,
-      scrollLeft / zoom
-  );
-  y = Math.max( y,
-      scrollTop / zoom
-  );
-  w = Math.min( w,
-      Math.min(canvas.width , this.viewport.width()/zoom )
-  );
-  h = Math.min( h,
-      Math.min(canvas.height, this.viewport.height()/zoom )
-  );
-
-  /* Check for updating outside of the canvas,
-   * and if so, we leave early (no refresh needed).
-   */
-  if ( x+w < 0 || y+h < 0 || x > this.canvas.width || y > this.canvas.height ) {
-    return false;
-  }
-
-  /* Need to be rounded for the canvas data we access later. */
-  x = Math.round(x);
-  y = Math.round(y);
-
-  w = Math.round(w);
-  h = Math.round(h);
-
-  /*
-   * Widen the draw area by a pixel to encompas the outer edge,
-   * this is to prevent slight 1px gaps along the edges of the upscale canvas.
-   */
-
-  if ( x > 0 ) {
-    x--;
-  }
-
-  if ( y > 0 ) {
-    y--;
-  }
-
-  var wDiff = Math.min( 1, canvas.width  - w ),
-    hDiff = Math.min( 1, canvas.height - h );
-
-  w += wDiff;
-  h += hDiff;
-
-  // 3) work out the same locations, on the upscale canvas
-  var ux, uy, uw, uh ;
-
-  ux = x*zoom - scrollLeft;
-  uy = y*zoom - scrollTop;
-  uw = w*zoom;
-  uh = h*zoom;
-
-  // clear our refresh area
-  var ctx = canvas.ctx,
-    destAlpha = ( ctx.globalCompositeOperation == 'source-atop' ),
-    uCtx = upscale.ctx;
-
-  /*
-   * This can go one of three ways:
-   *  = draw using downscaling (zoom is 100%, or lower)
-   *  = draw cheap (using canvas scaling) and sub-divide work
-   *  = manually upscale pixels
-   */
-
-  var divideWork = (w*h) > ((UPSCALE_DIVIDE_AREA+6)*(UPSCALE_DIVIDE_AREA+6));
-
-  if ( divideWork || zoom <= 1 ) {
-    var xDiff = Math.max( 0, (x+w) - canvas.width  ),
-      yDiff = Math.max( 0, (y+h) - canvas.height );
-
-    var ux2 = Math.round(ux),
-      uy2 = Math.round(uy),
-      uw2 = Math.round(uw - xDiff*zoom),
-      uh2 = Math.round(uh - yDiff*zoom);
-
-    // if we clip the edge,
-    // then clamp the max width/height onto the edges
-    // (otherwise Chrome crashes)
-    if ( x+w > canvas.width ) {
-      w -= (x+w) - canvas.width;
-      uw2 = upscale.width - ux2;
-    }
-    if ( y+h > canvas.height ) {
-      h -= (y+h) - canvas.height;
-      uh2 = upscale.height - uy2;
-    }
-
-    /*
-     * Note that the zoom _must_ be first,
-     * so it takes precendence over dividing work
-     * (as it's much cheaper).
-     */
-    /*
-     * If zoom is at 1, then there is no change in scaing.
-     * So we just draw normally, and quit.
-     */
-    if ( zoom <= 1 ) {
-      uCtx.clearRect( ux2, uy2, uw2, uh2 );
-
-      uCtx.globalAlpha = 1.0;
-      uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-      if ( includeOverlay ) {
-        if ( destAlpha ) {
-          uCtx.globalCompositeOperation = 'source-atop';
-        }
-
-        uCtx.drawImage( this.overlay, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-        if ( destAlpha ) {
-          uCtx.globalCompositeOperation = 'source-over';
-        }
-      }
-
-    /*
-     * Sub divide up work if we'll be doing loads of it.
-     * Instead the work is done over multiple calls.
-     */
-    } else if ( divideWork ) {
-      // cheap draw, so we don't get huge empty areas
-      uCtx.drawImage( canvas, x, y, w, h, ux2, uy2, uw2, uh2 );
-
-      for ( var i = x; i < (w+x); i += UPSCALE_DIVIDE_AREA ) {
-        for ( var j = y; j < (h+y); j += UPSCALE_DIVIDE_AREA ) {
-          var updateW = Math.min( (w+x)-i, UPSCALE_DIVIDE_AREA ),
-            updateH = Math.min( (h+y)-j, UPSCALE_DIVIDE_AREA );
-
-          this.futureRedrawUpscale( i, j, updateW, updateH, includeOverlay );
-        }
-      }
-    }
-  } else {
-    // 5) draw!
-    copyNearestNeighbour(
-        upscale,                        // dest
-        ux, uy, uw, uh,                 // dest x, y, w, h
-        zoom, zoom,                     // dest pixel size
-
-        ctx.getImageData(x, y, w, h),   // src
-        x, y, w, h,                     // src  x, y, w, h
-        includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : null,
-
-        ( ctx.globalCompositeOperation == 'source-atop' ) // bitmask pixels
-    );
-  }
-
-  return true;
-};
-
-CanvasManager.prototype.resize = function( newWidth, newHeight ) {
-  if ( this.setSize( newWidth, newHeight ) ) {
-    this.endDraw( true );
-  }
-};
-
-CanvasManager.prototype.scale = function( newWidth, newHeight, isSmooth ) {
-  if ( newWidth != this.width || newHeight != this.height ) {
-    this.drawAndEndPaste();
-
-    // use existing smoothing
-    if ( isSmooth ) {
-      var temp = newCanvas( newWidth, newHeight );
-
-      temp.ctx.drawImage(
-          this.canvas,
-          0, 0, this.width, this.height,
-          0, 0,   newWidth,   newHeight
-      );
-
-      this.setSize( newWidth, newHeight, true );
-      this.drawSafe( function() {
-        this.canvas.ctx.drawImage( temp, 0, 0 );
-      } );
-    // use nearest neighbour
-    } else {
-      var oldW = this.width,
-        oldH = this.height;
-      var srcData = this.canvas.ctx.getImageData( 0, 0, oldW, oldH );
-
-      this.setSize( newWidth, newHeight, true );
-
-      this.drawSafe( function() {
-        copyNearestNeighbour(
+        temp.ctx.drawImage(
             this.canvas,
-            0, 0, newWidth, newHeight,
-
-            // pixel size
-            newWidth / oldW, newHeight / oldH,
-
-            srcData,
-            0, 0, oldW, oldH
+            0, 0, this.width, this.height,
+            0, 0,   newWidth,   newHeight
         );
-      } );
+
+        this.setSize( newWidth, newHeight, true );
+        this.drawSafe( function() {
+          this.canvas.ctx.drawImage( temp, 0, 0 );
+        } );
+      // use nearest neighbour
+      } else {
+        var oldW = this.width,
+          oldH = this.height;
+        var srcData = this.canvas.ctx.getImageData( 0, 0, oldW, oldH );
+
+        this.setSize( newWidth, newHeight, true );
+
+        this.drawSafe( function() {
+          copyNearestNeighbour(
+              this.canvas,
+              0, 0, newWidth, newHeight,
+
+              // pixel size
+              newWidth / oldW, newHeight / oldH,
+
+              srcData,
+              0, 0, oldW, oldH
+          );
+        } );
+      }
+
+      this.endDraw( true );
     }
+  };
 
-    this.endDraw( true );
-  }
-};
+  resetCompositeOpration() {
+    var compOp = this.canvas.ctx.globalCompositeOperation;
+    this.canvas.ctx.globalCompositeOperation = 'source-over';
 
-CanvasManager.prototype.resetCompositeOpration = function() {
-  var compOp = this.canvas.ctx.globalCompositeOperation;
-  this.canvas.ctx.globalCompositeOperation = 'source-over';
+    return compOp;
+  };
 
-  return compOp;
-};
+  resetAlpha() {
+    var alpha = this.canvas.ctx.globalAlpha;
+    this.canvas.ctx.globalAlpha = 1.0;
 
-CanvasManager.prototype.resetAlpha = function() {
-  var alpha = this.canvas.ctx.globalAlpha;
-  this.canvas.ctx.globalAlpha = 1.0;
-
-  return alpha;
-};
-
-/**
- * @private
- *
- * @param newWidth
- * @param newHeight
- */
-CanvasManager.prototype.setSize = function( newWidth, newHeight, clear ) {
-  var newC = newCanvas(),
-    canvas = this.canvas,
-    oldCtx = this.overlay.ctx ;
-
-  if ( newWidth != this.width || newHeight != this.height ) {
-    this.drawAndEndPaste();
-
-    // create a new canvas, of the required size, and with our content
-    newC.width  = newWidth;
-    newC.height = newHeight;
-    newC.setAttribute( 'class', canvas.getAttribute('class') );
-
-    var ctxSetup = backupCtx( this.canvas.ctx );
-    var overlayCtxSetup = backupCtx( oldCtx );
-
-    // replace the current canvas
-    if ( ! clear ) {
-      newC.ctx.drawImage( this.canvas, 0, 0 );
-    }
-    this.$canvas.replaceWith( newC );
-
-    this.canvas = newC;
-    this.$canvas = $(newC);
-    this.width  = newWidth;
-    this.height = newHeight;
-
-    // update the overlay
-    this.overlay.width  = newWidth,
-    this.overlay.height = newHeight;
-
-    restoreCtx( this.canvas.ctx  , ctxSetup        );
-    restoreCtx( this.overlay.ctx , overlayCtxSetup );
-
-    // re-center
-    this.updateCanvasSize();
-
-    return true;
-  } else {
-    return false;
-  }
-};
-
-/**
- * This should be used when you want to interact with the graphics it's
- * self, such as erase, or if you want to read them.
- *
- * If you just want to draw on top (pencil, brush, drawing a square/circle),
- * then use 'getContext' instead as this will silently overlay it.
- *
- * @return The underlying 2D context, where the actual graphics are stored.
- */
-CanvasManager.prototype.getDirectContext = function() {
-  return this.canvas.ctx;
-};
-
-/**
- * When used during drawing, this will allow you to draw on top of the
- * canvas. The effect is overlayed, until 'endDraw' is called.
- *
- * By overlaying it allows you to clear and redraw during the draw process
- * (useful for drawing lines, squares, circles and other shapes).
- *
- * @return The 2D context used for drawing.
- */
-CanvasManager.prototype.getContext = function() {
-  return this.overlay.ctx;
-};
-
-/**
- * Picks a colour at the given location, and returns it.
- * Null is returned if picking from outside of the canvas.
- *
- * @return An array containing the RGBA value of the pixel selected, or null for outside of canvas.
- */
-CanvasManager.prototype.colourPick = function(x, y) {
-  if ( x >= 0 && x < this.width && y >= 0 && y < this.height ) {
-    return this.canvas.ctx.getImageData( x, y, 1, 1 ).data;
-  } else {
-    return null;
-  }
-};
-
-CanvasManager.prototype.getColor = function() {
-  return this.canvas.ctx.strokeStyle;
-};
-
-CanvasManager.prototype.getRGB = function() {
-  var color = this.getColor();
-
-  var red   = color.substr( 1, 2 ),
-    green = color.substr( 3, 2 ),
-    blue  = color.substr( 5, 2 );
-
-  return [
-      parseInt( red  , 16 ),
-      parseInt( green, 16 ),
-      parseInt( blue , 16 )
-  ];
-};
-
-/**
- * @param strColor The color to set to this canvas.
- */
-CanvasManager.prototype.setColor = function( strColor ) {
-  this.canvas.ctx.strokeStyle =
-  this.canvas.ctx.fillStyle =
-  this.overlay.ctx.strokeStyle =
-  this.overlay.ctx.fillStyle =
-      strColor;
-};
-
-CanvasManager.prototype.useBlendAlpha = function() {
-  this.canvas.ctx.globalCompositeOperation = 'source-over' ;
-
-  return this;
-};
+    return alpha;
+  };
 
   /**
-   * True to use the destination alpha when drawing,
-   * false to not.
+   * @private
+   *
+   * @param newWidth
+   * @param newHeight
    */
-CanvasManager.prototype.useDestinationAlpha = function() {
-  this.canvas.ctx.globalCompositeOperation = 'source-atop' ;
+  setSize( newWidth, newHeight, clear ) {
+    var newC = newCanvas(),
+      canvas = this.canvas,
+      oldCtx = this.overlay.ctx ;
 
-  return this;
-};
+    if ( newWidth != this.width || newHeight != this.height ) {
+      this.drawAndEndPaste();
 
-/**
- * @param alpha The alpha value to use when drawing.
- */
-CanvasManager.prototype.setAlpha = function( alpha ) {
-  this.canvas.ctx.globalAlpha =
-  this.overlay.ctx.globalAlpha =
-      alpha;
-};
+      // create a new canvas, of the required size, and with our content
+      newC.width  = newWidth;
+      newC.height = newHeight;
+      newC.setAttribute( 'class', canvas.getAttribute('class') );
 
-CanvasManager.prototype.getAlpha = function() {
-  return this.canvas.ctx.globalAlpha;
-};
+      var ctxSetup = backupCtx( this.canvas.ctx );
+      var overlayCtxSetup = backupCtx( oldCtx );
 
-/**
- *
- */
-CanvasManager.prototype.setImage = function( image, width, height ) {
-  /*
-   * If width or height are 0, undefined or null,
-   * then image.width and image.height are used.
-   * Otherwise width and height are used.
+      // replace the current canvas
+      if ( ! clear ) {
+        newC.ctx.drawImage( this.canvas, 0, 0 );
+      }
+      this.$canvas.replaceWith( newC );
+
+      this.canvas = newC;
+      this.$canvas = $(newC);
+      this.width  = newWidth;
+      this.height = newHeight;
+
+      // update the overlay
+      this.overlay.width  = newWidth,
+      this.overlay.height = newHeight;
+
+      restoreCtx( this.canvas.ctx  , ctxSetup        );
+      restoreCtx( this.overlay.ctx , overlayCtxSetup );
+
+      // re-center
+      this.updateCanvasSize();
+
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  /**
+   * This should be used when you want to interact with the graphics it's
+   * self, such as erase, or if you want to read them.
+   *
+   * If you just want to draw on top (pencil, brush, drawing a square/circle),
+   * then use 'getContext' instead as this will silently overlay it.
+   *
+   * @return The underlying 2D context, where the actual graphics are stored.
    */
-  var w = (  width >> 0 ) || image.width,
-    h = ( height >> 0 ) || image.height ;
+  getDirectContext() {
+    return this.canvas.ctx;
+  };
 
-  this.setSize( w, h, true );
-  this.drawSafe( function() {
-    this.canvas.ctx.drawImage( image, 0, 0, w, h );
-  } );
+  /**
+   * When used during drawing, this will allow you to draw on top of the
+   * canvas. The effect is overlayed, until 'endDraw' is called.
+   *
+   * By overlaying it allows you to clear and redraw during the draw process
+   * (useful for drawing lines, squares, circles and other shapes).
+   *
+   * @return The 2D context used for drawing.
+   */
+  getContext() {
+    return this.overlay.ctx;
+  };
 
-  return this;
-};
-
-CanvasManager.prototype.resetUndoRedo = function() {
-  this.undos.reset( this.canvas );
-
-  return this;
-};
-
-CanvasManager.prototype.reset = function() {
-  this.resetUndoRedo().
-      endPaste().
-      marquee.clear();
-
-  this.grid.hide();
-};
-
-/**
- * Helper method for the combined undo/redo action.
- *
- * Pass in 'redo' to perform a redo, and 'undo' to perform
- * an undo.
- *
- * In practice, you don't use this, instead you use the 'redo'
- * and 'undo' methods on the CanvasManager.
- *
- * @param name The name of the action to perform, 'undo' or 'redo'.
- * @return True if the action is performed, otherwise false.
- */
-CanvasManager.prototype.undoRedo = function( name ) {
-  var canvas = this.undos[name]();
-
-  if ( canvas !== null ) {
-    this.drawSafe( function() {
-      if (
-          canvas.width  != this.canvas.width ||
-          canvas.height != this.canvas.height
-      ) {
-        this.setSize( canvas.width, canvas.height, true );
-        this.canvas.ctx.drawImage( canvas, 0, 0 );
-        // refresh upscale happens automatically, in the future, by setSize
-      } else {
-        this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height );
-        this.canvas.ctx.drawImage( canvas, 0, 0 );
-        this.redrawUpscale();
-      }
-    } );
-
-    return true;
-  } else {
-    return false;
-  }
-};
-
-/**
- * An alternative to 'drawSafe' which only nullifies the alpha component.
- * For example how the alpha is mixed is left un-altered.
- *
- * @param f The function to perform.
- */
-CanvasManager.prototype.drawSafeAlpha = function( f ) {
-  var alpha = this.resetAlpha();
-  f.call( this );
-  this.canvas.ctx.globalAlpha = alpha;
-
-  return this;
-};
-
-/**
- * 'drawSafe' undoes lots of the options and then runs the function given.
- * For example alpha is set to 1, and the default globalCompositeOperation
- * is used.
- *
- * This is useful to allow you to perform operations without having to
- * care about those settings, such as drawing/clearing the canvas.
- *
- * @param f The function to perform whilst the canvas values have been reset.
- */
-CanvasManager.prototype.drawSafe = function( f ) {
-  var alpha  = this.resetAlpha(),
-    compOp = this.resetCompositeOpration(),
-    fillStyle   = this.canvas.ctx.fillStyle,
-    strokeStyle = this.canvas.ctx.strokeStyle;
-
-  var clip = this.getClip();
-  if ( clip ) {
-    this.removeClip();
-  }
-  f.call( this );
-  if ( clip ) {
-    this.setClip( clip.x, clip.y, clip.w, clip.h );
-  }
-
-  this.canvas.ctx.globalAlpha = alpha;
-  this.canvas.ctx.globalCompositeOperation = compOp;
-  this.canvas.ctx.fillStyle   = fillStyle;
-  this.canvas.ctx.strokeStyle = strokeStyle;
-
-  return this;
-};
-
-/**
- * @return True if this can undo, and false if there is nothing to undo.
- */
-CanvasManager.prototype.hasUndo = function() {
-  return this.undos.hasUndo() || this.copyObj.isPasting();
-};
-
-/**
- * @return true if this has redo options to perform.
- */
-CanvasManager.prototype.hasRedo = function() {
-  return this.undos.hasRedo();
-};
-
-/**
- * If this canvas is not empty, then this will attempt to crop it.
- * Cropping is only performed if there is available space to do so.
- *
- * It also disables a number of items, such as the current paste
- * and marquee selection, for usability.
- */
-CanvasManager.prototype.crop = function() {
-  this.drawAndEndPaste();
-
-  // check for a marquee selection
-  // and otherwise use the visible area
-  var selection = this.marquee.getPosition();
-  if ( selection === null ) {
-    selection = this.getDrawnArea();
-  } else {
-    // remove the marquee, since it is selecting everything
-    this.marquee.clear();
-  }
-
-  if ( selection !== null ) {
-    var x  = selection.x,
-      y  = selection.y,
-      w2 = selection.w,
-      h2 = selection.h;
-
-    var temp = newCanvas( w2, h2 );
-    temp.ctx.drawImage( this.canvas, -x, -y );
-
-    this.setSize( w2, h2, true );
-
-    this.drawSafe( function() {
-        this.canvas.ctx.drawImage( temp, 0, 0 );
-    } );
-
-    this.endDraw( true );
-  }
-
-  return this;
-};
-
-/**
- * Returns an object describing the area on the canvas,
- * which has been drawn to.
- *
- * If there has been no drawing, then null is returned.
- */
-CanvasManager.prototype.getDrawnArea = function() {
-  var w = this.width,
-    h = this.height;
-
-  var data = this.canvas.ctx.getImageData( 0, 0, w, h ).data;
-
-  var minX = 0,
-    minY = 0,
-    maxX = w,
-    maxY = h;
-
-  // search for minX, minY, maxX, maxY, working inwards on all sides
-  // search for minY
-  var i = 0;
-  for ( var y = 0; y < h; y++ ) {
-    var hasAlpha = false;
-
-    for ( var x = 0; x < w; x++ ) {
-      if ( data[i+3] > 0 ) {
-        hasAlpha = true;
-        break;
-      }
-
-      i += 4;
-    }
-
-    if ( hasAlpha ) {
-      break;
+  /**
+   * Picks a colour at the given location, and returns it.
+   * Null is returned if picking from outside of the canvas.
+   *
+   * @return An array containing the RGBA value of the pixel selected, or null for outside of canvas.
+   */
+  colourPick(x, y) {
+    if ( x >= 0 && x < this.width && y >= 0 && y < this.height ) {
+      return this.canvas.ctx.getImageData( x, y, 1, 1 ).data;
     } else {
-      minY = y+1;
-    }
-  }
-
-  // search for maxY
-  i = 0;
-  for ( var y = h-1; y >= 0; y-- ) {
-    var hasAlpha = false;
-
-    for ( var x = 0; x < w; x++ ) {
-      if ( data[i+3] > 0 ) {
-        hasAlpha = true;
-        break;
-      }
-
-      i += 4;
-    }
-
-    if ( y <= minY ) {
       return null;
-    } else if ( hasAlpha ) {
-      break;
-    } else {
-      maxY = y;
     }
-  }
+  };
 
-  // search for minX
-  i = 0;
-  for ( var x = 0; x < w; x++ ) {
-    var hasAlpha = false;
+  getColor() {
+    return this.canvas.ctx.strokeStyle;
+  };
 
-    for ( var y = 0; y < h; y++ ) {
-      if ( data[i+3] > 0 ) {
-        hasAlpha = true;
-        break;
-      }
+  getRGB() {
+    var color = this.getColor();
 
-      i += 4;
-    }
+    var red   = color.substr( 1, 2 ),
+      green = color.substr( 3, 2 ),
+      blue  = color.substr( 5, 2 );
 
-    if ( hasAlpha ) {
-      break;
-    } else {
-      minX = x+1;
-    }
-  }
+    return [
+        parseInt( red  , 16 ),
+        parseInt( green, 16 ),
+        parseInt( blue , 16 )
+    ];
+  };
 
-  // search for maxX
-  i = 0;
-  for ( var x = w-1; x >= 0; x-- ) {
-    var hasAlpha = false;
+  /**
+   * @param strColor The color to set to this canvas.
+   */
+  setColor( strColor ) {
+    this.canvas.ctx.strokeStyle =
+    this.canvas.ctx.fillStyle =
+    this.overlay.ctx.strokeStyle =
+    this.overlay.ctx.fillStyle =
+        strColor;
+  };
 
-    for ( var y = 0; y < h; y++ ) {
-      if ( data[i+3] > 0 ) {
-        hasAlpha = true;
-        break;
-      }
-
-      i += 4;
-    }
-
-    if ( x <= minX ) {
-      return null;
-    } else if ( hasAlpha ) {
-      break;
-    } else {
-      maxX = x;
-    }
-  }
-
-  // Don't crop if the image is empty!
-
-  // if we can crop, we do:
-  if ( minX > 0 || minY > 0 || maxX < w || maxY < h ) {
-    return {
-        x: minX,
-        y: minY,
-        w: maxX-minX,
-        h: maxY-minY
-    };
-  } else {
-    return null;
-  }
-};
-
-CanvasManager.prototype.clearAll = function() {
-  this.drawSafe( function() {
-    clearCtx( this.canvas.ctx );
-  } );
-};
-
-/**
- * Cleares this canvas of all content,
- * and adds the current content to the undo stack.
- */
-CanvasManager.prototype.clear = function() {
-  var w = this.width,
-    h = this.height;
-
-  this.drawAndEndPaste();
-
-  this.canvas.ctx.clearRect( 0, 0, w, h );
-
-  // push current context to the undo/redo
-  // and update the whole screen
-  this.endDraw({
-         x: 0,
-         y: 0,
-      endX: w,
-      endY: h
-  });
-};
-
-/**
- * @return True if an undo was performed, otherwise false.
- */
-CanvasManager.prototype.redo = function() {
-  return this.undoRedo( 'redo' );
-}
-
-/**
- * @return True if an undo was performed, otherwise false.
- */
-CanvasManager.prototype.undo = function() {
-  if ( this.copyObj.isPasting() ) {
-    this.endPaste();
-
-    return true;
-  } else {
-    return this.undoRedo( 'undo' );
-  }
-};
-
-/**
- * The Info Bar is a scroll down bar for extra settings.
- * Like resize.
- *
- * @private
- * @param viewport The SkyBrush viewport it is being attached to.
- */
-var InfoBar = function( viewport ) {
-  this.confirm = null;
-
-  this.content = document.createElement( 'div' )
-  this.content.classList.add('skybrush_info_content')
-
-  /* Finally, put it all together */
-  const wrap = document.createElement( 'div' )
-  wrap.classList.add( 'skybrush_info_bar_wrap' )
-  wrap.appendChild( this.content )
-
-  this.dom = document.createElement( 'div' )
-  dom.classList.add('skybrush_info_bar')
-  dom.appendChild( wrap )
-
-  viewport.appendChild( this.dom )
-};
-
-InfoBar.prototype = {
-  show: function() {
-    if ( ! this.isShown() ) {
-      this.dom.addClass( 'sb_show' )
-      this.highlightFirstInput()
-    }
-  },
-
-  isShown: function() {
-    return this.dom.hasClass( 'sb_show' )
-  },
-
-  isTarget: function(target) {
-    return this.isShown() && (
-        target === this.dom.get(0) ||
-        $(target).parents().is( this.dom )
-    );
-  },
-
-  hide: function() {
-    if ( this.isShown() ) {
-      this.dom.classList.remove( 'sb_show' );
-    }
-  },
-
-  highlightFirstInput: function() {
-    /*
-     * Grabs the first textual input box, and gives it focus.
-     *
-     * Changing the value is to undo any highlighting,
-     * selection of all of the text,
-     * which some browsers may do.
-     */
-    this.content.
-        find( 'input[type="text"], input[type="number"]' ).
-        first().
-        focus().
-        each( function() {
-          var $this = $( this );
-          $this.val( $this.val() );
-        } );
-  },
-
-  setContent: function() {
-    this.content.empty();
-    this.confirm = null;
-
-    var argsLen = arguments.length;
-
-    for ( var i = 0; i < argsLen; i++ ) {
-      this.content.append( arguments[i] );
-    }
-
-    this.highlightFirstInput();
+  useBlendAlpha() {
+    this.canvas.ctx.globalCompositeOperation = 'source-over' ;
 
     return this;
-  },
+  };
 
-  getContent: function() {
-    return this.content;
+    /**
+     * True to use the destination alpha when drawing,
+     * false to not.
+     */
+  useDestinationAlpha() {
+    this.canvas.ctx.globalCompositeOperation = 'source-atop' ;
+
+    return this;
+  };
+
+  /**
+   * @param alpha The alpha value to use when drawing.
+   */
+  setAlpha( alpha ) {
+    this.canvas.ctx.globalAlpha =
+    this.overlay.ctx.globalAlpha =
+        alpha;
+  };
+
+  getAlpha() {
+    return this.canvas.ctx.globalAlpha;
+  };
+
+  /**
+   *
+   */
+  setImage( image, width, height ) {
+    /*
+     * If width or height are 0, undefined or null,
+     * then image.width and image.height are used.
+     * Otherwise width and height are used.
+     */
+    var w = (  width >> 0 ) || image.width,
+      h = ( height >> 0 ) || image.height ;
+
+    this.setSize( w, h, true );
+    this.drawSafe( function() {
+      this.canvas.ctx.drawImage( image, 0, 0, w, h );
+    } );
+
+    return this;
+  };
+
+  resetUndoRedo() {
+    this.undos.reset( this.canvas );
+
+    return this;
+  };
+
+  reset() {
+    this.resetUndoRedo().
+        endPaste().
+        marquee.clear();
+
+    this.grid.hide();
+  };
+
+  /**
+   * Helper method for the combined undo/redo action.
+   *
+   * Pass in 'redo' to perform a redo, and 'undo' to perform
+   * an undo.
+   *
+   * In practice, you don't use this, instead you use the 'redo'
+   * and 'undo' methods on the CanvasManager.
+   *
+   * @param name The name of the action to perform, 'undo' or 'redo'.
+   * @return True if the action is performed, otherwise false.
+   */
+  undoRedo( name ) {
+    var canvas = this.undos[name]();
+
+    if ( canvas !== null ) {
+      this.drawSafe( function() {
+        if (
+            canvas.width  != this.canvas.width ||
+            canvas.height != this.canvas.height
+        ) {
+          this.setSize( canvas.width, canvas.height, true );
+          this.canvas.ctx.drawImage( canvas, 0, 0 );
+          // refresh upscale happens automatically, in the future, by setSize
+        } else {
+          this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height );
+          this.canvas.ctx.drawImage( canvas, 0, 0 );
+          this.redrawUpscale();
+        }
+      } );
+
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  /**
+   * An alternative to 'drawSafe' which only nullifies the alpha component.
+   * For example how the alpha is mixed is left un-altered.
+   *
+   * @param f The function to perform.
+   */
+  drawSafeAlpha( f ) {
+    var alpha = this.resetAlpha();
+    f.call( this );
+    this.canvas.ctx.globalAlpha = alpha;
+
+    return this;
+  };
+
+  /**
+   * 'drawSafe' undoes lots of the options and then runs the function given.
+   * For example alpha is set to 1, and the default globalCompositeOperation
+   * is used.
+   *
+   * This is useful to allow you to perform operations without having to
+   * care about those settings, such as drawing/clearing the canvas.
+   *
+   * @param f The function to perform whilst the canvas values have been reset.
+   */
+  drawSafe( f ) {
+    var alpha  = this.resetAlpha(),
+      compOp = this.resetCompositeOpration(),
+      fillStyle   = this.canvas.ctx.fillStyle,
+      strokeStyle = this.canvas.ctx.strokeStyle;
+
+    var clip = this.getClip();
+    if ( clip ) {
+      this.removeClip();
+    }
+    f.call( this );
+    if ( clip ) {
+      this.setClip( clip.x, clip.y, clip.w, clip.h );
+    }
+
+    this.canvas.ctx.globalAlpha = alpha;
+    this.canvas.ctx.globalCompositeOperation = compOp;
+    this.canvas.ctx.fillStyle   = fillStyle;
+    this.canvas.ctx.strokeStyle = strokeStyle;
+
+    return this;
+  };
+
+  /**
+   * @return True if this can undo, and false if there is nothing to undo.
+   */
+  hasUndo() {
+    return this.undos.hasUndo() || this.copyObj.isPasting();
+  };
+
+  /**
+   * @return true if this has redo options to perform.
+   */
+  hasRedo() {
+    return this.undos.hasRedo();
+  };
+
+  /**
+   * If this canvas is not empty, then this will attempt to crop it.
+   * Cropping is only performed if there is available space to do so.
+   *
+   * It also disables a number of items, such as the current paste
+   * and marquee selection, for usability.
+   */
+  crop() {
+    this.drawAndEndPaste();
+
+    // check for a marquee selection
+    // and otherwise use the visible area
+    var selection = this.marquee.getPosition();
+    if ( selection === null ) {
+      selection = this.getDrawnArea();
+    } else {
+      // remove the marquee, since it is selecting everything
+      this.marquee.clear();
+    }
+
+    if ( selection !== null ) {
+      var x  = selection.x,
+        y  = selection.y,
+        w2 = selection.w,
+        h2 = selection.h;
+
+      var temp = newCanvas( w2, h2 );
+      temp.ctx.drawImage( this.canvas, -x, -y );
+
+      this.setSize( w2, h2, true );
+
+      this.drawSafe( function() {
+          this.canvas.ctx.drawImage( temp, 0, 0 );
+      } );
+
+      this.endDraw( true );
+    }
+
+    return this;
+  };
+
+  /**
+   * Returns an object describing the area on the canvas,
+   * which has been drawn to.
+   *
+   * If there has been no drawing, then null is returned.
+   */
+  getDrawnArea() {
+    var w = this.width,
+      h = this.height;
+
+    var data = this.canvas.ctx.getImageData( 0, 0, w, h ).data;
+
+    var minX = 0,
+      minY = 0,
+      maxX = w,
+      maxY = h;
+
+    // search for minX, minY, maxX, maxY, working inwards on all sides
+    // search for minY
+    var i = 0;
+    for ( var y = 0; y < h; y++ ) {
+      var hasAlpha = false;
+
+      for ( var x = 0; x < w; x++ ) {
+        if ( data[i+3] > 0 ) {
+          hasAlpha = true;
+          break;
+        }
+
+        i += 4;
+      }
+
+      if ( hasAlpha ) {
+        break;
+      } else {
+        minY = y+1;
+      }
+    }
+
+    // search for maxY
+    i = 0;
+    for ( var y = h-1; y >= 0; y-- ) {
+      var hasAlpha = false;
+
+      for ( var x = 0; x < w; x++ ) {
+        if ( data[i+3] > 0 ) {
+          hasAlpha = true;
+          break;
+        }
+
+        i += 4;
+      }
+
+      if ( y <= minY ) {
+        return null;
+      } else if ( hasAlpha ) {
+        break;
+      } else {
+        maxY = y;
+      }
+    }
+
+    // search for minX
+    i = 0;
+    for ( var x = 0; x < w; x++ ) {
+      var hasAlpha = false;
+
+      for ( var y = 0; y < h; y++ ) {
+        if ( data[i+3] > 0 ) {
+          hasAlpha = true;
+          break;
+        }
+
+        i += 4;
+      }
+
+      if ( hasAlpha ) {
+        break;
+      } else {
+        minX = x+1;
+      }
+    }
+
+    // search for maxX
+    i = 0;
+    for ( var x = w-1; x >= 0; x-- ) {
+      var hasAlpha = false;
+
+      for ( var y = 0; y < h; y++ ) {
+        if ( data[i+3] > 0 ) {
+          hasAlpha = true;
+          break;
+        }
+
+        i += 4;
+      }
+
+      if ( x <= minX ) {
+        return null;
+      } else if ( hasAlpha ) {
+        break;
+      } else {
+        maxX = x;
+      }
+    }
+
+    // Don't crop if the image is empty!
+
+    // if we can crop, we do:
+    if ( minX > 0 || minY > 0 || maxX < w || maxY < h ) {
+      return {
+          x: minX,
+          y: minY,
+          w: maxX-minX,
+          h: maxY-minY
+      };
+    } else {
+      return null;
+    }
+  };
+
+  clearAll() {
+    this.drawSafe( function() {
+      clearCtx( this.canvas.ctx );
+    } );
+  };
+
+  /**
+   * Cleares this canvas of all content,
+   * and adds the current content to the undo stack.
+   */
+  clear() {
+    var w = this.width,
+      h = this.height;
+
+    this.drawAndEndPaste();
+
+    this.canvas.ctx.clearRect( 0, 0, w, h );
+
+    // push current context to the undo/redo
+    // and update the whole screen
+    this.endDraw({
+           x: 0,
+           y: 0,
+        endX: w,
+        endY: h
+    });
+  };
+
+  /**
+   * @return True if an undo was performed, otherwise false.
+   */
+  redo() {
+    return this.undoRedo( 'redo' );
+  }
+
+  /**
+   * @return True if an undo was performed, otherwise false.
+   */
+  undo() {
+    if ( this.copyObj.isPasting() ) {
+      this.endPaste();
+
+      return true;
+    } else {
+      return this.undoRedo( 'undo' );
+    }
   }
 }
 
 /**
- * Creates and then returns all commands used by SkyBrush.
- * This is created on the fly, so it can be run after
- * SkyBrush has been successfully loaded, and setup.
+ * Used for turning a control name into a CSS class, for
+ * id purposes.
  *
- * That way the commands can use jQuery in their setup
- * code.
+ * Essentially it's so if I have a control called 'zoom'
+ * then this is turned into a CSS class, and attached to
+ * the control. This is for internal use, and shouldn't
+ * clash with anything else.
+ *
+ * This class can then be used again later, for finding
+ * the control.
  *
  * @const
- * @param painter The SkyBrush instance these commands are being created for.
- * @param cursorRoot The root location of where cursor images are held.
- * @return An array of all Command objects in use for this SkyBrush app.
+ * @nosideeffects
+ * @param name The name to translate
+ * @return The CSS identifier for the given name.
  */
-var newCommands = function() {
-  /**
-   * Used for turning a control name into a CSS class, for
-   * id purposes.
-   *
-   * Essentially it's so if I have a control called 'zoom'
-   * then this is turned into a CSS class, and attached to
-   * the control. This is for internal use, and shouldn't
-   * clash with anything else.
-   *
-   * This class can then be used again later, for finding
-   * the control.
-   *
-   * @const
-   * @nosideeffects
-   * @param name The name to translate
-   * @return The CSS identifier for the given name.
-   */
-  var controlNameToCSSID = function( name ) {
-    return CONTROL_ID_CSS_PREFIX + name.toLowerCase();
-  };
+function controlNameToCSSID( name:string ) {
+  return CONTROL_ID_CSS_PREFIX + name.toLowerCase()
+}
 
-  /**
-   * Creates a new DOM element, for the control given,
-   * all hooked up.
-   *
-   * Control info should provide:
-   *  = name - the name of this control
-   *  = type - checkbox, toggle, slider or another supported type.
-   *  = field - the field that is updated by this control in the command.
-   *
-   * Extra properties include:
-   *  = css - a CSS class added to the final control.
-   *  = value - The default value to set for the field, and it's control.
-   *
-   * Extra properties are also required on a type by type basis.
-   *
-   * @param command The Command that the control info will place their info into.
-   * @param control The control to create a DOM control for, this is the setup info.
-   * @return The HTML control once built.
-   */
-  var newCommandControl = function( command, control, painter ) {
-    var name = control.name,
-      type = control.type.toLowerCase(),
-       css = control.css,
-    callback = control.callback,
-       field = control.field,
-    isCursor = control.cursor || false;
+/**
+ * Creates a new DOM element, for the control given,
+ * all hooked up.
+ *
+ * Control info should provide:
+ *  = name - the name of this control
+ *  = type - checkbox, toggle, slider or another supported type.
+ *  = field - the field that is updated by this control in the command.
+ *
+ * Extra properties include:
+ *  = css - a CSS class added to the final control.
+ *  = value - The default value to set for the field, and it's control.
+ *
+ * Extra properties are also required on a type by type basis.
+ *
+ * @param command The Command that the control info will place their info into.
+ * @param control The control to create a DOM control for, this is the setup info.
+ * @return The HTML control once built.
+ */
+function newCommandControl( command, control, painter ) {
+  var name = control.name,
+    type = control.type.toLowerCase(),
+     css = control.css,
+  callback = control.callback,
+     field = control.field,
+  isCursor = control.cursor || false;
 
-    if ( name === undefined ) {
-      throw new Error( "Control is missing 'name' field" );
-    } else if ( type === undefined ) {
-      throw new Error( "Control is missing 'type' field" );
-    } else if ( field === undefined ) {
-      throw new Error( "Control is missing 'field' field" );
+  if ( name === undefined ) {
+    throw new Error( "Control is missing 'name' field" );
+  } else if ( type === undefined ) {
+    throw new Error( "Control is missing 'type' field" );
+  } else if ( field === undefined ) {
+    throw new Error( "Control is missing 'field' field" );
+  }
+
+  var defaultField;
+  if ( control.hasOwnProperty('value') ) {
+    defaultField = control.value;
+  } else {
+    defaultField = command[ field ];
+  }
+
+  var cDom = document.createElement( 'div' );
+  cDom.className =
+      'skybrush_control '         +
+      CONTROL_CSS_PREFIX + type   +
+      ( (css !== undefined) ?
+          ' sb_' + css :
+          '' ) ;
+
+  var label = document.createElement('div');
+  label.className = 'skybrush_command_control_label';
+  label.innerHTML = name;
+  cDom.appendChild( label );
+
+  var cssID = controlNameToCSSID( name );
+
+  /*
+   * Create the Dom Element based on it's type.
+   * All supported types are listed here.
+   */
+  if ( type == 'checkbox' ) {
+    if ( defaultField === undefined ) {
+      defaultField = false;
     }
 
-    var defaultField;
-    if ( control.hasOwnProperty('value') ) {
-      defaultField = control.value;
-    } else {
-      defaultField = command[ field ];
-    }
+    var checkbox = newInput( 'checkbox', cssID );
+    $( checkbox ).change( function() {
+          var isChecked = $( this ).is(':checked')
 
-    var cDom = document.createElement( 'div' );
-    cDom.className =
-        'skybrush_control '         +
-        CONTROL_CSS_PREFIX + type   +
-        ( (css !== undefined) ?
-            ' sb_' + css :
-            '' ) ;
-
-    var label = document.createElement('div');
-    label.className = 'skybrush_command_control_label';
-    label.innerHTML = name;
-    cDom.appendChild( label );
-
-    var cssID = controlNameToCSSID( name );
-
-    /*
-     * Create the Dom Element based on it's type.
-     * All supported types are listed here.
-     */
-    if ( type == 'checkbox' ) {
-      if ( defaultField === undefined ) {
-        defaultField = false;
-      }
-
-      var checkbox = newInput( 'checkbox', cssID );
-      $( checkbox ).change( function() {
-            var isChecked = $( this ).is(':checked')
-
-            command[ field ] = isChecked;
-            if ( callback ) {
-              callback.call( command, isChecked, painter );
-            }
-
-            if ( isCursor ) {
-              painter.refreshCursor( command );
-            }
-          } );
-
-      if ( command[field] ) {
-        checkbox.setAttribute( 'checked', 'checked' );
-      }
-
-      cDom.appendChild( checkbox );
-    } else if ( type == 'toggle' ) {
-      const cssStates = control.css_options
-      const names = control.name_options
-
-      const numOptions =
-          ( cssStates ? cssStates.length :
-          ( names     ? names.length     :
-                  0 ) );
-
-      let option = -1;
-
-      const toggle = document.createElement( 'input' )
-      toggle.type = 'button'
-      toggle.classList.add( 'skybrush_input_button' )
-      toggle.classList.add( cssID )
-
-      var switchOption = function() {
-        if ( cssStates && cssStates[option] ) {
-          toggle.classList.remove( cssStates[option] );
-        }
-
-        option = (option+1) % numOptions;
-        if ( names ) {
-          toggle.val( names[option] );
-        }
-        if ( cssStates && cssStates[option] ) {
-          toggle.classList.add( cssStates[option] );
-        }
-      };
-
-      switchOption();
-
-      toggle.addEventListener( 'click', function(ev) {
-          ev.stopPropagation();
-          ev.preventDefault();
-          switchOption();
-
-          command[ field ] = option;
+          command[ field ] = isChecked;
           if ( callback ) {
-            callback.call( command, option, painter );
+            callback.call( command, isChecked, painter );
           }
 
           if ( isCursor ) {
             painter.refreshCursor( command );
           }
-      } );
+        } );
 
-      cDom.appendChild( toggle.get(0) );
-    } else if ( type === 'slider' ) {
-      var min  = control.min,
-        max  = control.max,
-        step = control.step || 1;
-
-      if ( defaultField === undefined ) {
-        defaultField = Math.max( 1, min );
-      }
-
-      var onValueChange = function( self ) {
-        setTimeout( function() {
-          var n = self.value;
-
-          if ( n && n >= 1 ) {
-            n = Math.round( n );
-            slider.setSlide( n / max );
-
-            command[ field ] = n;
-
-            if ( callback ) {
-              callback.call( command, n, painter );
-            }
-
-            if ( isCursor ) {
-              painter.refreshCursor( command );
-            }
-          }
-        }, 0 );
-      }
-
-      var handleInputChange = function(ev) {
-        // key up, and key down
-        if ( ev.keyCode === 38 ) {
-          var val = parseFloat( this.value );
-
-          if ( val < max ) {
-            this.value = '' + Math.min( max, val + step );
-          }
-
-        } else if ( ev.keyCode === 40 ) {
-          var val = parseFloat( this.value );
-
-          if ( val > min ) {
-            this.value = '' + Math.max( min, val - step );
-          }
-        }
-
-        onValueChange( this );
-      };
-
-      const val = newNumericInput( false, 'skybrush_input' )
-      val.setAttribute( 'step', step )
-      val.setAttribute( 'min', min )
-      val.setAttribute( 'max', max )
-      val.addEventListener( 'keydown', handleInputChange )
-      val.addEventListener( 'change',  handleInputChange )
-      // initialize
-      val.value = defaultField
-
-      var slider = $slider().
-          addClass( cssID ).
-          limit( min, max ).
-          step( step ).
-          slide( (ev, n, p) => {
-            command[ field ] = n
-            val.val( n )
-
-            if ( callback ) {
-              callback.call( command, n, painter )
-            }
-
-            if ( isCursor ) {
-              painter.refreshCursor( command )
-            }
-          } )
-
-      cDom.appendChild( slider )
-      cDom.appendChild(    val )
-
-      // Slider must be updated in the future,
-      // after the reflow.
-      requestAnimationFrame(() => {
-        slider.setSlide( defaultField / max );
-      })
-    } else {
-      throw new Error( "Unknown control setup given" );
+    if ( command[field] ) {
+      checkbox.setAttribute( 'checked', 'checked' );
     }
 
-    command[ field ] = defaultField;
+    cDom.appendChild( checkbox );
+  } else if ( type == 'toggle' ) {
+    const cssStates = control.css_options
+    const names = control.name_options
 
-    return cDom;
-  };
+    const numOptions =
+        ( cssStates ? cssStates.length :
+        ( names     ? names.length     :
+                0 ) );
 
-  /**
-   * Commands are setup through a JSON object.
-   *
-   * This is used so other functions can change those
-   * properties on the fly, and require new items.
-   *
-   * The other advantage is that it allows many to be
-   * optional.
-   *
-   * Before they were all passed in for each constructor,
-   * but given that many are optional, this list was
-   * becomming unmanageable.
-   *
-   * Basic properties include:
-   *  = name
-   *  = css
-   *  = cursor
-   *  = caption - the tooltip caption to be used
-   *
-   * All events are called in the context of this command.
-   *
-   * Drawing Events:
-   *  = onDown - called when mouse goes down,
-   *  = onMove - then this is called as it's moved,
-   *  = onUp - finally this is called when it goes up.
-   *
-   *  = onDownOnMove - event used for both onDown and onMove
-   *  = onMoveOnUp - event used for both onMove and onUp
-   *
-   * Some sub-versions of Command add their own 'onDraw'
-   * event. This is a general purpose draw event used for
-   * onDown, onMove and onUp; but is normally wrapped in
-   * custom logic.
-   *
-   * However the Command prototype ignores onDraw.
-   *
-   * Other Events:
-   *  = onAttach - called when the Command is set.
-   *  = onDetach - called when the Command is unset.
-   *
-   *  = onShift - called when the shift button is pressed
-   *    down or up. The state and SkyBrush are passed in,
-   *    in that order.
-   *
-   *    This is also called when the command is attached to
-   *    SkyBrush, but only if the shift is down. This is so
-   *    if you update the controls it'll be setup correctly
-   *    on attach, and undone on detach.
-   *
-   *    But to clarify, if shift is not pressed, this will
-   *    never be called.
-   *
-   * Special logic is also added to ensure onAttach and
-   * onDetach cannot be called recursively, as sometimes
-   * this can happen.
-   *
-   * @constructor
-   * @private
-   *
-   * @param setup The information needed for this command.
-   * @param controlsSetup An array listing all of the commands for this control.
-   */
-  var Command = function( setup ) {
+    let option = -1;
+
+    const toggle = document.createElement( 'input' )
+    toggle.type = 'button'
+    toggle.classList.add( 'skybrush_input_button' )
+    toggle.classList.add( cssID )
+
+    var switchOption = function() {
+      if ( cssStates && cssStates[option] ) {
+        toggle.classList.remove( cssStates[option] );
+      }
+
+      option = (option+1) % numOptions;
+      if ( names ) {
+        toggle.val( names[option] );
+      }
+      if ( cssStates && cssStates[option] ) {
+        toggle.classList.add( cssStates[option] );
+      }
+    };
+
+    switchOption();
+
+    toggle.addEventListener( 'click', function(ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        switchOption();
+
+        command[ field ] = option;
+        if ( callback ) {
+          callback.call( command, option, painter );
+        }
+
+        if ( isCursor ) {
+          painter.refreshCursor( command );
+        }
+    } );
+
+    cDom.appendChild( toggle.get(0) );
+  } else if ( type === 'slider' ) {
+    var min  = control.min,
+      max  = control.max,
+      step = control.step || 1;
+
+    if ( defaultField === undefined ) {
+      defaultField = Math.max( 1, min );
+    }
+
+    const handleInputChange = function( ev:KeyboardEvent ) {
+      // key up, and key down
+      if ( ev.keyCode === 38 ) {
+        const val = parseFloat( this.value )
+
+        if ( val < max ) {
+          this.value = '' + Math.min( max, val + step )
+        }
+
+      } else if ( ev.keyCode === 40 ) {
+        const val = parseFloat( this.value )
+
+        if ( val > min ) {
+          this.value = '' + Math.max( min, val - step )
+        }
+      }
+
+      requestAnimationFrame(() => {
+        const n = this.value
+
+        if ( n && n >= 1 ) {
+          n = Math.round( n )
+          slider.value = n
+
+          command[ field ] = n
+
+          if ( callback ) {
+            callback.call( command, n, painter )
+          }
+
+          if ( isCursor ) {
+            painter.refreshCursor( command )
+          }
+        }
+      })
+    };
+
+    const val = newNumericInput( false, 'skybrush_input' )
+    val.setAttribute( 'step', step )
+    val.setAttribute( 'min', min )
+    val.setAttribute( 'max', max )
+    val.addEventListener( 'keydown', handleInputChange )
+    val.addEventListener( 'change',  handleInputChange )
+    // initialize
+    val.value = defaultField
+
+    const slider = newSlider({
+        step  : step,
+        min   : min,
+        max   : max,
+        value : defaultField,
+
+        onChange: ((n, p) => {
+          command[ field ] = n
+          val.val( n )
+
+          if ( callback ) {
+            callback.call( command, n, painter )
+          }
+
+          if ( isCursor ) {
+            painter.refreshCursor( command )
+          }
+        }
+    })
+    slider.classList.add( cssID )
+
+    cDom.appendChild( slider )
+    cDom.appendChild(    val )
+
+  } else {
+    throw new Error( "Unknown control setup given" );
+
+  }
+
+  command[ field ] = defaultField
+
+  return cDom
+}
+
+/**
+ * Commands are setup through a JSON object.
+ *
+ * This is used so other functions can change those
+ * properties on the fly, and require new items.
+ *
+ * The other advantage is that it allows many to be
+ * optional.
+ *
+ * Before they were all passed in for each constructor,
+ * but given that many are optional, this list was
+ * becomming unmanageable.
+ *
+ * Basic properties include:
+ *  = name
+ *  = css
+ *  = cursor
+ *  = caption - the tooltip caption to be used
+ *
+ * All events are called in the context of this command.
+ *
+ * Drawing Events:
+ *  = onDown - called when mouse goes down,
+ *  = onMove - then this is called as it's moved,
+ *  = onUp - finally this is called when it goes up.
+ *
+ *  = onDownOnMove - event used for both onDown and onMove
+ *  = onMoveOnUp - event used for both onMove and onUp
+ *
+ * Some sub-versions of Command add their own 'onDraw'
+ * event. This is a general purpose draw event used for
+ * onDown, onMove and onUp; but is normally wrapped in
+ * custom logic.
+ *
+ * However the Command prototype ignores onDraw.
+ *
+ * Other Events:
+ *  = onAttach - called when the Command is set.
+ *  = onDetach - called when the Command is unset.
+ *
+ *  = onShift - called when the shift button is pressed
+ *    down or up. The state and SkyBrush are passed in,
+ *    in that order.
+ *
+ *    This is also called when the command is attached to
+ *    SkyBrush, but only if the shift is down. This is so
+ *    if you update the controls it'll be setup correctly
+ *    on attach, and undone on detach.
+ *
+ *    But to clarify, if shift is not pressed, this will
+ *    never be called.
+ *
+ * Special logic is also added to ensure onAttach and
+ * onDetach cannot be called recursively, as sometimes
+ * this can happen.
+ *
+ * @constructor
+ * @private
+ *
+ * @param setup The information needed for this command.
+ * @param controlsSetup An array listing all of the commands for this control.
+ */
+export class Command {
+  constructor( setup ) {
     this.name    = setup.name    || '' ;
     this.caption = setup.caption || '' ;
     this.cursor  = setup.cursor  || null;
@@ -4974,46 +4230,46 @@ var newCommands = function() {
     if ( setup.onDownOnMove ) {
       this.onDown =
       this.onMove =
-           setup.onDownOnMove;
+           setup.onDownOnMove
     }
 
     if ( setup.onMoveOnUp ) {
       this.onUp   =
       this.onMove =
-          setup.onMoveOnUp;
+          setup.onMoveOnUp
     }
 
     if ( setup.onMove ) {
-      this.onMove = setup.onMove;
+      this.onMove = setup.onMove
     }
 
     if ( setup.onUp ) {
-      this.onUp = setup.onUp;
+      this.onUp = setup.onUp
     }
 
-    this.whenAttached = setup.onAttach || null;
-    this.whenDetached = setup.onDetach || null;
+    this.whenAttached = setup.onAttach || null
+    this.whenDetached = setup.onDetach || null
 
-    var onShift = setup.onShift;
+    const onShift = setup.onShift
     if ( onShift ) {
-      var self = this;
+      const thisCommand = this
 
       this.shiftDown = function( isShiftDown ) {
         // This should use both 'self' and 'this' here, it is not
         // a bug.
-        onShift.call( self, isShiftDown, this );
-      };
+        onShift.call( thisCommand, isShiftDown, this )
+      }
     } else {
-      this.shiftDown = null;
+      this.shiftDown = null
     }
 
-    this.isInAttach = false;
-    this.isInDetach = false;
+    this.isInAttach = false
+    this.isInDetach = false
   };
 
-  Command.prototype.getCSS = function() {
-    return this.css;
-  };
+  getCSS() {
+    return this.css
+  }
 
   /**
    * Called when a Command object is set as the current
@@ -5021,7 +4277,7 @@ var newCommands = function() {
    *
    * @param painter The parent SkyBrush instance this is being attached to.
    */
-  Command.prototype.onAttach = function( painter ) {
+  onAttach( painter ) {
     if ( ! this.isInAttach ) {
       this.isInAttach = true;
 
@@ -5041,7 +4297,7 @@ var newCommands = function() {
 
       this.isInAttach = false;
     }
-  };
+  }
 
   /**
    * For when a Command object is detached from SkyBrush,
@@ -5049,7 +4305,7 @@ var newCommands = function() {
    *
    * @param painter The parent SkyBrush instance this is being detached from.
    */
-  Command.prototype.onDetach = function( painter ) {
+  onDetach( painter ) {
     if ( ! this.isInDetach ) {
       this.isInDetach = true;
 
@@ -5074,15 +4330,15 @@ var newCommands = function() {
     }
   };
 
-  Command.prototype.getCursor = function() {
+  getCursor() {
     return this.cursor;
   };
 
-  Command.prototype.getCaption = function() {
+  getCaption() {
     return this.caption;
   };
 
-  Command.prototype.getName = function() {
+  getName() {
     return this.name;
   };
 
@@ -5094,7 +4350,7 @@ var newCommands = function() {
    *
    * @param A jQuery object for the control.
    */
-  Command.prototype.getControl = function( name ) {
+  getControl( name ) {
     return this.getControlsDom().getElementsByClassName( controlNameToCSSID(name) )[0];
   };
 
@@ -5104,7 +4360,7 @@ var newCommands = function() {
    *
    * @return The HTML dom with all the control structures for this command.
    */
-  Command.prototype.createControlsDom = function( painter ) {
+  createControlsDom( painter ) {
     /*
      * Controls dom is loaded in a lazy way so painter
      * starts up a tad faster,
@@ -5142,18 +4398,18 @@ var newCommands = function() {
    *
    * There would be no dom if there are no options.
    */
-  Command.prototype.getControlsDom = function() {
+  getControlsDom() {
     return this.dom;
   };
 
-  Command.prototype.popDrawArea = function() {
+  popDrawArea() {
     var t = this.drawArea;
     this.drawArea = null;
 
     return t;
   };
 
-  Command.prototype.addDrawArea = function( x, y, w, h, buffer ) {
+  addDrawArea( x, y, w, h, buffer ) {
     var da = this.drawArea;
 
     if ( da !== null ) {
@@ -5201,7 +4457,7 @@ var newCommands = function() {
    * @param h Optional,
    * @param buffer Optional, a buffer around the area to be updated. This must be at least 1.
    */
-  Command.prototype.setDrawArea = function( x, y, w, h, buffer ) {
+  setDrawArea( x, y, w, h, buffer ) {
     // If used in single args version,
     // this allows setting 'null' as the draw area (no draw)
     if ( y === undefined && x !== undefined ) {
@@ -5235,736 +4491,738 @@ var newCommands = function() {
 
     return this;
   };
+}
 
-  /**
-   * The standard minimum and maximum brush sizes,
-   * and a way to limit them.
-   */
-  var BRUSH_SIZE = {
-    min: 1,
-    max: MAX_BRUSH_SIZE,
+/**
+ * The standard minimum and maximum brush sizes,
+ * and a way to limit them.
+ */
+var BRUSH_SIZE = {
+  min: 1,
+  max: MAX_BRUSH_SIZE,
 
-    limit: function( size ) {
-      return Math.limit( size, this.min, this.max );
-    }
+  limit: function( size ) {
+    return Math.limit( size, this.min, this.max );
+  }
+};
+
+/**
+ * Creates a new Brush, with the name, css class and events given.
+ * Some extras are added on top, which the standard Command does
+ * not have, like brush size.
+ *
+ * @constructor
+ * @private
+ */
+var Brush = function( setup ) {
+  var brushSizeControl = {
+      name: 'Size',
+      field: 'size',
+
+      type: 'slider',
+      css : 'size',
+
+      cursor: true,
+
+      min: 1,
+      max: MAX_BRUSH_SIZE
   };
 
-  /**
-   * Creates a new Brush, with the name, css class and events given.
-   * Some extras are added on top, which the standard Command does
-   * not have, like brush size.
-   *
-   * @constructor
-   * @private
-   */
-  var Brush = function( setup ) {
-    var brushSizeControl = {
-        name: 'Size',
-        field: 'size',
+  var controls = setup.controls;
+  if ( controls === undefined ) {
+    controls = [ brushSizeControl ];
+  } else {
+    controls = setup.controls;
+    var addControl = true;
 
-        type: 'slider',
-        css : 'size',
-
-        cursor: true,
-
-        min: 1,
-        max: MAX_BRUSH_SIZE
-    };
-
-    var controls = setup.controls;
-    if ( controls === undefined ) {
-      controls = [ brushSizeControl ];
-    } else {
-      controls = setup.controls;
-      var addControl = true;
-
-      for ( var i = 0; i < controls.length; i++ ) {
-        if ( controls[i].field === brushSizeControl.field ) {
-          addControl = false;
-          break;
-        }
-      }
-
-      if ( addControl ) {
-        controls.unshift( brushSizeControl );
+    for ( var i = 0; i < controls.length; i++ ) {
+      if ( controls[i].field === brushSizeControl.field ) {
+        addControl = false;
+        break;
       }
     }
 
-    setup.controls = controls;
-
-    Command.call( this, setup );
-
-    this.size = 0;
-    this.setSize( DEFAULT_BRUSH_SIZE );
-  };
-
-  Brush.prototype = new Command( {} );
-
-  /**
-   * Sets the size for this brush.
-   * This is automtically limited to default min/max values.
-   *
-   * @param size The new size for this brush.
-   */
-  Brush.prototype.setSize = function(size) {
-    this.size = BRUSH_SIZE.limit( size );
-  };
-
-  /**
-   * Increments the size by the amount given.
-   *
-   * @param inc The amount to increment the size.
-   */
-  Brush.prototype.incrementSize = function( inc ) {
-    this.setSize( this.size + inc );
-  };
-
-  /**
-   * Commands for drawing geometry.
-   *
-   * For the setup, it adds the properties:
-   *
-   *  = onDraw - called for drawing geometry
-   *  = onDown - already exists, but is wrapped in it's own onDown
-   *
-   * @constructor
-   * @private
-   *
-   * @param setup The controls information for this command.
-   */
-  var Geometry = function( setup ) {
-    this.startX = 0;
-    this.startY = 0;
-
-    this.isFilled = true;
-    this.size = 1;
-
-    this.isAliased = false;
-
-    this.drawGeom = setup.onDraw;
-
-    var oldOnDown = setup.onDown;
-    setup.onDown = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0;
-        y |= 0;
-      }
-
-      this.startX = x,
-      this.startY = y;
-      this.lastX = x;
-      this.lastY = y;
-
-      canvas.getContext().lineJoin = 'miter';
-
-      if ( oldOnDown ) {
-        oldOnDown.call( this, canvas, x, y );
-      }
-    };
-    setup.onMove = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0;
-        y |= 0;
-      }
-
-      this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
-
-      this.lastX = x;
-      this.lastY = y;
-    };
-    setup.onUp = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0;
-        y |= 0;
-      }
-
-      this.setDrawArea( this.startX, this.startY, x-this.startX, y-this.startY, this.size );
-
-      this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
-
-      this.lastX = x;
-      this.lastY = y;
-    };
-
-    setup.cursor = DEFAULT_CURSOR;
-
-    Command.call( this, setup );
-  };
-
-  Geometry.prototype = new Command( {} );
-
-  Geometry.prototype.round = function( n, isOutline, size ) {
-    if ( (!isOutline) || size % 2 == 0 ) {
-      return n | 0;
-    } else {
-      return (n | 0) + 0.5;
+    if ( addControl ) {
+      controls.unshift( brushSizeControl );
     }
-  };
+  }
 
-  Geometry.prototype.toggleAliased = function() {
-    this.isAliased = ! this.isAliased ;
-  };
+  setup.controls = controls;
 
-  Geometry.prototype.toggleFilled = function() {
-    this.isFilled = ! this.isFilled ;
-  };
+  Command.call( this, setup );
 
-  var ShapeGeometry = function( setup ) {
-    var controls = setup.controls;
-    if ( ! controls ) {
-      controls = [];
-    } else if ( controls && ! ( controls instanceof Array ) ) {
-      controls = [ controls ];
+  this.size = 0;
+  this.setSize( DEFAULT_BRUSH_SIZE );
+};
+
+Brush.prototype = new Command( {} );
+
+/**
+ * Sets the size for this brush.
+ * This is automtically limited to default min/max values.
+ *
+ * @param size The new size for this brush.
+ */
+Brush.prototype.setSize = function(size) {
+  this.size = BRUSH_SIZE.limit( size );
+};
+
+/**
+ * Increments the size by the amount given.
+ *
+ * @param inc The amount to increment the size.
+ */
+Brush.prototype.incrementSize = function( inc ) {
+  this.setSize( this.size + inc );
+};
+
+/**
+ * Commands for drawing geometry.
+ *
+ * For the setup, it adds the properties:
+ *
+ *  = onDraw - called for drawing geometry
+ *  = onDown - already exists, but is wrapped in it's own onDown
+ *
+ * @constructor
+ * @private
+ *
+ * @param setup The controls information for this command.
+ */
+var Geometry = function( setup ) {
+  this.startX = 0;
+  this.startY = 0;
+
+  this.isFilled = true;
+  this.size = 1;
+
+  this.isAliased = false;
+
+  this.drawGeom = setup.onDraw;
+
+  var oldOnDown = setup.onDown;
+  setup.onDown = function( canvas, x, y ) {
+    if ( ! this.isAliased ) {
+      x |= 0;
+      y |= 0;
     }
 
-    setup.controls = controls.concat([
-        {
-            name: 'Mode',
-            css: 'outline_cmd',
-            field: 'isOutline',
-            type: 'toggle',
-            css_options: [ 'filled', 'outline' ],
-            name_options: [ 'Filled', 'Outline' ]
-        },
-        {
-            name: 'Outline',
-            css: 'outline_size_cmd',
-            field: 'size',
-            type: 'slider',
+    this.startX = x,
+    this.startY = y;
+    this.lastX = x;
+    this.lastY = y;
 
-            value: 1,
-            min: 1,
-            max: MAX_BRUSH_SIZE
-        },
-        {
-            name: 'Proportion',
-            css: 'proportion_size_cmd',
-            field: 'isProportional',
-            type: 'checkbox'
-        },
-        {
-            name: 'Center',
-            css: 'centre_size_cmd',
-            field: 'isCentred',
-            type: 'checkbox'
-        }
-    ]);
+    canvas.getContext().lineJoin = 'miter';
 
-    // wrap in our own function
-    var drawGeom = setup.onDraw;
-    setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
-      var size = this.size,
-        isOutline = this.isOutline;
+    if ( oldOnDown ) {
+      oldOnDown.call( this, canvas, x, y );
+    }
+  };
+  setup.onMove = function( canvas, x, y ) {
+    if ( ! this.isAliased ) {
+      x |= 0;
+      y |= 0;
+    }
 
-      x1 = this.round( x1, isOutline, size );
-      y1 = this.round( y1, isOutline, size );
-      x2 = this.round( x2, isOutline, size );
-      y2 = this.round( y2, isOutline, size );
+    this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
 
-      var w = x2 - x1,
-        h = y2 - y1;
+    this.lastX = x;
+    this.lastY = y;
+  };
+  setup.onUp = function( canvas, x, y ) {
+    if ( ! this.isAliased ) {
+      x |= 0;
+      y |= 0;
+    }
 
-      if ( this.isProportional ) {
-        var wAbs = Math.abs(w),
-          hAbs = Math.abs(h);
+    this.setDrawArea( this.startX, this.startY, x-this.startX, y-this.startY, this.size );
 
-        if ( wAbs > hAbs ) {
-          if ( h < 0 ) {
-            h = - wAbs;
-          } else {
-            h =   wAbs;
-          }
+    this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY );
+
+    this.lastX = x;
+    this.lastY = y;
+  };
+
+  setup.cursor = DEFAULT_CURSOR;
+
+  Command.call( this, setup );
+};
+
+Geometry.prototype = new Command( {} );
+
+Geometry.prototype.round = function( n, isOutline, size ) {
+  if ( (!isOutline) || size % 2 == 0 ) {
+    return n | 0;
+  } else {
+    return (n | 0) + 0.5;
+  }
+};
+
+Geometry.prototype.toggleAliased = function() {
+  this.isAliased = ! this.isAliased ;
+};
+
+Geometry.prototype.toggleFilled = function() {
+  this.isFilled = ! this.isFilled ;
+};
+
+var ShapeGeometry = function( setup ) {
+  var controls = setup.controls;
+  if ( ! controls ) {
+    controls = [];
+  } else if ( controls && ! ( controls instanceof Array ) ) {
+    controls = [ controls ];
+  }
+
+  setup.controls = controls.concat([
+      {
+          name: 'Mode',
+          css: 'outline_cmd',
+          field: 'isOutline',
+          type: 'toggle',
+          css_options: [ 'filled', 'outline' ],
+          name_options: [ 'Filled', 'Outline' ]
+      },
+      {
+          name: 'Outline',
+          css: 'outline_size_cmd',
+          field: 'size',
+          type: 'slider',
+
+          value: 1,
+          min: 1,
+          max: MAX_BRUSH_SIZE
+      },
+      {
+          name: 'Proportion',
+          css: 'proportion_size_cmd',
+          field: 'isProportional',
+          type: 'checkbox'
+      },
+      {
+          name: 'Center',
+          css: 'centre_size_cmd',
+          field: 'isCentred',
+          type: 'checkbox'
+      }
+  ]);
+
+  // wrap in our own function
+  var drawGeom = setup.onDraw;
+  setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
+    var size = this.size,
+      isOutline = this.isOutline;
+
+    x1 = this.round( x1, isOutline, size );
+    y1 = this.round( y1, isOutline, size );
+    x2 = this.round( x2, isOutline, size );
+    y2 = this.round( y2, isOutline, size );
+
+    var w = x2 - x1,
+      h = y2 - y1;
+
+    if ( this.isProportional ) {
+      var wAbs = Math.abs(w),
+        hAbs = Math.abs(h);
+
+      if ( wAbs > hAbs ) {
+        if ( h < 0 ) {
+          h = - wAbs;
         } else {
-          if ( w < 0 ) {
-            w = - hAbs;
-          } else {
-            w =   hAbs;
-          }
+          h =   wAbs;
         }
-      }
-
-      if ( this.isCentred ) {
-        x1 -= w;
-        y1 -= h;
-        w += w;
-        h += h;
-      }
-
-      if ( this.isProportional || this.isCentred ) {
-        this.setDrawArea( x1, y1, w, h, size );
-      }
-
-      clearCtx( ctx,
-          this.lastX1,
-          this.lastY1,
-          this.lastW,
-          this.lastH,
-          this.size
-      );
-
-      this.lastX1 = x1,
-      this.lastY1 = y1,
-      this.lastW  = w,
-      this.lastH  = h;
-
-      drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
-    };
-
-    setup.onDown = function(canvas, x, y) {
-      this.lastX1 = x,
-      this.lastY1 = y,
-      this.lastW  = 1,
-      this.lastH  = 1;
-    };
-
-    Geometry.call( this, setup );
-  };
-
-  ShapeGeometry.prototype = new Geometry( {} );
-
-  /* Helper Drawing Function */
-
-  var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
-    x1 = Math.round(x1 - size/2);
-    y1 = Math.round(y1 - size/2);
-    x2 = Math.round(x2 - size/2);
-    y2 = Math.round(y2 - size/2);
-
-    var xDiff = x2 - x1,
-      yDiff = y2 - y1 ;
-
-    var inc = Math.max(
-        Math.abs( xDiff ),
-        Math.abs( yDiff )
-    ) / size;
-
-    var xInc = ( xDiff / inc ) / size,
-      yInc = ( yDiff / inc ) / size,
-      x = x1,
-      y = y1 ;
-
-    for ( var i = 0; i < inc; i++ ) {
-      fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
-
-      x += xInc,
-      y += yInc;
-    }
-  };
-
-  var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
-    x0 = Math.round( x0 );
-    x1 = Math.round( x1 );
-    y0 = Math.round( y0 );
-    y1 = Math.round( y1 );
-
-    var sizeI = Math.round( size );
-    var sizeI2 = (sizeI/2) | 0;
-
-    var yDiff = y1 - y0,
-      xDiff = x1 - x0;
-
-    var aXDiff = Math.abs( xDiff ),
-      aYDiff = Math.abs( yDiff );
-
-    if ( aXDiff < aYDiff ) {
-      if ( aXDiff < 1.5 ) {
-        ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
-      }
-    } else if ( aYDiff < 1.5 ) {
-      ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
-    }
-
-    /*
-     * When this is true, we draw across the screen
-     * in horizontal rectangles.
-     *
-     * When this is false, we draw down the screen,
-     * with vertical rectangles.
-     */
-    var moveHorizontal = aXDiff > aYDiff;
-    if ( moveHorizontal ) {
-      y0 -= sizeI2;
-      y1 -= sizeI2;
-    } else {
-      x0 -= sizeI2;
-      x1 -= sizeI2;
-    }
-
-    var inc = Math.min( aXDiff, aYDiff );
-    var xInc = xDiff / inc,
-      yInc = yDiff / inc;
-
-    var x = x0;
-
-    var yStart = y0,
-      yEnd = y1,
-      xStart = x0,
-      xEnd = x1;
-
-    if ( moveHorizontal ) {
-      if ( yStart > yEnd ) {
-        var t = 0;
-
-        t = yStart;
-        yStart = yEnd;
-        yEnd = t;
-
-        t = xStart;
-        xStart = xEnd;
-        xEnd = t;
-
-        xInc = -xInc;
-      }
-    } else {
-      if ( xStart > xEnd ) {
-        var t = 0;
-
-        t = xStart;
-        xStart = xEnd;
-        xEnd = t;
-
-        t = yStart;
-        yStart = yEnd;
-        yEnd = t;
-
-        yInc = -yInc;
-      }
-    }
-
-    for ( var i = 0; i < sizeI; i++ ) {
-      if ( moveHorizontal ) {
-        var x = xStart;
-
-        for ( var y = yStart; y < yEnd; y++ ) {
-          var drawX = x|0;
-          var drawY = y|0;
-          var xWidth = ((x + xInc)|0) - drawX ;
-
-          ctx.fillRect( drawX, drawY, xWidth, 1 );
-
-          x += xInc;
-        }
-
-        yStart++;
-        yEnd++;
       } else {
-        var y = yStart;
-
-        for ( var x = xStart; x < xEnd; x++ ) {
-          var drawX = x|0;
-          var drawY = y|0;
-          var yWidth = ((y + yInc)|0) - drawY ;
-
-          ctx.fillRect( drawX, drawY, 1, yWidth );
-
-          y += yInc;
+        if ( w < 0 ) {
+          w = - hAbs;
+        } else {
+          w =   hAbs;
         }
-
-        xStart++;
-        xEnd++;
       }
     }
 
-    return;
+    if ( this.isCentred ) {
+      x1 -= w;
+      y1 -= h;
+      w += w;
+      h += h;
+    }
 
-    // swap values so we iterate less
-    var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+    if ( this.isProportional || this.isCentred ) {
+      this.setDrawArea( x1, y1, w, h, size );
+    }
+
+    clearCtx( ctx,
+        this.lastX1,
+        this.lastY1,
+        this.lastW,
+        this.lastH,
+        this.size
+    );
+
+    this.lastX1 = x1,
+    this.lastY1 = y1,
+    this.lastW  = w,
+    this.lastH  = h;
+
+    drawGeom.call( this, ctx, x1, y1, x1+w, y1+h );
+  };
+
+  setup.onDown = function(canvas, x, y) {
+    this.lastX1 = x,
+    this.lastY1 = y,
+    this.lastW  = 1,
+    this.lastH  = 1;
+  };
+
+  Geometry.call( this, setup );
+};
+
+ShapeGeometry.prototype = new Geometry( {} );
+
+/* Helper Drawing Function */
+
+var renderLine = function( fun, canvas, x1, y1, x2, y2, size ) {
+  x1 = Math.round(x1 - size/2);
+  y1 = Math.round(y1 - size/2);
+  x2 = Math.round(x2 - size/2);
+  y2 = Math.round(y2 - size/2);
+
+  var xDiff = x2 - x1,
+    yDiff = y2 - y1 ;
+
+  var inc = Math.max(
+      Math.abs( xDiff ),
+      Math.abs( yDiff )
+  ) / size;
+
+  var xInc = ( xDiff / inc ) / size,
+    yInc = ( yDiff / inc ) / size,
+    x = x1,
+    y = y1 ;
+
+  for ( var i = 0; i < inc; i++ ) {
+    fun( canvas, (x+0.5)|0, (y+0.5)|0, size );
+
+    x += xInc,
+    y += yInc;
+  }
+};
+
+var drawPixelLine = function( ctx, x0, y0, x1, y1, size ) {
+  x0 = Math.round( x0 );
+  x1 = Math.round( x1 );
+  y0 = Math.round( y0 );
+  y1 = Math.round( y1 );
+
+  var sizeI = Math.round( size );
+  var sizeI2 = (sizeI/2) | 0;
+
+  var yDiff = y1 - y0,
+    xDiff = x1 - x0;
+
+  var aXDiff = Math.abs( xDiff ),
+    aYDiff = Math.abs( yDiff );
+
+  if ( aXDiff < aYDiff ) {
+    if ( aXDiff < 1.5 ) {
+      ctx.fillRect( x0-sizeI2, y0, sizeI, y1-y0 );
+    }
+  } else if ( aYDiff < 1.5 ) {
+    ctx.fillRect( x0, y0-sizeI2, x1-x0, sizeI );
+  }
+
+  /*
+   * When this is true, we draw across the screen
+   * in horizontal rectangles.
+   *
+   * When this is false, we draw down the screen,
+   * with vertical rectangles.
+   */
+  var moveHorizontal = aXDiff > aYDiff;
+  if ( moveHorizontal ) {
+    y0 -= sizeI2;
+    y1 -= sizeI2;
+  } else {
+    x0 -= sizeI2;
+    x1 -= sizeI2;
+  }
+
+  var inc = Math.min( aXDiff, aYDiff );
+  var xInc = xDiff / inc,
+    yInc = yDiff / inc;
+
+  var x = x0;
+
+  var yStart = y0,
+    yEnd = y1,
+    xStart = x0,
+    xEnd = x1;
+
+  if ( moveHorizontal ) {
+    if ( yStart > yEnd ) {
+      var t = 0;
+
+      t = yStart;
+      yStart = yEnd;
+      yEnd = t;
+
+      t = xStart;
+      xStart = xEnd;
+      xEnd = t;
+
+      xInc = -xInc;
+    }
+  } else {
+    if ( xStart > xEnd ) {
+      var t = 0;
+
+      t = xStart;
+      xStart = xEnd;
+      xEnd = t;
+
+      t = yStart;
+      yStart = yEnd;
+      yEnd = t;
+
+      yInc = -yInc;
+    }
+  }
+
+  for ( var i = 0; i < sizeI; i++ ) {
+    if ( moveHorizontal ) {
+      var x = xStart;
+
+      for ( var y = yStart; y < yEnd; y++ ) {
+        var drawX = x|0;
+        var drawY = y|0;
+        var xWidth = ((x + xInc)|0) - drawX ;
+
+        ctx.fillRect( drawX, drawY, xWidth, 1 );
+
+        x += xInc;
+      }
+
+      yStart++;
+      yEnd++;
+    } else {
+      var y = yStart;
+
+      for ( var x = xStart; x < xEnd; x++ ) {
+        var drawX = x|0;
+        var drawY = y|0;
+        var yWidth = ((y + yInc)|0) - drawY ;
+
+        ctx.fillRect( drawX, drawY, 1, yWidth );
+
+        y += yInc;
+      }
+
+      xStart++;
+      xEnd++;
+    }
+  }
+
+  return;
+
+  // swap values so we iterate less
+  var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+  if ( steep ) {
+    var t;
+
+    t = x0;
+    x0 = y0;
+    y0 = t;
+
+    t = x1;
+    x1 = y1;
+    y1 = t;
+  }
+  if ( x0 > x1 ) {
+    var t;
+
+    t = x0;
+    x0 = x1;
+    x1 = t;
+
+    t = y0;
+    y0 = y1;
+    y1 = t;
+  }
+  if ( y0 > y1 ) {
+    var t;
+
+    t = y0;
+    y0 = y1;
+    y1 = t;
+
+    t = y0;
+    y0 = y1;
+    y1 = t;
+  }
+
+  var deltax = x1 - x0,
+    deltay = Math.abs(y1 - y0);
+
+  var ystep;
+  if ( y0 < y1 ) {
+    ystep = 1;
+  } else {
+    ystep = -1;
+  }
+
+  // Now DRAW!
+  var sizeI = Math.round( size );
+  var error = deltax / 2;
+  var y = y0 - Math.round(size/2);
+
+  var c = 0;
+  for ( var y = y0; y < y1; y++ ) {
+    c++;
     if ( steep ) {
-      var t;
-
-      t = x0;
-      x0 = y0;
-      y0 = t;
-
-      t = x1;
-      x1 = y1;
-      y1 = t;
-    }
-    if ( x0 > x1 ) {
-      var t;
-
-      t = x0;
-      x0 = x1;
-      x1 = t;
-
-      t = y0;
-      y0 = y1;
-      y1 = t;
-    }
-    if ( y0 > y1 ) {
-      var t;
-
-      t = y0;
-      y0 = y1;
-      y1 = t;
-
-      t = y0;
-      y0 = y1;
-      y1 = t;
-    }
-
-    var deltax = x1 - x0,
-      deltay = Math.abs(y1 - y0);
-
-    var ystep;
-    if ( y0 < y1 ) {
-      ystep = 1;
+      ctx.fillRect(y, x, sizeI, 1);
     } else {
-      ystep = -1;
+      ctx.fillRect(x, y, 1, sizeI);
     }
 
-    // Now DRAW!
-    var sizeI = Math.round( size );
-    var error = deltax / 2;
-    var y = y0 - Math.round(size/2);
+    error = error - deltay
+    if ( error < 0 ) {
+      y = y + ystep
+      error = error + deltax
+    }
+  }
+};
 
-    var c = 0;
-    for ( var y = y0; y < y1; y++ ) {
-      c++;
-      if ( steep ) {
-        ctx.fillRect(y, x, sizeI, 1);
-      } else {
-        ctx.fillRect(x, y, 1, sizeI);
+/**
+ * A bespoke brush, specifically for pixelated drawing.
+ *
+ * @constructor
+ * @private
+ */
+var PixelBrush = function( setup ) {
+  const brushCmd = setup.onDraw;
+  this.pencilCommand = function( canvas:HTMLCanvasElement, x:number, y:number, size:number ) {
+    brushCmd( canvas, x, y, size )
+  }
+
+  setup.onDown = function( canvas:HTMLCanvasElement, x:number, y:number ) {
+    this.lastX = x
+    this.lastY = y
+    this.skipFirst = true
+
+    const size = Math.round( this.size )
+
+    x -= (size/2) | 0
+    y -= (size/2) | 0
+
+    this.pencilCommand( canvas, x, y, size )
+    canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size )
+
+    this.addDrawArea( x|0, y|0, size )
+  }
+
+  setup.onMoveOnUp = function( canvas:HTMLCanvasElement, x:number, y:number ) {
+    const size  = this.size
+    const diffX = this.lastX - x
+    const diffY = this.lastY - y
+
+    if ( this.skipFirst && (Math.abs(diffX) >= 1 || Math.abs(diffY) >= 1) ) {
+      this.skipFirst = false
+
+      if ( diffX >= 1 ) {
+        diffX--
+        this.lastX--
+      } else if ( diffX <= -1 ) {
+        diffX++
+        this.lastX++
       }
 
-      error = error - deltay
-      if ( error < 0 ) {
-        y = y + ystep
-        error = error + deltax
+      if ( diffY >= 1 ) {
+        diffY--
+        this.lastY--
+      } else if ( diffY <= -1 ) {
+        diffY++
+        this.lastY++
       }
     }
-  };
 
-  /**
-   * A bespoke brush, specifically for pixelated drawing.
-   *
-   * @constructor
-   * @private
-   */
-  var PixelBrush = function( setup ) {
-    var self = this;
+    const hasMovedAtLeastOnePixel = ( Math.abs(diffX) < 0.5 && Math.abs(diffY) < 0.5 )
+    if ( ! hasMoveDAtLeastOnePixel ) {
+      return
+    }
 
-    this.brushCmd = setup.onDraw;
-    this.pencilCommand = function( canvas, x, y, size ) {
-      self.brushCmd( canvas, x, y, size );
-    };
+    renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size)
 
-    setup.onDown = function( canvas, x, y ) {
-      this.lastX = x;
-      this.lastY = y;
-      this.skipFirst = true;
+    canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size )
+    this.addDrawArea( x|0, y|0, diffX, diffY, size )
 
-      var size = Math.round( this.size );
+    this.lastX = x
+    this.lastY = y
+  }
 
-      x -= (size/2) | 0;
-      y -= (size/2) | 0;
+  Brush.call( this, setup  )
+}
+PixelBrush.prototype = new Brush( {} );
 
-      this.pencilCommand( canvas, x, y, size );
-      canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size );
+var pickerCommand = new Command({
+    name  : 'Picker',
+    css   : 'picker',
 
-      this.addDrawArea( x|0, y|0, size );
-    };
-    setup.onMoveOnUp = function( canvas, x, y ) {
-      var size = this.size,
-        diffX = this.lastX - x,
-        diffY = this.lastY - y;
+    caption: 'Colour Picker | shortcut: k or hold Alt',
+    cursor: 'sb_cursor_picker',
 
-      if ( this.skipFirst && (Math.abs(diffX) >= 1 || Math.abs(diffY) >= 1) ) {
-        this.skipFirst = false;
+    onDownOnMove : function( canvas, x, y, painter ) {
+      var rgb = canvas.colourPick( x, y );
 
-        if ( diffX >= 1 ) {
-          diffX--;
-          this.lastX--;
-        } else if ( diffX <= -1 ) {
-          diffX++;
-          this.lastX++;
-        }
-
-        if ( diffY >= 1 ) {
-          diffY--;
-          this.lastY--;
-        } else if ( diffY <= -1 ) {
-          diffY++;
-          this.lastY++;
-        }
+      if ( rgb !== null ) {
+        painter.setColor( rgbToColor(rgb[0], rgb[1], rgb[2]) );
+        painter.setAlpha( rgb[3] / 255.0 );
       }
+    }
+})
 
-      if ( Math.abs(diffX) < 0.5 && Math.abs(diffY) < 0.5 ) {
-        return;
-      }
+let eraserSwitch = null
+constswitchToEraser = function( shiftDown, painter ) {
+  if ( shiftDown ) {
+    eraserSwitch = this
+    painter.setCommand( eraser )
+  }
+}
 
-      renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size);
+/* Eraser
+ *
+ * Works by having two built internally:
+ * = hard eraser, works on a pixel level
+ * = soft eraser, has faded edges
+ *
+ * The complete eraser houses both, and switches between them.
+ */
+var eraser =
+    (function() {
+      var hardErase = new PixelBrush( {
+          name: 'Eraser',
+          css : 'eraser',
 
-      canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size );
-      this.addDrawArea( x|0, y|0, diffX, diffY, size );
+          onDraw: function( canvas, x, y, size ) {
+            var ctx = canvas.getDirectContext(),
+              gc = ctx.globalCompositeOperation;
 
-      this.lastX = x;
-      this.lastY = y;
-    };
+            ctx.globalCompositeOperation = 'destination-out';
+            canvas.getDirectContext().fillRect( x | 0, y | 0, size, size );
+            ctx.globalCompositeOperation = gc;
+          }
+      });
 
-    Brush.call( this, setup  );
-  };
-  PixelBrush.prototype = new Brush( {} );
+      var softErase = new Brush( {
+          name: 'Soft Eraser',
+          css : 'soft_eraser',
 
-  var pickerCommand = new Command({
-      name  : 'Picker',
-      css   : 'picker',
+          onDown: function( canvas, x, y ) {
+            this.lastX = x;
+            this.lastY = y;
+          },
+          onMoveOnUp: function( canvas, x, y ) {
+            var diffX = this.lastX - x,
+              diffY = this.lastY - y;
 
-      caption: 'Colour Picker | shortcut: k or hold Alt',
-      cursor: 'sb_cursor_picker',
+            this.drawLine( canvas.getDirectContext(), x, y );
+            canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, undefined, this.size*2 );
 
-      onDownOnMove : function( canvas, x, y, painter ) {
-        var rgb = canvas.colourPick( x, y );
+            this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 );
+          }
+      } );
+      softErase.drawLine = function( ctx, x, y ) {
+        var compOp = ctx.globalCompositeOperation;
 
-        if ( rgb !== null ) {
-          painter.setColor( rgbToColor(rgb[0], rgb[1], rgb[2]) );
-          painter.setAlpha( rgb[3] / 255.0 );
-        }
-      }
-  });
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineJoin = 'round';
 
-  var eraserSwitch   = null,
-    switchToEraser = function( shiftDown, painter ) {
-      if ( shiftDown ) {
-        eraserSwitch = this;
-        painter.setCommand( eraser );
-      }
-    };
+        ctx.lineWidth = this.size;
 
-  /* Eraser
-   *
-   * Works by having two built internally:
-   * = hard eraser, works on a pixel level
-   * = soft eraser, has faded edges
-   *
-   * The complete eraser houses both, and switches between them.
-   */
-  var eraser =
-      (function() {
-        var hardErase = new PixelBrush( {
-            name: 'Eraser',
-            css : 'eraser',
+        ctx.beginPath();
+        ctx.moveTo( this.lastX, this.lastY );
+        ctx.lineTo( x, y );
+        ctx.closePath();
 
-            onDraw: function( canvas, x, y, size ) {
-              var ctx = canvas.getDirectContext(),
-                gc = ctx.globalCompositeOperation;
+        ctx.stroke();
 
-              ctx.globalCompositeOperation = 'destination-out';
-              canvas.getDirectContext().fillRect( x | 0, y | 0, size, size );
-              ctx.globalCompositeOperation = gc;
+        ctx.globalCompositeOperation = compOp;
+
+        this.lastX = x;
+        this.lastY = y;
+      };
+
+      var eraser = new Command( {
+          name: 'Eraser',
+          css : 'eraser',
+          caption: 'Eraser | shortcut: e',
+
+          onDown: function( canvas, x, y ) {
+            var brush = this.isAliased   ? this.soft : this.hard ;
+
+            brush.size = this.size;
+            brush.onDown( canvas, x, y );
+            this.brush = brush;
+          },
+          onMove: function( canvas, x, y ) {
+            this.brush.onMove( canvas, x, y );
+          },
+          onUp: function( canvas, x, y ) {
+            this.brush.onUp( canvas, x, y );
+            this.setDrawArea( this.brush.popDrawArea() );
+          },
+
+          cursor: function( cursor, painter ) {
+            if ( this.isChecked ) {
+              cursor.setCircle( this.size );
+            } else {
+              cursor.setSquare( this.size );
             }
-        });
+          },
 
-        var softErase = new Brush( {
-            name: 'Soft Eraser',
-            css : 'soft_eraser',
+          controls: [
+            {
+              name: 'Size',
+              field:'size',
+              type: 'slider',
 
-            onDown: function( canvas, x, y ) {
-              this.lastX = x;
-              this.lastY = y;
+              cursor: true,
+
+              value: 1,
+              min: 1,
+              max: 50
             },
-            onMoveOnUp: function( canvas, x, y ) {
-              var diffX = this.lastX - x,
-                diffY = this.lastY - y;
+            {
+              name: 'Smooth',
+              field:'isAliased',
+              type: 'checkbox',
 
-              this.drawLine( canvas.getDirectContext(), x, y );
-              canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, undefined, this.size*2 );
+              cursor: true,
 
-              this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 );
+              value: false
             }
-        } );
-        softErase.drawLine = function( ctx, x, y ) {
-          var compOp = ctx.globalCompositeOperation;
+          ],
 
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.lineJoin = 'round';
+          /*
+           * Logic for handling switching to the eraser
+           * using shift, and then switching back.
+           */
 
-          ctx.lineWidth = this.size;
-
-          ctx.beginPath();
-          ctx.moveTo( this.lastX, this.lastY );
-          ctx.lineTo( x, y );
-          ctx.closePath();
-
-          ctx.stroke();
-
-          ctx.globalCompositeOperation = compOp;
-
-          this.lastX = x;
-          this.lastY = y;
-        };
-
-        var eraser = new Command( {
-            name: 'Eraser',
-            css : 'eraser',
-            caption: 'Eraser | shortcut: e',
-
-            onDown: function( canvas, x, y ) {
-              var brush = this.isAliased   ? this.soft : this.hard ;
-
-              brush.size = this.size;
-              brush.onDown( canvas, x, y );
-              this.brush = brush;
-            },
-            onMove: function( canvas, x, y ) {
-              this.brush.onMove( canvas, x, y );
-            },
-            onUp: function( canvas, x, y ) {
-              this.brush.onUp( canvas, x, y );
-              this.setDrawArea( this.brush.popDrawArea() );
-            },
-
-            cursor: function( cursor, painter ) {
-              if ( this.isChecked ) {
-                cursor.setCircle( this.size );
-              } else {
-                cursor.setSquare( this.size );
-              }
-            },
-
-            controls: [
-              {
-                name: 'Size',
-                field:'size',
-                type: 'slider',
-
-                cursor: true,
-
-                value: 1,
-                min: 1,
-                max: 50
-              },
-              {
-                name: 'Smooth',
-                field:'isAliased',
-                type: 'checkbox',
-
-                cursor: true,
-
-                value: false
-              }
-            ],
-
-            /*
-             * Logic for handling switching to the eraser
-             * using shift, and then switching back.
-             */
-
-            // shift back to the last control,
-            // if we shifted to the eraser
-            onShift: function( shiftDown, painter ) {
-              if ( eraserSwitch && ! shiftDown ) {
-                painter.setCommand( eraserSwitch );
-                eraserSwitch = null;
-              }
+          // shift back to the last control,
+          // if we shifted to the eraser
+          onShift: function( shiftDown, painter ) {
+            if ( eraserSwitch && ! shiftDown ) {
+              painter.setCommand( eraserSwitch );
+              eraserSwitch = null;
             }
-        } );
-        eraser.soft = softErase;
-        eraser.hard = hardErase;
+          }
+      } );
+      eraser.soft = softErase;
+      eraser.hard = hardErase;
 
-        return eraser;
-      })();
+      return eraser;
+    })();
 
+function newCommand() {
   return [
       pickerCommand,
 
@@ -6828,15 +6086,15 @@ var newCommands = function() {
             }
           }
       } )
-  ];
-};
+  ]
+}
 
 /**
  * @const
  * @nosideeffects
  * @private
  */
-var ensureEndingSlash = function( url ) {
+function ensureEndingSlash( url ) {
   // ensure the cursor folder ends with a slash /
   if ( url.length > 0 && url.charAt(url.length-1) != '/' ) {
     return url + '/';
@@ -6849,7 +6107,7 @@ var ensureEndingSlash = function( url ) {
  * Translates the image location from the one given,
  * to an explicit url, relative to this request.
  */
-var translateImageLocation = function( imageLocation ) {
+function translateImageLocation( imageLocation ) {
   imageLocation = ensureEndingSlash( imageLocation );
 
   var imageLocationCheck = imageLocation.toLowerCase();
@@ -6882,14 +6140,14 @@ var translateImageLocation = function( imageLocation ) {
  * @param rule The rule to test.
  * @return True if the rule is one that should be translated, and otherwise false.
  */
-var isUrlRule = function(rule) {
+function isUrlRule(rule) {
   return  rule &&
       rule != 'none' &&
       rule.indexOf('url(' ) !== -1 &&
       rule.indexOf('data:') === -1 ;
 };
 
-var useNativeCursor = function( size ) {
+function useNativeCursor( size ) {
   return ( USE_NATIVE_CURSOR && size < MAX_NATIVE_CURSOR_SIZE );
 }
 
@@ -6906,26 +6164,29 @@ var useNativeCursor = function( size ) {
  * class, and hiding the cursor, into one place, to simplify the
  * BrushCursor.
  */
-var DirectCursor = function( viewport ) {
-  this.$dom = $('<div class="skybrush_brush"></div>');
-  this.dom  = this.$dom.get( 0 );
-  viewport.append( this.dom );
+var DirectCursor = function( viewport:HTMLElement ) {
+  const dom = document.createElement( 'div' )
+  dom.className = 'skybrush_brush'
 
-  this.viewport       = viewport;
-  this.cursorDataURL  = null;
-  this.cursorClass    = null;
+  viewport.append( dom );
 
-  this.inScrollbar    = false;
-  this.isHidden       = false;
+  this.dom            = dom
+
+  this.viewport       = viewport
+  this.cursorDataURL  = null
+  this.cursorClass    = null
+
+  this.inScrollbar    = false
+  this.isHidden       = false
 
   // sensible defaults, so they are never 'undefined'
-  this.lastX          = 0;
-  this.lastY          = 0;
+  this.lastX          = 0
+  this.lastY          = 0
 
-  this.lastLeft       = 0;
-  this.lastTop        = 0;
+  this.lastLeft       = 0
+  this.lastTop        = 0
 
-  this.fakeShown      = false;
+  this.fakeShown      = false
 
   /**
    * This is the size of the fake cursor.
@@ -7260,40 +6521,40 @@ DirectCursor.prototype = {
        * and the background position.
        */
 
-      width  = Math.max( width , 0 );
-      height = Math.max( height, 0 );
+      width  = Math.max( width , 0 )
+      height = Math.max( height, 0 )
 
       var cssSetup = this.cssSetup;
       if (
           height !== cssSetup.height ||
           width  !== cssSetup.width
       ) {
-        var positionY = ! hideFromBottom ?
+        const positionY = ! hideFromBottom ?
               -(displaySize-height) + 'px' :
-               0 ;
-        var positionX = ! hideFromRight ?
+               0
+        const positionX = ! hideFromRight ?
               -(displaySize-width ) + 'px' :
-               0 ;
+               0
 
-        var newBackPosition = positionX + ' ' + positionY;
+        const newBackPosition = positionX + ' ' + positionY
         if ( newBackPosition !== cssSetup['background-position'] ) {
-          cssSetup['background-position'] = newBackPosition;
-          this.dom.style.backgroundPosition = newBackPosition;
+          cssSetup['background-position'] = newBackPosition
+          this.dom.style.backgroundPosition = newBackPosition
         }
 
         if ( width !== cssSetup.width ) {
-          cssSetup.width = width;
-          this.$dom.width( width );
+          cssSetup.width = width
+          this.dom.style.width = width + 'px'
         }
 
         if ( height !== cssSetup.height ) {
-          cssSetup.height = height;
-          this.$dom.height( height );
+          cssSetup.height = height
+          this.dom.height = height + 'px'
         }
       }
     }
 
-    return this;
+    return this
   },
 
   /**
@@ -7582,34 +6843,6 @@ BrushCursor.prototype.setClass = function( klass ) {
   return this;
 }
 
-/*
- * SkyBrush helper functions.
- * They are essentially private methods.
- */
-
-var processDrag = function( self, fun, ev ) {
-  if ( fun ) {
-    var loc = self.canvas.translateLocation( ev );
-    fun( ev, loc.left, loc.top );
-
-    ev.preventDefault();
-
-    return true;
-  } else {
-    return false;
-  }
-}
-
-const processCommand = function( self, name, ev ) {
-  var fun = self.command[name];
-
-  if ( fun !== undefined ) {
-    var loc = self.canvas.translateLocation( ev );
-
-    self.command[name]( self.canvas, loc.left, loc.top, self, ev );
-  }
-};
-
 const normalizeKey = function( key:string ):string {
   if ( key.length > 1 ) {
     key = key.toLowerCase()
@@ -7766,7 +6999,7 @@ function newButton() {
   return dom
 }
 
-var initializeMainButtons = function( painter, wrap, pickerCommand ) {
+function initializeMainButtons( painter, wrap, pickerCommand ) {
   const undoButton = newButton( 'Undo', 'skybrush_header_button', 'sb_disabled', function() {
     if ( ! this.classList.contains('sb_disabled') ) {
       painter.undo()
@@ -7808,11 +7041,11 @@ var initializeMainButtons = function( painter, wrap, pickerCommand ) {
    * Open / Close toggle
    */
 
-  const openToggle = $a(
+  const openToggle = $(newAnchor(
           '<div class="skybrush_open_toggle_text">&#x1F845</div>',
           'skybrush_header_button',
           'skybrush_open_toggle'
-      ).
+      )).
       leftclick( function(ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -7909,21 +7142,20 @@ var initializeMainButtons = function( painter, wrap, pickerCommand ) {
   const pickerCommandBack = document.createElement( 'div' )
   pickerCommandBack.className = 'skybrush_command_back'
 
+  const pickerButton = document.createElement( 'a' )
+  pickerButton.title = pickerCommand.getCaption()
+  pickerButton.addEventListener( 'click', (ev) => {
+      painter.setCommand( pickerCommand )
+
+      ev.preventDefault()
+      ev.stopPropagation()
+  })
+
   const picker = document.createElement('div')
   picker.className = 'skybrush_gui_command ' + pickerCommand.getCSS()
   picker.appendChild( pickerCommandBack )
-  picker.appendChild(
-      $a( '' ).
-          attr( 'title', pickerCommand.getCaption() ).
-          click( function(ev) {
-              painter.setCommand( pickerCommand );
-
-              ev.preventDefault();
-              ev.stopPropagation();
-          }).
-          get(0)
-  )
-  picker.__command = pickerCommand;
+  picker.appendChild( pickerButton )
+  picker.__command = pickerCommand
 
   painter.onSetCommand(( command ) => {
     if ( command === picker.__command ) {
@@ -7935,12 +7167,12 @@ var initializeMainButtons = function( painter, wrap, pickerCommand ) {
 
   // colour info wrap
 
-  var colourInfo = document.createElement('div');
-  colourInfo.className = 'skybrush_colour_info';
+  const colourInfo = document.createElement('div')
+  colourInfo.className = 'skybrush_colour_info'
 
-  colourInfo.appendChild( currentColorBack );
-  colourInfo.appendChild( currentColorShow );
-  colourInfo.appendChild( picker );
+  colourInfo.appendChild( currentColorBack )
+  colourInfo.appendChild( currentColorShow )
+  colourInfo.appendChild( picker )
 
   /* finally, put it all togther */
 
@@ -7949,11 +7181,11 @@ var initializeMainButtons = function( painter, wrap, pickerCommand ) {
    * so he gets put aside on his own, to watch over toggling the panel
    * open.
    */
-  var gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
+  const gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
       setPainter( painter ).
-      appendDirect( copyButtons, colourInfo );
+      appendDirect( copyButtons, colourInfo )
 
-  wrap.append( gui.dom );
+  wrap.append( gui.dom )
 }
 
 /**
@@ -7961,7 +7193,7 @@ var initializeMainButtons = function( painter, wrap, pickerCommand ) {
  * which has options like resize, scale, grid,
  * clear, and crop.
  */
-var initializeSettings = function( painter ) {
+function initializeSettings( painter ) {
 
   /*
    * Resize & Scale
@@ -8034,18 +7266,18 @@ var initializeSettings = function( painter ) {
 
       const form = document.createElement( 'form' )
       form.setAttribute( 'action', '' )
-      form.addEventListener( 'submit', function(ev) {
+      form.addEventListener( 'submit', (ev) => {
         ev.preventDefault()
 
-        var $content = painter.getInfoBar().getContent();
+        const content = painter.getInfoBar().getContent()
 
         onSuccess.call(
             this,
             widthInput.value  |0,
             heightInput.value |0
-        );
+        )
 
-        painter.getInfoBar().hide();
+        painter.getInfoBar().hide()
       }, false)
 
       const okButton = newInput( 'submit', '' )
@@ -8080,14 +7312,14 @@ var initializeSettings = function( painter ) {
     })
   }
 
-  var resize = infoOption( 'Canvas Size',
+  const resize = infoOption( 'Canvas Size',
       ( w, h ) => {
         painter.resize( w, h );
       }
   )
 
-  var isSmooth = false;
-  var scale = infoOption( 'Image Size',
+  let isSmooth = false;
+  const scale = infoOption( 'Image Size',
       ( w, h ) => {
         painter.scale( w, h, scale.querySelector('input.smooth').checked );
       },
@@ -8230,7 +7462,7 @@ var initializeSettings = function( painter ) {
 /**
  * Sets up the colour GUI in the SkyBrush.
  */
-var initializeColors = function( painter, pickerCommand ) {
+function initializeColors( painter, pickerCommand ) {
 
   /*
    * Colour Palette
@@ -8363,43 +7595,42 @@ var initializeColors = function( painter, pickerCommand ) {
 
   /* The Colour Wheel */
 
-  var colourWheelCanvas = newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
-  var wheelCtx = colourWheelCanvas.ctx;
-  var wheelData = wheelCtx.createImageData( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH );
+  const colourWheelCanvas = newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
+  colourWheelCanvas.className = 'skybrush_color_wheel_colour_wheel'
+  const wheelCtx = colourWheelCanvas.ctx
+  const wheelData = wheelCtx.createImageData( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
 
-  var wheelLineDom = document.createElement('div');
-  wheelLineDom.className = 'skybrush_color_wheel_line_outer';
-  wheelLineDom.innerHTML = '<div class="skybrush_color_wheel_line"></div>';
+  const wheelLineDom = document.createElement( 'div' )
+  wheelLineDom.className = 'skybrush_color_wheel_line_outer'
+  wheelLineDom.innerHTML = '<div class="skybrush_color_wheel_line"></div>'
 
-  var wheelLine = $( wheelLineDom );
-  data = wheelData.data;
+  const wheelLine = $( wheelLineDom )
+  data = wheelData.data
 
-  var colourWheelHalfWidth  = ( COLOUR_WHEEL_WIDTH/2 )|0 ;
-  var i = 0;
-  for ( var y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
-    for ( var x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
-      var paintHue = atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x );
+  const colourWheelHalfWidth = ( COLOUR_WHEEL_WIDTH/2 ) | 0
+  let i = 0
+  for ( let y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
+    for ( let x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
+      const paintHue = atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x )
 
-      data[i  ] = hsvToR( paintHue, 1, 1 );
-      data[i+1] = hsvToG( paintHue, 1, 1 );
-      data[i+2] = hsvToB( paintHue, 1, 1 );
-      data[i+3] = 255;
+      data[i  ] = hsvToR( paintHue, 1, 1 )
+      data[i+1] = hsvToG( paintHue, 1, 1 )
+      data[i+2] = hsvToB( paintHue, 1, 1 )
+      data[i+3] = 255
 
-      i += 4;
+      i += 4
     }
   }
 
-  wheelCtx.putImageData( wheelData, 0, 0 );
+  wheelCtx.putImageData( wheelData, 0, 0 )
 
   var colourWheel = $( colourWheelCanvas ).
-      addClass( 'skybrush_color_wheel_colour_wheel' ).
       killEvent( 'click' ).
-      leftdrag( function(ev) {
-          var pos = ev.offset( colourWheel );
-
-          var distX = COLOUR_WHEEL_WIDTH/2 - pos.left,
-            distY = COLOUR_WHEEL_WIDTH/2 - pos.top;
-          var hypot = Math.sqrt( distX*distX + distY*distY );
+      leftdrag((ev) => {
+          const pos   = ev.offset( colourWheel )
+          const distX = COLOUR_WHEEL_WIDTH/2 - pos.left
+          const distY = COLOUR_WHEEL_WIDTH/2 - pos.top
+          const hypot = Math.sqrt( distX*distX + distY*distY )
 
           // change the hue
           if ( hypot <= COLOUR_WHEEL_WIDTH/2 ) {
@@ -8410,11 +7641,11 @@ var initializeColors = function( painter, pickerCommand ) {
                     saturation,
                     value
                 )
-            );
+            )
 
-            updateHue( hue );
+            updateHue( hue )
 
-            ev.preventDefault();
+            ev.preventDefault()
 
           /*
            * it's right on the edge of the colour mixer,
@@ -8423,34 +7654,34 @@ var initializeColors = function( painter, pickerCommand ) {
            * So we send the event somewhere else.
            */
           } else {
-            mixerFront.trigger( ev );
+            mixerFront.trigger( ev )
           }
-      });
+      })
 
   wheelLine.forwardEvents( colourWheel, 'vmousemove', 'vmousedown' );
 
   /* Combine Colour Mixer */
 
-  var colourWheelWrap = document.createElement('div');
-  colourWheelWrap.className = 'skybrush_color_wheel_wrap';
-  colourWheelWrap.appendChild( colourWheel.get(0) );
-  colourWheelWrap.appendChild( wheelLine.get(0)   );
+  const colourWheelWrap = document.createElement( 'div' )
+  colourWheelWrap.className = 'skybrush_color_wheel_wrap'
+  colourWheelWrap.appendChild( colourWheelCanvas )
+  colourWheelWrap.appendChild( wheelLineDom      )
 
-  var mixerHorizontal = $('<div>').
-        addClass( 'skybrush_mixer_horizontal_line' ).
-        forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
+  const mixerHorizontal = $('<div>').
+      addClass( 'skybrush_mixer_horizontal_line' ).
+      forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
 
-  var mixerVertical = $('<div>').
-        addClass( 'skybrush_mixer_vertical_line' ).
-        forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
+  const mixerVertical = $('<div>').
+      addClass( 'skybrush_mixer_vertical_line' ).
+      forwardEvents( mixerFront, 'vmousedown', 'vmousemove' );
 
-  var mixer = document.createElement('div');
-  mixer.className = 'skybrush_color_mixer';
-  mixer.appendChild( colourBack               );
-  mixer.appendChild( mixerFront               );
-  mixer.appendChild( mixerHorizontal.get(0)   );
-  mixer.appendChild( mixerVertical.get(0)     );
-  mixer.appendChild( colourWheelWrap          );
+  const mixer = document.createElement( 'div' )
+  mixer.className = 'skybrush_color_mixer'
+  mixer.appendChild( colourBack               )
+  mixer.appendChild( mixerFront               )
+  mixer.appendChild( mixerHorizontal.get(0)   )
+  mixer.appendChild( mixerVertical.get(0)     )
+  mixer.appendChild( colourWheelWrap          )
 
   mixerFront.leftdrag(
       function(ev) {
@@ -8655,52 +7886,53 @@ var initializeColors = function( painter, pickerCommand ) {
           get(0)
   );
 
-  var colorGUI = new GUI( 'Palette', 'colors' ).
+  const colorGUI = new GUI( 'Palette', 'colors' ).
       appendTogether( currentColor, destinationAlpha ).
-      append( mixer );
+      append( mixer )
 
-  var swatchesGUI = new GUI( 'Swatches', 'swatches' ).
-      append( colors );
+  const swatchesGUI = new GUI( 'Swatches', 'swatches' ).
+      append( colors )
 
-  painter.addGUI( colorGUI, swatchesGUI );
+  painter.addGUI( colorGUI, swatchesGUI )
 
   /* Now generate the alpha gradient, now the canvas has reflowed */
 
-  var $alphaCanvas = $(newCheckerboard(
+  const alphaCanvas = newCheckerboard(
       alphaGradient.width(),
       alphaGradient.height(),
       true
-  ));
+  )
 
-  var updateAlphaFun = function(ev) {
-    var pos = $alphaCanvas.offset(),
-        h = $alphaCanvas.height();
+  const updateAlphaFun = function(ev) {
+    const pos = $(alphaCanvas).offset()
+    const h   = $(alphaCanvas).height()
 
-    var y = Math.limit( ev.pageY - pos.top, 0, h );
-    painter.setAlpha( y / h );
+    const y = Math.limit( ev.pageY - pos.top, 0, h )
+    painter.setAlpha( y / h )
 
-    ev.preventDefault();
+    ev.preventDefault()
   }
 
-  $( $alphaCanvas ).leftdrag( updateAlphaFun );
-  $( alphaBar     ).leftdrag( updateAlphaFun );
+  $( alphaCanvas ).leftdrag( updateAlphaFun )
+  $( alphaBar    ).leftdrag( updateAlphaFun )
 
-  alphaGradient.replaceWith( $alphaCanvas );
+  alphaGradient.replaceWith( alphaCanvas )
 
   /* Disable Selections on some components in IE */
 
   if ( $.browser.msie ) {
-    colourWheel.bind( 'selectstart', RETURN_FALSE );
-     mixerFront.bind( 'selectstart', RETURN_FALSE );
+    const returnFalse = function() { return false }
 
-    alphaBar.addEventListener( 'selectstart', RETURN_FALSE );
+    colourWheel.bind( 'selectstart', returnFalse )
+     mixerFront.bind( 'selectstart', returnFalse )
+    alphaBar.addEventListener( 'selectstart', returnFalse )
   }
 
   /*
    * Update Callbacks for Colour and Alpha
    */
 
-  painter.onSetColor( function(strColor) {
+  painter.onSetColor((strColor) => {
     // update the shown colour
     alphaBar.style.background = strColor;
 
@@ -8712,12 +7944,12 @@ var initializeColors = function( painter, pickerCommand ) {
     const g = (rgb >>  8) & 0xff
     const b =  rgb & 0xff
 
-    var hasRGBFocus =
+    const hasRGBFocus =
         ( document.activeElement === rInput ) ||
         ( document.activeElement === gInput ) ||
         ( document.activeElement === bInput )
 
-    var hasHSVFocus =
+    const hasHSVFocus =
         ( document.activeElement === hInput ) ||
         ( document.activeElement === sInput ) ||
         ( document.activeElement === vInput )
@@ -8732,7 +7964,7 @@ var initializeColors = function( painter, pickerCommand ) {
     /* Update the Colour Mixer */
 
     // convert colour to full hue
-    var newHue = rgbToHSVHue( r, g, b );
+    const newHue = rgbToHSVHue( r, g, b );
 
     // cache these for laterz
     saturation = rgbToHSVSaturation( r, g, b )
@@ -8744,14 +7976,14 @@ var initializeColors = function( painter, pickerCommand ) {
     }
 
     /* Update X/Y location of the overlay bars */
-    var xVal = saturation, // saturation
-      yVal = (1 - value); // value
+    const xVal = saturation  // saturation
+    const yVal = (1 - value) // value
 
-    var colXWidth  = mixerSize - yVal*mixerSize,
-      colYHeight = mixerSize;
+    const colXWidth  = mixerSize - yVal*mixerSize
+    const colYHeight = mixerSize
 
-    var colX = xVal * colXWidth,
-      colY = yVal * colYHeight ;
+    const colX = xVal * colXWidth
+    const colY = yVal * colYHeight
 
     mixerVertical.
         translate( colX, 0 ).
@@ -8804,7 +8036,7 @@ var initializeColors = function( painter, pickerCommand ) {
  *
  * @param painter The SkyBrush application.
  */
-const initializeCommands = function( painter, commandsList, picker ) {
+function initializeCommands( painter, commandsList, picker ) {
   const commands = document.createElement( 'div' );
   commands.className = 'skybrush_commands_pane';
 
@@ -8882,7 +8114,7 @@ const initializeCommands = function( painter, commandsList, picker ) {
  * Sets up some common shortcuts,
  * not that not all are set here, such as undo/redo.
  */
-var initializeShortcuts = function( painter, dontGrabCtrlR ) {
+function initializeShortcuts( painter, dontGrabCtrlR:boolean ) {
   var domObj = painter.dom
 
   painter.onCtrl( 187, function() {
@@ -9016,46 +8248,46 @@ var initializeShortcuts = function( painter, dontGrabCtrlR ) {
  * @param p The value to convert.
  * @return The zoom for the value given.
  */
-var percentToZoom = function( p ) {
-  p = Math.limit( p, 0, 1 );
+function percentToZoom( p:number ) {
+  p = Math.limit( p, 0, 1 )
 
   // convert p from: 0.0 to 1.0 => -1.0 to 1.0;
-  p = (p-0.5) * 2;
+  p = (p-0.5) * 2
 
   // When p is very very close to 1, it can actually increase the zoom in the opposite direction.
   // So the min/max creates a dead zone, and we add p on as a minor zoom.
 
   if ( p > 0 ) {
-    return Math.max( MAX_ZOOM*p, 1+p );
+    return Math.max( MAX_ZOOM*p, 1+p )
   } else if ( p < 0 ) {
-    p = -p;
-    var newZoom = 1 / ( MAX_ZOOM*p );
-    return Math.min( newZoom, 1-p );
+    p = -p
+    const newZoom = 1 / ( MAX_ZOOM*p )
+    return Math.min( newZoom, 1-p )
   } else {
-    return 1;
+    return 1
   }
 }
 
-var zoomToPercent = function( zoom ) {
-  zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
+function zoomToPercent( zoom:number ) {
+  zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM )
 
-  var slide;
+  let slide = 0
 
   // converts from: [1/MAX_ZOOM to MAX_ZOOM] => [-1.0 to 1.0]
   if ( zoom > 1 ) {
-    slide =       zoom / MAX_ZOOM;
+    slide =       zoom / MAX_ZOOM
   } else if ( zoom < 1 ) {
-    slide = - (1/zoom) / MAX_ZOOM;
+    slide = - (1/zoom) / MAX_ZOOM
   } else {
-    slide = 0.0;
+    slide = 0.0
   }
 
   // convert from [-1.0 to 1.0] => [0.0 to 1.0]
-  return slide/2 + 0.5;
-};
+  return slide/2 + 0.5
+}
 
 // Canvas 2D Context properties we are interested in storing/restoring
-var CTX_BACKUP_PROPERTIES = [
+const CTX_BACKUP_PROPERTIES = [
     'fillStyle',
     'strokeStyle',
     'lineCap',
@@ -9063,31 +8295,31 @@ var CTX_BACKUP_PROPERTIES = [
     'lineWidth',
     'globalAlpha',
     'globalCompositeOperation'
-];
+]
 
 /**
  * @private
  */
-var backupCtx = function( ctx ) {
-  var info = { };
+function backupCtx( ctx ) {
+  const info = {}
 
-  for ( var i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
-    var prop = CTX_BACKUP_PROPERTIES[i];
-    info[prop] = ctx[prop];
+  for ( let i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
+    const prop = CTX_BACKUP_PROPERTIES[i]
+    info[prop] = ctx[prop]
   }
 
-  return info;
-};
+  return info
+}
 
 /**
  * @private
  */
-var restoreCtx = function( ctx, info ) {
-  for ( var i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
-    var prop = CTX_BACKUP_PROPERTIES[i];
-    ctx[prop] = info[prop];
+function restoreCtx( ctx, info ) {
+  for ( let i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
+    const prop = CTX_BACKUP_PROPERTIES[i]
+    ctx[prop] = info[prop]
   }
-};
+}
 
 /**
  * Copies the setup from the old canvas 2d context to
@@ -9097,10 +8329,10 @@ var restoreCtx = function( ctx, info ) {
  * @param oldCtx The context to copy attributes form.
  * @param newCtx The context to copy attributes to.
  */
-var copyCtxSetup = function( oldCtx, newCtx ) {
-  for ( var i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
-    var prop = CTX_BACKUP_PROPERTIES[i];
-    newCtx[prop] = oldCtx[prop];
+function copyCtxSetup( oldCtx, newCtx ) {
+  for ( let i = 0; i < CTX_BACKUP_PROPERTIES.length; i++ ) {
+    const prop = CTX_BACKUP_PROPERTIES[i]
+    newCtx[prop] = oldCtx[prop]
   }
-};
+}
 
