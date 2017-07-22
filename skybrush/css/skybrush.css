@@ -1671,16 +1671,6 @@
                 height: 18px;
                 top: -3px;
             }
-            .skybrush.msie input.skybrush_slider_bar {
-                top: -2px;
-            }
-            .skybrush.webkit input.skybrush_slider_bar {
-                -webkit-appearance: none;
-                top: -1px;
-
-                background: #aaa;
-            }
-
             .skybrush_slider_bar::-webkit-slider-thumb {
                 -webkit-appearance: none;
 

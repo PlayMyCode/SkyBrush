@@ -8,51 +8,57 @@
  * @param   {number} b       The blue color value
  * @return  {number} The value of the HSV value, between 0.0 and 1.0.
  */
-export function rgbToHSVValue(r, g, b) {
+export function rgbToHSVValue( r:number, g:number, b:number ):number {
   if ( r > g ) {
     if ( r > b ) {
-      return r / 255;
+      return r / 255
+
     } else if ( g > b ) {
-      return g / 255;
+      return g / 255
+
     } else {
-      return b / 255;
+      return b / 255
+
     }
+
   } else if ( g > b ) {
-    return g / 255;
+    return g / 255
+
   } else {
-    return b / 255;
+    return b / 255
+
   }
 }
 
-export function rgbToHSVSaturation(r, g, b) {
+export function rgbToHSVSaturation( r:number, g:number, b:number ):number {
   if ( r === g && r === b ) {
-    return 0 ;
+    return 0
 
   } else {
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
+    const v    =     Math.max( r, g, b )
+    const diff = v - Math.min( r, g, b )
 
-    return diff / v ;
+    return diff / v
   }
 }
 
-export function rgbToHSVHue(r, g, b) {
+export function rgbToHSVHue( r:number, g:number, b:number ):number {
   if ( r === g && r === b ) {
-    return 0;
+    return 0
 
   } else {
-    r = r / 255,
-    g = g / 255,
-    b = b / 255;
+    r /= 255
+    g /= 255
+    b /= 255
 
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
+    const v    =     Math.max( r, g, b )
+    const diff = v - Math.min( r, g, b )
 
     return (
         ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
         ( v === g ) ? ( (b - r) / diff + 2               ) :
-                ( (r - g) / diff + 4               )
-    ) / 6 ;
+                      ( (r - g) / diff + 4               )
+    ) / 6
   }
 }
 
@@ -67,25 +73,25 @@ export function rgbToHSVHue(r, g, b) {
  * @param   {number} b       The blue color value
  * @return  {Array.<number>} The HSV representation
  */
-export function rgbToHSV(r, g, b) {
+export function rgbToHSV( r:number, g:number, b:number ):number {
   // achromatic
   if ( r === g && r === b ) {
-    return [ 0.0, 0.0, Math.max(r, g, b)/255.0 ] ;
+    return [ 0.0, 0.0, Math.max(r, g, b)/255.0 ]
 
   } else {
-    r = r / 255.0,
-    g = g / 255.0,
-    b = b / 255.0;
+    r /= 255.0
+    g /= 255.0
+    b /= 255.0
 
-    var v    =     Math.max( r, g, b );
-    var diff = v - Math.min( r, g, b );
+    const v    =     Math.max( r, g, b )
+    const diff = v - Math.min( r, g, b )
 
     return [
         // h, the hue
         (
             ( v === r ) ? ( (g - b) / diff + (g < b ? 6 : 0) ) :
             ( v === g ) ? ( (b - r) / diff + 2               ) :
-                    ( (r - g) / diff + 4               )
+                          ( (r - g) / diff + 4               )
         ) / 6,
 
         // s, the saturation
@@ -93,7 +99,7 @@ export function rgbToHSV(r, g, b) {
 
         // v, the value
         v
-    ];
+    ]
   }
 }
 
@@ -107,7 +113,7 @@ export function rgbToHSV(r, g, b) {
  * @return:double The angle as a hue.
  */
 export function atan2ToHue( yDiff, xDiff ) {
-  return ( Math.atan2( yDiff, xDiff ) + Math.PI ) / ( Math.PI*2 );
+  return ( Math.atan2( yDiff, xDiff ) + Math.PI ) / ( Math.PI*2 )
 }
 
 /**
@@ -116,111 +122,129 @@ export function atan2ToHue( yDiff, xDiff ) {
  * @param   {number} v       The value
  * @return  {number}         The red component, in the RGB colour model.
  */
-export function hsvToR(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
+export function hsvToR( h:number, s:number, v:number ):number {
+  const iMod = (((h*6)|0) % 6)|0
 
   if ( iMod === 0 ) {
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 1 ) {
     return ((
         // q
         v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 2 ) {
     return ((
         // p
         v*(1-s))
-    *255 + 0.5)|0;
+    *255 + 0.5)|0
+
   } else if ( iMod === 3 ) {
     return ((
         // p
         v*(1-s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 4 ) {
     return ((
         // t
         (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else /* iMod === 5 */{
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   }
 }
 
-export function hsvToB(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
+export function hsvToB( h:number, s:number, v:number ):number {
+  const iMod = (((h*6)|0) % 6)|0
 
   if ( iMod === 0 ) {
     return ((
         // p
         v*(1-s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 1 ) {
     return ((
         // p
         v*(1-s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 2 ) {
     return ((
         // t
         (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 3 ) {
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 4 ) {
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else /* iMod === 5 */{
     return ((
         // q
         v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   }
 }
 
-export function hsvToG(h, s, v){
-  var iMod = (((h*6)|0) % 6)|0;
+export function hsvToG( h:number, s:number, v:number ):number {
+  const iMod = (((h*6)|0) % 6)|0
 
   if ( iMod === 0 ) {
     return ((
         // t
         (v * (1 - (1-(h*6-((h*6)|0))) * s))
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 1 ) {
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 2 ) {
     return ((
         // v
         v
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 3 ) {
     return ((
         // q
         v * (1 - (h*6-((h*6)|0)) * s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else if ( iMod === 4 ) {
     return ((
         // p
         v*(1-s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   } else /* iMod === 5 */{
     return ((
         // p
         v*(1-s)
-    )*255 + 0.5)|0;
+    )*255 + 0.5)|0
+
   }
 }
 
@@ -235,30 +259,32 @@ export function hsvToG(h, s, v){
  * @param   {number} v       The value
  * @return  {Array.<number>} The RGB representation
  */
-export function hsvToRGB(h, s, v){
-  var r, g, b;
+export function hsvToRGB( h:number, s:number, v:number ):number {
+  let r = 0
+  let g = 0
+  let b = 0
 
-  var i = (h *  6)|0;
-  var f =  h *  6 - i;
-  var p =  v * (1 - s);
-  var q =  v * (1 - f * s);
-  var t =  v * (1 - (1 - f) * s);
+  const i = (h *  6)|0
+  const f =  h *  6 - i
+  const p =  v * (1 - s)
+  const q =  v * (1 - f * s)
+  const t =  v * (1 - (1 - f) * s)
 
-  var iMod = i % 6;
+  const iMod = i % 6
 
-       if ( iMod === 0 ) { r = v, g = t, b = p;
-  } else if ( iMod === 1 ) { r = q, g = v, b = p;
-  } else if ( iMod === 2 ) { r = p, g = v, b = t;
-  } else if ( iMod === 3 ) { r = p, g = q, b = v;
-  } else if ( iMod === 4 ) { r = t, g = p, b = v;
-  } else   /* iMod === 5 */{ r = v, g = p, b = q;
+         if ( iMod === 0 ) { r = v, g = t, b = p
+  } else if ( iMod === 1 ) { r = q, g = v, b = p
+  } else if ( iMod === 2 ) { r = p, g = v, b = t
+  } else if ( iMod === 3 ) { r = p, g = q, b = v
+  } else if ( iMod === 4 ) { r = t, g = p, b = v
+  } else   /* iMod === 5 */{ r = v, g = p, b = q
   }
 
   return [
       (r*255 + 0.5)|0,
       (g*255 + 0.5)|0,
-      (b*255 + 0.5)|0
-  ];
+      (b*255 + 0.5)|0,
+  ]
 }
 
 /**
@@ -273,12 +299,13 @@ export function hsvToRGB(h, s, v){
  * @param v The value, 0.0 to 1.0.
  * @return {string} A CSS hex string for this color.
  */
-export function hsvToColor( h:number, s:number, v:number ) {
+export function hsvToColor( h:number, s:number, v:number ):string {
   // hsvToR/G/B returns an int, so no rounding is needed!
-  return '#' +
-      INT_TO_HEX[ hsvToR(h, s, v) ] +
-      INT_TO_HEX[ hsvToG(h, s, v) ] +
-      INT_TO_HEX[ hsvToB(h, s, v) ] ;
+  const rHex = INT_TO_HEX[ hsvToR(h, s, v) ]
+  const gHex = INT_TO_HEX[ hsvToG(h, s, v) ]
+  const bHex = INT_TO_HEX[ hsvToB(h, s, v) ]
+
+  return `#${rHex}${gHex}${bHex}`
 }
 
 /**
@@ -293,10 +320,11 @@ export function hsvToColor( h:number, s:number, v:number ) {
  * @param b The blue component.
  * @return The given RGB values combined into a hex string.
  */
-export function rgbToColor( r, g, b ) {
-  return '#' +
-      INT_TO_HEX[ (r+0.5) | 0 ] +
-      INT_TO_HEX[ (g+0.5) | 0 ] +
-      INT_TO_HEX[ (b+0.5) | 0 ] ;
-};
+export function rgbToColor( r:number, g:number, b:number ):string {
+  const rHex = INT_TO_HEX[ (r+0.5) | 0 ]
+  const gHex = INT_TO_HEX[ (g+0.5) | 0 ]
+  const bHex = INT_TO_HEX[ (b+0.5) | 0 ]
+
+  return `#${rHex}${gHex}${bHex}`
+}
 

@@ -1,35 +1,32 @@
 {
   "files": [
-    "./node_modules/almond/almond.js",
     "./src/main.ts"
   ],
 
   "compilerOptions": {
-    "outFile"           : "dist/skybrush.js",
     "outDir"            : "dist",
 
-    "target"            : "es5",
-    "module"            : "amd",
+    "target"            : "ESNext",
+    "module"            : "ES2015",
     "moduleResolution"  : "node",
-    "allowJs"           : true,
+    "allowJs"           : false,
 
     "baseUrl"           : "./src",
     "sourceRoot"        : "./src",
     "sourceMap"         : true,
     "pretty"            : true,
+    "noEmitOnError"     : false,
 
     "charset"           : "utf8",
     "newLine"           : "LF",
 
-    "noEmitOnError"     : true,
-    "pretty"            : true,
-
-    "strictNullChecks"                 : true,
     "allowUnreachableCode"             : false,
     "allowUnusedLabels"                : false,
+
+    "strictNullChecks"                 : true,
     "forceConsistentCasingInFileNames" : true,
-    "suppressExcessPropertyErrors"     : false,
-    "suppressImplicitAnyIndexErrors"   : false,
+    "suppressExcessPropertyErrors"     : true,
+    "suppressImplicitAnyIndexErrors"   : true,
     "noFallthroughCasesInSwitch"       : true,
     "noImplicitAny"                    : true,
     "noImplicitReturns"                : true,

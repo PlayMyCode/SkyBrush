@@ -1,7 +1,8 @@
 
-import {
-    htmlToElement
-} from 'util/html'
+import * as constants from 'setup/constants'
+import { htmlToElement } from 'util/html'
+import * as maths from 'util/maths'
+import { Consumer, Nullable } from 'util/function-interfaces'
 
 /**
  * in pixels
@@ -19,26 +20,21 @@ const DEFAULT_HEIGHT = 460
 const DEFAULT_ZOOM = 1
 
 /**
- * Default cursor name.
- */
-const DEFAULT_CURSOR = 'sb_cursor_default'
-
-/**
  * The name of the command to select as default,
  * when the user first sees painter.
  */
 const DEFAULT_COMMAND = 'webby'
 
-export interface SkyBrushOptions {
-  grab_ctrl_r    ? : boolean ;
-  width          ? : number  ;
-  height         ? : number  ;
-  callback       ? : ( skyBrush:SkyBrush ) => void ;
+export interface SkyBrushOptions<T> {
+  grab_ctrl_r ? : boolean
+  width       ? : number
+  height      ? : number
+  callback    ? : Consumer<T>
 }
 
 interface DraggingEvents {
-  onMove : null | ( ev:MouseEvent ) => void ;
-  onEnd  : null | ( ev:MouseEvent ) => void ;
+  onMove : Nullable<Consumer<MouseEvent>>
+  onEnd  : Nullable<Consumer<MouseEvent>>
 }
 
 type AltShiftSkipState = 'none' | 'shift' | 'alt'
@@ -179,18 +175,18 @@ export class SkyBrush {
 
   private dragging:DraggingEvents = {
     onMove : null,
-     onEnd : null
+     onEnd : null,
   }
 
   constructor(
-      container:HTMLElement,
-      options?:SkyBrushOptions 
+      container : HTMLElement,
+      options  ?: SkyBrushOptions<this>,
   ) {
     if ( ! container ) {
       if ( arguments.length === 0 ) {
-        throw new Error( 'no dom value provided' );
+        throw new Error( 'no dom value provided' )
       } else {
-        throw new Error( 'invalid dom value given' );
+        throw new Error( 'invalid dom value given' )
       }
     }
 
@@ -205,22 +201,12 @@ export class SkyBrush {
     container.innerHTML = ''
     container.classList.add( 'skybrush' )
 
-    if ( $.browser.msie ) {
-      container.classList.add( 'msie' );
-    } else if ( $.browser.webkit ) {
-      container.classList.add( 'webkit' );
-    } else if ( $.browser.mozilla ) {
-      container.classList.add( 'mozilla' );
-    } else if ( $.browser.opera ) {
-      container.classList.add( 'opera' );
-    }
-
-    if ( $.browser.iOS ) {
-      container.classList.add( 'sb_ios' );
+    if ( constants.IS_IOS ) {
+      container.classList.add( 'sb_ios' )
     }
 
     if ( DISABLE_CONTEXT_MENU ) {
-      container.addEventListener( 'contextmenu', (ev) => {
+      container.addEventListener( 'contextmenu', ev => {
         ev.preventDefault()
         
         return false
@@ -359,8 +345,8 @@ export class SkyBrush {
     this.setSize( startingWidth, startingHeight ).
         refreshGUIPaneContentArea().
         setZoom( DEFAULT_ZOOM, undefined, undefined, true ).
-        setColor( DEFAULT_COLOR ).
-        setAlpha( DEFAULT_ALPHA ).
+        setColor( constants.DEFAULT_COLOUR ).
+        setAlpha( constants.DEFAULT_ALPHA ).
         setCommand( defaultCommand )
 
     this.canvas.resetUndoRedo()
@@ -486,13 +472,13 @@ export class SkyBrush {
    * For attaching to those, use the 'onCtrl' method.
    */
   onKey3(
-      event: null | 'keyup' | 'keydown'
-      key:stirng,
-      callback:( ev:KeyboarEvent ) => void 
+      event: null | 'keyup' | 'keydown',
+      key:string,
+      callback:Consumer<KeyboarEvent>,
   ):SkyBrush {
     const keyTest = newKeyEventTest( key )
 
-    return this.onKeyInteraction( event, (ev) => {
+    return this.onKeyInteraction( event, ev => {
       if ( !(ev.ctrlKey || ev.metaKey) && keyTest(ev) ) {
         callback.call( this, ev )
 
@@ -646,7 +632,7 @@ export class SkyBrush {
 
       this.isPainting = false
 
-      if ( IS_TOUCH ) {
+      if ( constants.IS_TOUCH ) {
         this.brushCursor.hideTouch()
       }
 
@@ -678,7 +664,7 @@ export class SkyBrush {
      */
     if (
         $target.parents('.skybrush_viewport').size() > 0 &&
-        ( IS_TOUCH || ev.which === LEFT ) &&
+        ( constants.IS_TOUCH || ev.which === constants.LEFT ) &&
         ! $target.is('input, a, .sb_no_target') &&
         ! ev.isInScrollBar(this.viewport)
     ) {
@@ -700,7 +686,7 @@ export class SkyBrush {
   runStartDraw( ev:MouseEvent ) {
     ev.preventDefault()
 
-    if ( IS_TOUCH ) {
+    if ( constants.IS_TOUCH ) {
       this.brushCursor.showTouch()
       this.brushCursor.onMove( ev )
     }
@@ -806,21 +792,6 @@ export class SkyBrush {
   }
 
   /**
-   * As code retrieving GUI's should never be after one
-   * that does not exist, this will return null to force you
-   * to get the right GUI.
-   *
-   * This is to avoid you accidentally working on an empty
-   * jQuery object, and wondering why it's not working.
-   *
-   * @private
-   * @return The GUI overlay with the name given, or null if not found.
-   */
-  getGUI( klass:string ):HTMLElement|null {
-    return this.guiDom.querySelector( '.skybrush_gui.' + klass )
-  }
-
-  /**
    * Resizes the canvas inside of this SkyBrush object,
    * to the size stated.
    *
@@ -830,7 +801,7 @@ export class SkyBrush {
    * @param {number} height The new height.
    * @param {boolean} clear Optional, pass in true to clear the canvas during the resize.
    */
-  setSize( newWidth:number, newHeight:number, clear:boolean ) {
+  setSize( newWidth:number, newHeight:number, clear:boolean ): this {
     this.canvas.setSize( newWidth, newHeight, clear );
 
     return this;
@@ -845,7 +816,7 @@ export class SkyBrush {
    * @param {number} width The new width.
    * @param {number} height The new height.
    */
-  resize( newWidth:number, newHeight:number ):SkyBrush {
+  resize( newWidth:number, newHeight:number ):this {
     this.canvas.resize( newWidth, newHeight )
 
     return this
@@ -855,7 +826,7 @@ export class SkyBrush {
    * @param {number} newWidth The new Width of the canvas.
    * @param {number} newHeight The new Height of the canvas.
    */
-  scale( newWidth:number, newHeight:number, isSmooth:boolean ):SkyBrush {
+  scale( newWidth:number, newHeight:number, isSmooth:boolean ):this {
     this.canvas.scale( newWidth, newHeight, isSmooth )
 
     return this
@@ -869,7 +840,7 @@ export class SkyBrush {
    *
    * It's the same as: this.setZoom( this.getZoom() );
    */
-  updateZoom():SkyBrush {
+  updateZoom():this {
     return this.setZoom( this.getZoom() )
   }
 
@@ -969,8 +940,11 @@ export class SkyBrush {
    * @param y optional, the centre of the zoom in canvas pixels.
    * @param force optional, true to force a zoom update (shouldn't ever need to do this).
    */
-  setZoom( zoom, x, y, force ) {
-    zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM );
+  setZoom( zoom:number ): this;
+  setZoom( zoom:number, x:number, y:number ): this;
+  setZoom( zoom:number, x:number, y:number, force:boolean ): this;
+  setZoom( zoom:number, x?:number, y?:number, force?:boolean ): this {
+    zoom = maths.limit( zoom, 1/constants.MAX_ZOOM, constants.MAX_ZOOM );
 
     if ( zoom > 1 ) {
       zoom = Math.round( zoom );
@@ -993,8 +967,8 @@ export class SkyBrush {
    * @param {number} x The x co-ordinate to zoom into.
    * @param {number} y The y co-ordinate to zoom into.
    */
-  zoomIn( x, y ) {
-    const zoom = percentToZoom( this.getZoomPercent() + 1/MAX_ZOOM )
+  zoomIn( x:number, y:number ): this {
+    const zoom = percentToZoom( this.getZoomPercent() + 1/constants.MAX_ZOOM )
 
     return this.setZoom( zoom, x, y )
   }
@@ -1005,8 +979,8 @@ export class SkyBrush {
    * @param {number} x The x co-ordinate to zoom out of.
    * @param {number} y The y co-ordinate to zoom out of.
    */
-  zoomOut( x, y ) {
-    const zoom = percentToZoom( this.getZoomPercent() - 1/MAX_ZOOM )
+  zoomOut( x:number, y:number ) {
+    const zoom = percentToZoom( this.getZoomPercent() - 1/constants.MAX_ZOOM )
 
     return this.setZoom( zoom, x, y )
   }
@@ -1062,7 +1036,7 @@ export class SkyBrush {
    * @param True if shift is now down, false if not, or skip this to run all events.
    * @return This SkyBrush instance.
    */
-  runOnShift( shiftDown:booean ):SkyBrush {
+  runOnShift( shiftDown:booean ):this {
     if ( this.shiftOrAltSkip === 'shift' ) {
       const shiftUp = ! shiftDown
 
@@ -1084,7 +1058,7 @@ export class SkyBrush {
     return this
   }
 
-  runOnAlt( altDown:booean ):SkyBrush {
+  runOnAlt( altDown:booean ):this {
     if ( this.shiftOrAltSkip === 'alt' ) {
       const altUp = ! altDown
 
@@ -1134,27 +1108,27 @@ export class SkyBrush {
    *
    * @param fun The event to run.
    */
-  onZoom( fun ) {
-    this.events.add( 'onZoom', fun );
+  onZoom( fun:Consumer<number> ): this {
+    this.events.add( 'onZoom', fun )
 
-    return this;
+    return this
   }
 
   /**
    * @param alpha The alpha value used when drawing to the canvas.
    */
-  setAlpha( alpha ) {
-    alpha = Math.limit( alpha, 0, 1 );
+  setAlpha( alpha:number ): this {
+    alpha = maths.limit( alpha, 0, 1 )
 
     // account for the dead zone
-    if ( alpha > 1-ALPHA_DEAD_ZONE ) {
-      alpha = 1;
+    if ( alpha > 1-constants.ALPHA_DEAD_ZONE ) {
+      alpha = 1
     }
 
-    this.canvas.setAlpha( alpha );
-    this.events.run( 'onsetalpha', this.canvas.getAlpha() );
+    this.canvas.setAlpha( alpha )
+    this.events.run( 'onsetalpha', this.canvas.getAlpha() )
 
-    return this;
+    return this
   }
 
   /**
@@ -1162,9 +1136,10 @@ export class SkyBrush {
    *
    * @param fun The function to call.
    */
-  onSetAlpha( fun ) {
-    this.events.add( 'onsetalpha', fun );
-    return this;
+  onSetAlpha( fun:Consumer<number> ): this {
+    this.events.add( 'onsetalpha', fun )
+
+    return this
   }
 
   /**
@@ -1172,17 +1147,18 @@ export class SkyBrush {
    *
    * @param fun The function to call.
    */
-  onSetColor( fun ) {
-    this.events.add( 'onsetcolor', fun );
-    return this;
+  onSetColor( fun:Consumer<string> ): this {
+    this.events.add( 'onsetcolor', fun )
+
+    return this
   }
 
   getAlpha() {
-    return this.canvas.getAlpha();
+    return this.canvas.getAlpha()
   }
 
   getColor() {
-    return this.canvas.getColor();
+    return this.canvas.getColor()
   }
 
   /**
@@ -1206,7 +1182,7 @@ export class SkyBrush {
     name = name.toLowerCase();
 
     for ( let i = 0; i < this.commands.length; i++ ) {
-      if ( this.commands[i].getName().toLowerCase() == name ) {
+      if ( this.commands[i].getName().toLowerCase() === name ) {
         return this.setCommand( this.commands[i] );
       }
     }
@@ -1369,46 +1345,49 @@ export class SkyBrush {
    * @param width  Optional, the width of the new image.
    * @param height Optional, the height of the new image.
    */
-  newImage( width?:number, height:?number ) {
+  newImage(): this;
+  newImage( width:number, height:number ): this;
+  newImage( width?:number, height?:number ): this {
     if ( ! width ) {
-      width = DEFAULT_WIDTH;
+      width = DEFAULT_WIDTH
     }
 
     if ( ! height ) {
-      height = DEFAULT_HEIGHT;
+      height = DEFAULT_HEIGHT
     }
 
-    this.setSize( width, height, true ).
-        reset();
+    this
+        .setSize( width, height, true )
+        .reset()
 
-    return this;
+    return this
   }
 
-  cut() {
-    this.canvas.cut();
-    return this;
+  cut(): this {
+    this.canvas.cut()
+    return this
   }
 
-  copy() {
-    this.canvas.copy();
-    return this;
+  copy(): this {
+    this.canvas.copy()
+    return this
   }
 
-  paste() {
-    this.canvas.paste();
-    this.switchCommand( 'move' );
+  paste(): this {
+    this.canvas.paste()
+    this.switchCommand( 'move' )
 
-    return this;
+    return this
   }
 
   /* Undo / Redo functionality */
 
-  hasUndo() {
-    return this.canvas.hasUndo();
+  hasUndo():boolean {
+    return this.canvas.hasUndo()
   }
 
-  hasRedo() {
-    return this.canvas.hasRedo();
+  hasRedo():boolean {
+    return this.canvas.hasRedo()
   }
 
   onUndo( fun ) {
@@ -1469,7 +1448,7 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  showGUIPane():SkyBrush {
+  showGUIPane():this {
     this.guiPane.classList.add( 'sb_open' )
 
     return this
@@ -1575,7 +1554,7 @@ export class SkyBrush {
    */
   reset() {
     this.canvas.reset()
-    this.setZoom( DEFAULT_ZOOM )
+    this.setZoom( constants.DEFAULT_ZOOM )
 
     return this
   }

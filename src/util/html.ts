@@ -1,5 +1,5 @@
 
-const div = document.createElement('div')
+const HTML_TO_ELEMENT_DOM = document.createElement('div')
 
 /**
  * @private
@@ -25,15 +25,15 @@ export function newDiv( className:string ):HTMLElement {
 }
 
 export function newEl( name:string, className:string ):HTMLElement {
-  const element = document.createElement( el )
-  element.className = className
-  return element
+  const dom = document.createElement( name )
+  dom.className = className
+  return dom
 }
 
 export function htmlToElement( html:string ):HTMLElement {
-  div.innerHTML = html
-  const el = div.firstChild
-  div.innerHTML = ''
+  HTML_TO_ELEMENT_DOM.innerHTML = html
+  const el = HTML_TO_ELEMENT_DOM.firstChild as HTMLElement
+  HTML_TO_ELEMENT_DOM.innerHTML = ''
 
   return el
 }

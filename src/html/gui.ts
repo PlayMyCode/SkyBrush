@@ -1,19 +1,10 @@
 
-/**
- *
- * @const
- * @type {string}
- */
-GUI_CSS_PREFIX = 'sb_gui_',
-
-/**
- * When a GUI component in the bar is hidden, and it becomes thinner
- * and greyed out, this is the width is will minimize to.
- *
- * @const
- * @type {string}
- */
-GUI_CONTENT_WIDTH_WHEN_HIDDEN = 40,
+import {
+  LEFT,
+  GUI_CSS_PREFIX,
+  GUI_CONTENT_WIDTH_WHEN_HIDDEN,
+} from 'setup/constants'
+import { Nullable } from 'util/function-interfaces'
 
 /**
  * @constructor
@@ -23,15 +14,21 @@ GUI_CONTENT_WIDTH_WHEN_HIDDEN = 40,
  * @param klass The CSS class for the content in this GUI.
  */
 export class GUI {
-  private guiWidth:number         = 0
-  private isHeaderClickable       = true
-  private sibling:GUI             = null
-  private amountTranslated:number = 0
+  protected readonly dom : HTMLElement
+
+  private readonly content : HTMLElement
+
+  private guiWidth          : number
+  private isHeaderClickable : boolean
+  private sibling           : Nullable<GUI>
+  private amountTranslated  : number
+
+  private painter : Nullable<SkyBrush>
 
   constructor( 
-      name:string,
-      klass:string,
-      clickableHeader:boolean 
+      name  : string,
+      klass : string,
+      clickableHeader : boolean,
   ) {
     // -- build the header
     const header  = document.createElement( 'div' );
@@ -43,62 +40,71 @@ export class GUI {
     header.appendChild( document.createTextNode(name) )
     header.addEventListener( 'selectstart', returnFalse )
 
-    const $header = $(header)
-    $header.leftclick((ev) => {
+    header.addEventListener( 'mouseclick', ev => {
+      if ( ev.which !== LEFT ) {
+        return
+      }
+
       ev.stopPropagation()
       ev.preventDefault()
 
       if ( clickableHeader !== false ) {
         this.toggleOpen()
       }
-    });
+    })
 
     // -- build the content
-    const content = document.createElement( 'div' );
-    content.className = 'skybrush_gui_content';
-    this.content = content;
-    this.content.appendChild( header );
+    const content = document.createElement( 'div' )
+    content.className = 'skybrush_gui_content'
+    this.content = content
+    this.content.appendChild( header )
 
     // -- build the dom
-    this.dom = document.createElement( 'div' );
-    this.dom.className = 'skybrush_gui ' + GUI_CSS_PREFIX + klass ;
+    this.dom = document.createElement( 'div' )
+    this.dom.className = `skybrush_gui ${GUI_CSS_PREFIX}${klass}`
 
     // -- build the darken overlay for when the GUI is closed
     if ( clickableHeader ) {
-      const darkenDom = document.createElement( 'div' );
-      darkenDom.className = 'skybrush_gui_darken';
+      const darkenDom = document.createElement( 'div' )
+      darkenDom.className = 'skybrush_gui_darken'
 
-      $( darkenDom ).leftclick((ev) => {
-        this.open();
-      });
+      darkenDom.addeventListner( 'mouseclick', ev => {
+        if ( ev.which !== LEFT ) {
+          return
+        }
 
-      this.content.appendChild( darkenDom );
+        this.open()
+      })
+
+      this.content.appendChild( darkenDom )
 
       this.isHeaderClickable = true
     }
 
-    this.dom.appendChild( content );
-    this.$dom = $( this.dom );
+    this.dom.appendChild( content )
 
-    this.amountTranslated = 0;
+    this.sibling           = null
+    this.guiWidth          = -1
+    this.amountTranslated  = 0
+    this.isHeaderClickable = false
 
     // set later
-    this.painter = null;
+    this.painter = null
   }
 
   setSiblingGUI( sibling ) {
     if ( this.sibling !== null ) {
-      this.sibling.setSiblingGUI( sibling );
+      this.sibling.setSiblingGUI( sibling )
     } else {
-      this.sibling = sibling;
-      this.dom.appendChild( sibling.dom );
+      this.sibling = sibling
+      this.dom.appendChild( sibling.dom )
     }
   }
 
-  setPainter( painter ):GUI {
-    this.painter = painter;
+  setPainter( painter:SkyBrush ):this {
+    this.painter = painter
 
-    return this;
+    return this
   }
 
   /**
@@ -110,7 +116,7 @@ export class GUI {
    *
    * @return This GUI object.
    */
-  append( content:HTMLElement ):GUI {
+  append( content:HTMLElement ):this {
     const guiBlock = newDiv( 'skybrush_gui_content_block' )
     guiBlock.appendChild( content )
 
@@ -125,7 +131,7 @@ export class GUI {
    *
    * @return This GUI object.
    */
-  appendTogether():GUI {
+  appendTogether():this {
     const guiBlock = newDiv( 'skybrush_gui_content_block' )
     for ( let i = 0; i < arguments.length; i++ ) {
       guiBlock.appendChild( arguments[i] )
@@ -143,7 +149,7 @@ export class GUI {
    * @param dom HTMLElements to append to this GUI container.
    * @return This GUI.
    */
-  appendDirect():GUI {
+  appendDirect():this {
     for ( let i = 0; i < arguments.length; i++ ) {
       this.content.appendChild( arguments[i] )
     }
@@ -151,23 +157,23 @@ export class GUI {
     return this
   }
 
-  open():GUI {
+  open():this {
     if ( ! this.painter.isGUIsShown() ) {
       this.painter.showGUIPane()
     }
 
     if ( this.isHeaderClickable && this.sibling !== null && !this.isOpen() ) {
       this.dom.classList.remove( 'sb_hide' )
-      this.sibling.$dom.translate( 0, 0 )
+      this.sibling.dom.style.transform = 'translate( 0, 0 )'
 
       this.painter.subtractGUIPaneContentWidth( - this.amountTranslated )
       this.amountTranslated = 0
     }
 
-    return this;
+    return this
   }
 
-  close():GUI {
+  close():this {
     const isClosable = (
         this.isHeaderClickable &&
         this.sibling && 
@@ -175,41 +181,41 @@ export class GUI {
     )
 
     if ( isClosable ) {
-      if ( this.guiWidth === '' ) {
+      if ( this.guiWidth === -1 ) {
         this.guiWidth = this.content.getBoundingClientRect().width
       }
 
       requestAnimationFrame(() => {
-        const translateX = - (this.guiWidth - GUI_CONTENT_WIDTH_WHEN_HIDDEN);
+        const translateX = - (this.guiWidth - GUI_CONTENT_WIDTH_WHEN_HIDDEN)
 
-        this.amountTranslated = translateX;
-        this.sibling.$dom.translate( translateX, 0 );
-        this.dom.classList.add( 'sb_hide' );
+        this.amountTranslated = translateX
+        this.sibling.dom.style.transform = `translateX( ${translateX}px )`
+        this.dom.classList.add( 'sb_hide' )
 
-        this.painter.subtractGUIPaneContentWidth( translateX );
+        this.painter.subtractGUIPaneContentWidth( translateX )
       })
     }
 
-    return this;
+    return this
   }
 
   isOpen():boolean {
     return this.dom.classList.contains( 'sb_hide' )
   }
 
-  toggleOpen():GUI {
+  toggleOpen():this {
     if ( this.painter.isGUIsShown() ) {
       if ( this.isOpen() ) {
-        this.close();
+        this.close()
       } else {
-        this.open();
+        this.open()
       }
     } else {
-      this.painter.showGUIPane();
-      this.open();
+      this.painter.showGUIPane()
+      this.open()
     }
 
-    return this;
+    return this
   }
 }
 
