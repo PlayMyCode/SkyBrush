@@ -1,8 +1,12 @@
 
 import * as constants from 'setup/constants'
-import { MinMaxArea, SizeArea } from 'util/area'
-import { Nullable, Consumer3 } from 'util/function-interfaces'
+import { MinMaxArea, SizeArea, Position } from 'util/area'
+import { Nullable, Consumer, Consumer2, Consumer3 } from 'util/function-interfaces'
 import * as canvasUtils from 'util/canvas'
+import * as htmlUtils from 'util/html'
+import * as colourUtils from 'util/colours'
+import * as mathsUtils from 'util/maths'
+import * as events from 'util/events'
 
 export * from 'skybrush'
 
@@ -275,7 +279,7 @@ const CROSSHAIR_CURSOR_SIZE = 19
  * It's generated once, to avoid generating it multiple times, during
  * use.
  */
-const CROSSHAIR_CURSOR_DATA_URL = (function() {
+const CROSSHAIR_CURSOR_DATA_URL = (() => {
   const canvas = document.createElement( 'canvas' )
   canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE
 
@@ -511,124 +515,6 @@ const DEFAULT_COLORS = (function() {
 })()
 
 /**
- * An array used for fast hex value lookup.
- *
- * This is an array of every hex number from 0 to 255.
- *
- * @const
- * @type {Array.<string>}
- */
-const INT_TO_HEX = [
-    '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '0a', '0b', '0c', '0d', '0e', '0f',
-    '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f',
-    '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2a', '2b', '2c', '2d', '2e', '2f',
-    '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '3a', '3b', '3c', '3d', '3e', '3f',
-    '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '4a', '4b', '4c', '4d', '4e', '4f',
-    '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '5a', '5b', '5c', '5d', '5e', '5f',
-    '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '6a', '6b', '6c', '6d', '6e', '6f',
-    '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '7a', '7b', '7c', '7d', '7e', '7f',
-    '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '8a', '8b', '8c', '8d', '8e', '8f',
-    '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '9a', '9b', '9c', '9d', '9e', '9f',
-    'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'aa', 'ab', 'ac', 'ad', 'ae', 'af',
-    'b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'ba', 'bb', 'bc', 'bd', 'be', 'bf',
-    'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'ca', 'cb', 'cc', 'cd', 'ce', 'cf',
-    'd0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'da', 'db', 'dc', 'dd', 'de', 'df',
-    'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'e9', 'ea', 'eb', 'ec', 'ed', 'ee', 'ef',
-    'f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'fa', 'fb', 'fc', 'fd', 'fe', 'ff',
-]
-
-/**
- * Takes the percentage value (a number in the range [0.0, 1.0]),
- * a min, and a max, and outputs it's equivalent in the min/max
- * given.
- *
- * @param p The percent value to convert.
- * @param min The minimum value allowed.
- * @param max The maximum value allowed.
- * @return The percent converted to a value from min to max.
- */
-function percentToRange( p:number, min:number, max:number ) {
-  return ( max - min )*p + min
-}
-
-/**
- * You give it a value, and this returns a 'percent',
- * which is a number from 0.0 to 1.0.
- *
- * It works out this percent through the value, min
- * and max values given.
- *
- * @param n The value to convert to a percent.
- * @param min The minimum value in the range.
- * @param max The minimum value in the range.
- * @return The percent result.
- */
-function rangeToPercent( n:number, min:number, max:number ) {
-  return ( n - min ) / ( max - min )
-}
-
-/**
- * Set up sensible defaults for 2D canvas contexts.
- *
- * These aren't defaults for Painter,
- * but are to normalize cross-browser defaults,
- * as some browsers (*cough* Chrome) sometimes have buggy defaults.
- *
- * @private
- * @param ctx
- */
-function initializeCtx( ctx:CanvasRenderingContext2D ) {
-  ctx.fillStyle   = 'white'
-  ctx.strokeStyle = 'white'
-  ctx.globalAlpha = 1
-  ctx.lineWidth   = 1
-  ctx.lineCap     = 'round'
-  ctx.lineJoin    = 'round'
-}
-
-/**
- * Cleares the overlay on top of the painting canvas.
- */
-function clearCtx(
-    ctx:CanvasRenderingContext2D,
-    x:number,
-    y:number,
-    w:number,
-    h:number,
-    buffer:number,
-) {
-  if ( w < 0 ) {
-    w  = -w
-    x -=  w
-  }
-
-  if ( h < 0 ) {
-    h  = -h
-    y -=  h
-  }
-
-  // increase the clear area by 1, by default
-  // this is to account for any anti-aliasing
-  x--
-  y--
-
-  w += 2
-  h += 2
-
-  x -= buffer
-  y -= buffer
-  w += buffer*2
-  h += buffer*2
-
-  x = Math.max( x, 0 )
-  y = Math.max( y, 0 )
-  w = Math.min( w, ctx.canvas.width  )
-  h = Math.min( h, ctx.canvas.height )
-
-  ctx.clearRect( x, y, w, h )
-}
-
-/**
  * Algorithm for copying data from src to the destination
  * canvas, using a nearest neighbour algorithm.
  *
@@ -858,7 +744,7 @@ function copyNearestNeighbour(
 
           const nextColor = (r << 16) | (g << 8) | b
           if ( nextColor !== lastColor ) {
-            dCtx.fillStyle = '#' + INT_TO_HEX[r] + INT_TO_HEX[g] + INT_TO_HEX[b]
+            dCtx.fillStyle = colourUtils.rgbToColor( r, g, b )
             lastColor = nextColor
           }
 
@@ -891,7 +777,7 @@ function copyNearestNeighbour(
           */
         const nextColor = (r << 16) | (g << 8) | b
         if ( nextColor !== lastColor ) {
-          dCtx.fillStyle = '#' + INT_TO_HEX[r] + INT_TO_HEX[g] + INT_TO_HEX[b]
+          dCtx.fillStyle = colourUtils.rgbToColor( r, g, b )
           lastColor = nextColor
         }
 
@@ -906,8 +792,8 @@ function copyNearestNeighbour(
             * which is significantly faster!
             */
           for (
-            
-            (nextX < endX) && (sData[i+1] === cRGB)
+            ;
+            (nextX < endX) && (sData[i+1] === cRGB);
               nextX += pixelWidth, i++
           ) { }
 
@@ -933,32 +819,6 @@ function copyNearestNeighbour(
 
     drawY = nextY
   }
-}
-
-/**
- * Creates a HTMLAnchorElement and returns it.
- *
- * These include '#' for the href, and to prevent the default action
- * of following the link.
- *
- * You can also pass in more CSS classes after the 'text' parameter.
- *
- * @param text The text to appear on this anchor.
- * @return A HTMLAnchorElement.
- */
-export function newAnchor( text:string ):HTMLAnchorElement {
-  const anchor = document.createElement( 'a' )
-  anchor.setAttribute( 'href', '#' )
-
-  for ( let i = 1; i < arguments.length; i++ ) {
-    anchor.classList.add( arguments[i] )
-  }
-
-  if ( text ) {
-    anchor.innerHTML = text
-  }
-
-  return anchor
 }
 
 export interface SliderOptions {
@@ -1015,11 +875,11 @@ export function newSlider( options:SliderOptions ) {
    */
   const onChange = options.onChange
   sliderBarInput.addEventListener( 'change', () => {
-    const val = parseFloat( this.value )
-    const min = parseFloat( this.min   )
-    const max = parseFloat( this.max   )
+    const val = parseFloat( sliderBarInput.value )
+    const min = parseFloat( sliderBarInput.min   )
+    const max = parseFloat( sliderBarInput.max   )
 
-    const p = rangeToPercent( val, min, max )
+    const p = mathsUtils.rangeToPercent( val, min, max )
 
     onChange( val, p )
   })
@@ -1028,7 +888,7 @@ export function newSlider( options:SliderOptions ) {
 }
 
 export function newGridLine( direction:GridDirection, x:number, y:number ) {
-  const gridLine = newDiv( `skybrush_grid_line is-${direction}` )
+  const gridLine = htmlUtils.newDiv( `skybrush_grid_line is-${direction}` )
   gridLine.style.transform = `translate( ${x}px, ${y}px )`
 
   return gridLine
@@ -1070,8 +930,13 @@ export function circlePath(
  * gradient the alpha across it, from left to right.
  */
 export function newCheckerboard( w:number, h:number, gradientAlpha:boolean ) {
-  const canvas  = newCanvas( w, h )
-  const ctx     = canvas.ctx
+  const canvas  = htmlUtils.newCanvas( w, h )
+  const ctx     = canvas.getContext( '2d' )
+
+  if ( ctx === null ) {
+    return canvas
+  }
+
   const ctxData = ctx.createImageData( w, h )
   const data    = ctxData.data
 
@@ -1114,64 +979,93 @@ export function newCheckerboard( w:number, h:number, gradientAlpha:boolean ) {
  * @param size The number of undo's allowed.
  */
 export class UndoStack {
-  private index     : number = 0
-  private undoIndex : number = 0
-  private maxRedo   : number = 0
-  private size      : number = 0
+  private index     : number
+  private undoIndex : number
+  private maxRedo   : number
 
-  private canvases : HTMLCanvasElement[]
+  /// 
+  /// The maximum number of canvases we will ever hold.
+  /// 
+  private readonly maxSize : number
+
+  /// 
+  /// Where we are holding our redo/undo canvases.
+  /// 
+  private readonly canvases : HTMLCanvasElement[]
 
   constructor( size:number, firstCanvas:HTMLCanvasElement ) {
     // the +1 is for the checks later
-    this.size = size + 1
-
-    this.reset( firstCanvas )
-  }
-
-  reset( firstCanvas ) {
+    this.maxSize   = size + 1
     this.index     = 0
     this.undoIndex = 0
     this.maxRedo   = 0
 
-    const first = newCanvas( firstCanvas.width, firstCanvas.height )
-    first.ctx.drawImage( firstCanvas, 0, 0 )
+    this.reset( firstCanvas )
+  }
 
-    this.canvases = [ first ]
+  reset( firstCanvas:HTMLCanvasElement ):this {
+    this.index     = 0
+    this.undoIndex = 0
+    this.maxRedo   = 0
+
+    const first = htmlUtils.newCanvas( firstCanvas.width, firstCanvas.height )
+    first.getContext( '2d' ).drawImage( firstCanvas, 0, 0 )
+
+    this.canvases.length = 0
+    this.canvases.push( first )
+
+    return this
   }
 
   /**
    * @param canvas The current canvas.
-   * @param drawInfo Information on what was just drawn.
    * @return canvas The canvas to use for the future.
    */
-  add( canvas:HTMLCanvasElement, drawInfo ) {
-    let undoCanvas = null
-
-    // ensure we have space
-    if ( this.undoIndex === this.size ) {
-      undoCanvas = this.canvases.shift()
-
-      if ( undoCanvas ) {
-        undoCanvas.width  = canvas.width
-        undoCanvas.height = canvas.height
-      }
-    } else {
-      this.undoIndex++
-      this.maxRedo = this.undoIndex
-
-      // write over the top of an old 'redo' canvas
-      if ( this.undoIndex < this.canvases.length ) {
-        undoCanvas = this.canvases[ this.undoIndex ]
-        undoCanvas.width  = canvas.width
-        undoCanvas.height = canvas.height
-      } else {
-        undoCanvas = newCanvas( canvas.width, canvas.height )
-      }
-    }
+  add( canvas:HTMLCanvasElement ):this {
+    const undoCanvas = this.grabUndoCanvas( canvas.width, canvas.height )
 
     undoCanvas.getContext( '2d' ).drawImage( canvas, 0, 0 )
-
     this.canvases[ this.undoIndex ] = undoCanvas
+
+    return this
+  }
+
+  /**
+   * This will give you a new canvas you can use for the undo stack.
+   * This might be an old canvas being recycled.
+   * It might be a totally new canvas.
+   */
+  private grabUndoCanvas( width:number, height:number ):HTMLCanvasElement {
+    // We've hit the max size of the undo stack.
+    // So we must shift an old canvas out and return it.
+    if ( this.undoIndex === this.maxSize ) {
+      if ( this.canvas.length === 0 ) {
+        return htmlUtils.newCanvas( width, height )
+      }
+
+      const undoCanvas = this.canvases.shift()
+
+      undoCanvas.width  = width
+      undoCanvas.height = height
+
+      return undoCanvas
+    }
+
+    this.undoIndex++
+    this.maxRedo = this.undoIndex
+
+    // Write over the top of an old 'redo' canvas
+    if ( this.undoIndex < this.canvases.length ) {
+      const undoCanvas = this.canvases[ this.undoIndex ]
+      undoCanvas.width  = width
+      undoCanvas.height = height
+
+      return undoCanvas
+    }
+
+    // No undo canvases to reuse.
+    // So lets return a new one.
+    return htmlUtils.newCanvas( width, height )
   }
 
   /**
@@ -1187,58 +1081,60 @@ export class UndoStack {
    *
    * In practice, this is done internally for you, when you add items.
    */
-  clearRedo() {
+  clearRedo():this {
     for ( let i = this.undoIndex; i < this.canvases.length; i++ ) {
       this.canvases.pop()
     }
+
+    return this
   }
 
   /**
    * @return True if calling 'undo' will undo the current canvas.
    */
-  hasUndo() {
+  hasUndo():boolean {
     return this.undoIndex > 0
   }
 
   /**
    * @return True if there is history to redo.
    */
-  hasRedo() {
+  hasRedo():boolean {
     return this.undoIndex < this.maxRedo
   }
 
   /**
    * This does nothing if there is nothing to undo.
    */
-  undo():HTMLCanvasElement|null {
+  undo():Nullable<HTMLCanvasElement> {
     if ( this.hasUndo() ) {
       this.undoIndex--
 
       const canvas = this.canvases[ this.undoIndex ]
 
       return canvas
-    } else {
-      return null
     }
+
+    return null
   }
 
   /**
    * This does nothing if there is nothing to redo.
    */
-  redo():HTMLCanvasElement|null {
+  redo():Nullable<HTMLCanvasElement> {
     if ( this.hasRedo() ) {
       this.undoIndex++
 
       return this.canvases[ this.undoIndex ]
-    } else {
-      return null
     }
+
+    return null
   }
 }
 
 export type GridDirection =
-    "horizontal" |
-    "vertical"
+  | 'horizontal'
+  | 'vertical'
 
 /**
  * The GridManager wraps up all of the grid handling for the canvas.
@@ -1249,15 +1145,24 @@ export type GridDirection =
  * @constructor
  */
 export class GridManager {
-  private dom     : HTMLElement 
+  private readonly dom : HTMLElement 
 
   private offsetX : number 
   private offsetY : number 
 
-  private width   : number 
-  private height  : number 
+  /// 
+  /// The width of each grid section. So it could be 5, or 10.
+  /// In pixels.
+  /// 
+  private gridW : number 
+  
+  /// 
+  /// The height of each grid section. So it could be 5, or 10.
+  /// In pixels.
+  /// 
+  private gridH : number 
 
-  private zoom    : number 
+  private zoom : number 
 
   /**
    * This updates in a lazy way.
@@ -1276,101 +1181,36 @@ export class GridManager {
 
     this.offsetX = 0
     this.offsetY = 0
-    this.width  = DEFAULT_GRID_WIDTH
-    this.height = DEFAULT_GRID_HEIGHT
+    this.gridW  = DEFAULT_GRID_WIDTH
+    this.gridH = DEFAULT_GRID_HEIGHT
 
     this.zoom = 1
     this.isDirty = true
   }
 
   /**
-   * Moves this grid to the area stated,
-   * and re-organizes the grid to look how it's shown.
-   *
-   * The CanvasManager does work to located the upscale
-   * canvas to fill the proper canvas. To avoid duplicating
-   * this code, this method is provided to allow the canvas
-   * to just pass the results on to this grid.
-   */
-  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
-    this.zoom = zoom
-
-    this.dom.style.width  = (width+1 ) + 'px'
-    this.dom.style.height = (height+1) + 'px'
-    this.dom.style.transform = `translate( ${canvasX}px, ${canvasY}px )`
-
-    this.update( width+1, height+1 )
-  }
-
-  /**
-   * Updates the layout of the grid.
-   *
-   * This should be called right after any properties have
-   * been altered, but is only used internally.
-   *
-   * Calls such as 'setSize' and 'setOffset' already call
-   * this automatically.
-   */
-  update( w:number, h:number ) {
-    this.dom.empty()
-
-    if ( this.isShown() ) {
-      this.forceUpdate( w, h )
-    } else {
-      this.isDirty = true
-    }
-  }
-
-  /**
-   * Forces an update.
-   *
-   * This differs from the standard update, because this guarantees
-   * that an update is performed, whilst the standard update might
-   * skip it, for performance reasons.,
-   */
-  forceUpdate( w:number, h:number ) {
-    const zoom = this.zoom
-    const dom  = this.dom
-
-    const xInc = Math.max( zoom * this.width , 1 )
-    const yInc = Math.max( zoom * this.height, 1 )
-
-    const startX = ( this.offsetX % this.width  ) * zoom
-    const startY = ( this.offsetY % this.height ) * zoom
-
-    dom.innerHTML = ''
-    for ( let x = startX; x <= w; x += xInc ) {
-      dom.appendChild( newGridLine('vertical', x, 0) )
-    }
-
-    for ( let y = startY; y <= h; y += yInc ) {
-      dom.appendChild( newGridLine('horizontal', 0, y) )
-    }
-
-    this.isDirty = false
-  }
-
-  /**
    * Sets the size of the grid squares, in pixels.
    */
-  setSize( w:number, h:number ) {
+  setSize( w:number, h:number ):this {
     w = Math.max( w|0, 0 )
     h = Math.max( h|0, 0 )
 
-    if ( w !== this.width || h !== this.height ) {
-      this.width  = w
-      this.height = h
+    if ( w !== this.gridW || h !== this.gridH ) {
+      this.gridW = w
+      this.gridH = h
 
       this.update( w, h )
     }
+
+    return this
   }
 
   getWidth() {
-    return this.width
+    return this.gridW
   }
 
   getHeight() {
-    return this.height
+    return this.gridH
   }
 
   getOffsetX() {
@@ -1386,7 +1226,7 @@ export class GridManager {
    * from the top left corner,
    * by the amounts given.
    */
-  setOffset( x:number, y:number ) {
+  setOffset( x:number, y:number ):this {
     if ( isNaN(x) ) {
       x = 0
     } else {
@@ -1400,18 +1240,18 @@ export class GridManager {
     }
 
     if ( x < 0 ) {
-      x = - ( x % this.width )
-      x = this.width - x
+      x = - ( x % this.gridW )
+      x = this.gridW - x
     }
 
     if ( y < 0 ) {
-      y = - ( y % this.height )
-      y = this.height - y
+      y = - ( y % this.gridH )
+      y = this.gridH - y
     }
 
     const update = ( this.offsetX !== x || this.offsetY !== y )
     if ( update ) {
-      this.offsetX = x,
+      this.offsetX = x
       this.offsetY = y
 
       this.update()
@@ -1424,20 +1264,114 @@ export class GridManager {
     return this.dom.classList.contains( 'sb_show' )
   }
 
-  show() {
+  show():this {
     if ( this.isDirty ) {
-      this.forceUpdate( dom.width(), dom.height() )
+      this.populateWithGridLines()
+      this.isDirty = false
     }
 
-    this.dom.classList.add('sb_show')
+    this.dom.classList.add( 'sb_show' )
 
     return this
   }
 
-  hide() {
+  hide():this {
     this.dom.classList.remove( 'sb_show' )
 
     return this
+  }
+
+  /**
+   * Moves this grid to the area stated,
+   * and re-organizes the grid to look how it's shown.
+   *
+   * The CanvasManager does work to located the upscale
+   * canvas to fill the proper canvas. To avoid duplicating
+   * this code, this method is provided to allow the canvas
+   * to just pass the results on to this grid.
+   */
+  updateViewport(
+      canvasX:number,
+      canvasY:number,
+      width:number,
+      height:number,
+      zoom:number,
+  ):this {
+    this.zoom = zoom
+
+    this.dom.style.width  = (width+1 ) + 'px'
+    this.dom.style.height = (height+1) + 'px'
+    this.dom.style.transform = `translate( ${canvasX}px, ${canvasY}px )`
+
+    this.update()
+
+    return this
+  }
+
+  /**
+   * Updates the layout of the grid.
+   *
+   * This should be called right after any properties have
+   * been altered, but is only used internally.
+   *
+   * Calls such as 'setSize' and 'setOffset' already call
+   * this automatically.
+   */
+  private update() {
+    if ( this.isShown() ) {
+      this.populateWithGridLines()
+      this.isDirty = false
+    } else {
+      this.isDirty = true
+    }
+  }
+
+  /**
+   * This builds the grid lines and places then inside this DOM.
+   *
+   * This is bit the of code that actually really will put down grid lines.
+   */
+  private populateWithGridLines():void {
+    populateWithGridLines(
+        this.dom,
+        this.offsetX,
+        this.offsetY,
+        this.gridW,
+        this.gridH,
+        this.zoom,
+    )
+  }
+}
+
+/**
+ * This builds the grid lines and places then inside this DOM.
+ *
+ * This is bit the of code that actually really will put down grid lines.
+ */
+function populateWithGridLines(
+    dom : HTMLElement,
+    offsetX : number,
+    offsetY : number,
+    gridW : number,
+    gridH : number,
+    zoom : number,
+):void {
+  const domW = dom.offsetWidth
+  const domH = dom.offsetHeight
+
+  const xInc = Math.max( zoom * gridW, 1 )
+  const yInc = Math.max( zoom * gridH, 1 )
+
+  const startX = ( offsetX % gridW ) * zoom
+  const startY = ( offsetY % gridH ) * zoom
+
+  dom.innerHTML = ''
+  for ( let x = startX; x <= domW; x += xInc ) {
+    dom.appendChild( newGridLine('vertical', x, 0) )
+  }
+
+  for ( let y = startY; y <= domH; y += yInc ) {
+    dom.appendChild( newGridLine('horizontal', 0, y) )
   }
 }
 
@@ -1450,8 +1384,26 @@ export class GridManager {
  * code.
  */
 export class ViewOverlay {
+  private readonly dom : HTMLElement
+
+  private x : number
+  private y : number
+  private w : number
+  private h : number
+
+  private zoom : number
+
+  private canvasX : number
+  private canvasY : number
+
+  private lastLeft : number
+  private lastTop  : number
+
+  private lastHeight : number
+  private lastWidth  : number
+
   constructor( viewport:HTMLElement, className:string ) {
-    this.dom = newDiv( className )
+    this.dom = htmlUtils.newDiv( className )
 
     viewport.append( this.dom )
 
@@ -1474,23 +1426,23 @@ export class ViewOverlay {
     this.lastWidth  = -1
   }
 
-  addClass( klass ) {
+  addClass( klass:string ):this {
     this.dom.classList.add( klass )
 
     return this
   }
 
-  hasClass( klass ) {
+  hasClass( klass:string ):boolean {
     return this.dom.classList.contains( klass )
   }
 
-  removeClass( klass ) {
+  removeClass( klass:string ):this {
     this.dom.classList.remove( klass )
 
     return this
   }
 
-  append( child:HTMLElement ):ViewOverlay {
+  append( child:HTMLElement ):this {
     this.dom.appendChild( arguments[0] )
 
     return this
@@ -1499,7 +1451,7 @@ export class ViewOverlay {
   /**
    * Takes canvas pixels, and resizes to DOM pixels.
    */
-  setCanvasSize( x:number, y:number, w:number, h:number ) {
+  setCanvasSize( x:number, y:number, w:number, h:number ):this {
     const zoom = this.zoom
 
     const left = (this.canvasX + x*zoom + 0.5)|0
@@ -1534,7 +1486,7 @@ export class ViewOverlay {
   /**
    * Tells this about any view changes in the SkyBrush viewport.
    */
-  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ):this {
     this.zoom    = zoom
     this.canvasX = canvasX
     this.canvasY = canvasY
@@ -1550,10 +1502,24 @@ export class ViewOverlay {
  * @private
  */
 export class Marquee {
-  private topLeftHandle     : HTMLElement 
-  private bottomRightHandle : HTMLElement 
+  private readonly viewOverlay : ViewOverlay
+  private readonly canvas      : CanvasManager
 
-  constructor( canvas:CanvasManager, viewport:HTMLElement, painter:SkyBrush ) {
+  private readonly topLeftHandle     : HTMLElement 
+  private readonly bottomRightHandle : HTMLElement 
+
+  /// 
+  /// Where the marquee is positioned on the screen.
+  /// 
+  private readonly position : SizeArea
+
+  private isShowingHandles : boolean
+
+  constructor(
+      canvas:CanvasManager,
+      viewport:HTMLElement,
+      painter:SkyBrush,
+  ) {
     this.canvas = canvas
 
     const topLeft         = document.createElement( 'div' )
@@ -1573,7 +1539,11 @@ export class Marquee {
 
     this.isShowingHandles = false
 
-    $( topLeft ).leftdown((ev) => {
+    topLeft.addEventListener( 'mousedown', ev => {
+      if ( ev.which !== constants.LEFT ) {
+        return
+      }
+
       ev.preventDefault()
 
       const x = this.position.x
@@ -1591,7 +1561,11 @@ export class Marquee {
       )
     })
 
-    $( bottomRight ).leftdown((ev) => {
+    bottomRight.addEventListener( 'mousedown', ev => {
+      if ( ev.which !== constants.LEFT ) {
+        return
+      }
+
       ev.preventDefault()
 
       const width  = this.position.w
@@ -1640,14 +1614,14 @@ export class Marquee {
     )
   }
 
-  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ):this {
     this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom )
     this.update()
 
     return this
   }
 
-  setCanvasSize( x:number, y:number, w:number, h:number ) {
+  setCanvasSize( x:number, y:number, w:number, h:number ):this {
     this.viewOverlay.setCanvasSize( x, y, w, h )
 
     return this
@@ -1656,7 +1630,7 @@ export class Marquee {
   /**
    * Begins displaying the resize handles.
    */
-  showHandles() {
+  showHandles():this {
     this.topLeftHandle.classListk.add( 'sb_show' )
     this.bottomRightHandle.classListk.add( 'sb_show' )
 
@@ -1666,7 +1640,7 @@ export class Marquee {
   /**
    * Hides the resize handles.
    */
-  hideHandles() {
+  hideHandles():this {
     this.topLeftHandle.classListk.remove( 'sb_show' )
     this.bottomRightHandle.classListk.remove( 'sb_show' )
 
@@ -1681,7 +1655,7 @@ export class Marquee {
    *
    * @param clear True to clear this when it highlights, false to not. Defaults to true.
    */
-  startHighlight( clear:boolean = true ) {
+  startHighlight( clear:boolean = true ):this {
     this.viewOverlay.addClass( 'sb_highlight' )
 
     if ( clear ) {
@@ -1698,7 +1672,7 @@ export class Marquee {
    * so the visual highlighting that this marquee
    * shows will now end.
    */
-  stopHighlight() {
+  stopHighlight():this {
     const x = this.position.x
     const y = this.position.y
     const w = this.position.w
@@ -1730,7 +1704,7 @@ export class Marquee {
     return this
   }
 
-  hasClipArea() {
+  hasClipArea():boolean {
     return ! (
         this.position.w <= 0 ||
         this.position.h <= 0 ||
@@ -1747,7 +1721,7 @@ export class Marquee {
    * If the region is outside of the canvas then it is counted
    * as a non-selection.
    */
-  select( x:number, y:number, x2:number, y2:number ) {
+  select( x:number, y:number, x2:number, y2:number ):this {
     return this.selectArea(
         Math.min( x, x2 ),
         Math.min( y, y2 ),
@@ -1757,11 +1731,11 @@ export class Marquee {
     )
   }
 
-  xy( x:number, y:number ) {
+  xy( x:number, y:number ):this {
     return this.selectArea( x, y, this.position.w, this.position.h )
   }
 
-  selectArea( x:number, y:number, w:number, h:number ) {
+  selectArea( x:number, y:number, w:number, h:number ):this {
     // floor all locations
     this.position.x = x|0
     this.position.y = y|0
@@ -1776,7 +1750,7 @@ export class Marquee {
    *
    * This is the same as selection a 0x0 region.
    */
-  clear() {
+  clear():this {
     if ( this.viewOverlay.hasClass('sb_show') ) {
       this.select( 0, 0, 0, 0 )
       this.canvas.removeClip()
@@ -1788,7 +1762,7 @@ export class Marquee {
     return this
   }
 
-  hasNoSelection() {
+  hasNoSelection():boolean {
     return ( this.position.w === 0 ) && ( this.position.h === 0 )
   }
 
@@ -1798,7 +1772,7 @@ export class Marquee {
    *
    * @return null if there is no selection, or an object describing it.
    */
-  getPosition() {
+  getPosition():boolean {
     const hasSelection = this.viewOverlay.hasClass( 'sb_show' )
 
     return hasSelection ?
@@ -1811,7 +1785,7 @@ export class Marquee {
    * based on the current selection,
    * and if it is shown it will resize accordingly.
    */
-  update() {
+  update():this {
     if ( dom.hasClass('sb_highlight' ) ) {
       this.viewOverlay.addClass('sb_show')
 
@@ -1837,11 +1811,11 @@ export class Marquee {
           removeClass('sb_show')
     }
 
-    /*
-    * Always update the dom location,
-    * because it might be fading out when
-    * this is called.
-    */
+    //
+    // Always update the dom location,
+    // because it might be fading out when
+    // this is called.
+    //
     if ( this.hasClipArea() || this.viewOverlay.hasClass('sb_highlight') ) {
       this.setCanvasSize(
           this.position.x,
@@ -1873,6 +1847,22 @@ export class Marquee {
  * @constructor
  */
 export class CopyManager {
+  private readonly viewOverlay : ViewOverlay
+
+  private copy : Nullable<HTMLCanvasElement>
+
+  private copyX : number
+  private copyY : number
+
+  /*
+   * When these two are not undefined,
+   * then we no longer in 'paste' mode.
+   */
+  private pasteX : number
+  private pasteY : number
+
+  private isPastingFlag : boolean
+
   constructor( viewport:HTMLElement ) {
     this.viewOverlay = new ViewOverlay( viewport, 'skybrush_copy' )
 
@@ -1890,39 +1880,41 @@ export class CopyManager {
     this.isPastingFlag = false
   }
 
-  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ) {
+  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ):this {
     this.viewOverlay.updateViewport( canvasX, canvasY, width, height, zoom )
     this.update()
 
     return this
   }
 
-  setCanvasSize( x:number, y:number, w:number, h:number ) {
+  setCanvasSize( x:number, y:number, w:number, h:number ):this {
     this.viewOverlay.setCanvasSize( x, y, w, h )
 
     return this
   }
 
-  update() {
+  update():this {
     if ( this.isPasting() ) {
       this.setCanvasSize(
           this.pasteX    , this.pasteY     ,
           this.copy.width, this.copy.height
       )
     }
+
+    return this
   }
 
-  draw( dest:HTMLCanvasElement ) {
+  draw( dest:HTMLCanvasElement ):this {
     dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY )
 
     return this
   }
 
-  isPasting() {
+  isPasting():boolean {
     return this.isPastingFlag
   }
 
-  startPaste( dest:HTMLCanvasElement ) {
+  startPaste( dest:HTMLCanvasElement ):this {
     if ( this.copy !== null ) {
       this.pasteX = this.pasteY = 0
       this.isPastingFlag = true
@@ -1930,9 +1922,11 @@ export class CopyManager {
 
       return this.movePaste( dest, this.copyX, this.copyY, true )
     }
+
+    return this
   }
 
-  movePaste( dest:HTMLCanvasElement, x:number, y:number, finalize:boolean ) {
+  movePaste( dest:HTMLCanvasElement, x:number, y:number, finalize:boolean ):this {
     if ( this.isPasting() ) {
       x = (this.pasteX + (x || 0)) | 0
       y = (this.pasteY + (y || 0)) | 0
@@ -1950,7 +1944,7 @@ export class CopyManager {
     return this
   }
 
-  setCopy( canvas:HTMLCanvasElement, x:number, y:number, w:number, h:number ) {
+  setCopy( canvas:HTMLCanvasElement, x:number, y:number, w:number, h:number ):this {
     if ( x === undefined ) {
       x = 0
       y = 0
@@ -1963,21 +1957,21 @@ export class CopyManager {
     }
 
     if ( this.copy === null ) {
-      this.copy = newCanvas( w, h )
+      this.copy = htmlUtils.newCanvas( w, h )
 
     } else {
       this.copy.width  = w
       this.copy.height = h
     }
 
-    this.copy.ctx.drawImage( canvas, -x, -y )
+    this.copy.getContext( '2d' ).drawImage( canvas, -x, -y )
     this.copyX = x
     this.copyY = y
 
     return this
   }
 
-  overlapsPaste( area:SizeArea ) {
+  overlapsPaste( area:SizeArea ):boolean {
     if ( this.isPasting() ) {
       const x = this.pasteX
       const y = this.pasteY
@@ -2000,7 +1994,7 @@ export class CopyManager {
   /**
    * Cleares this from being in pasting mode.
    */
-  endPaste() {
+  endPaste():this {
     this.isPastingFlag = false
     this.viewOverlay.removeClass( 'sb_show' )
 
@@ -2044,9 +2038,40 @@ export class CopyManager {
  * ensuring the current canvas 2D context is using the current colour.
  */
 export class CanvasManager {
+  private readonly viewport : HTMLElement
+  private readonly canvas   : HTMLCanvasElement
+  private readonly overlay  : HTMLCanvasElement
+  private readonly upscale  : HTMLCanvasElement
+
+  private readonly undos   : UndoStack
+  private readonly grid    : GridManager
+  private readonly marquee : Marquee
+  private readonly copyObj : CopyManager
+
+  private readonly events : events.Handler
+
+  private readonly showUpscaleEvent : events.Runner
+  private readonly upscaleWorkers : number[]
+
   private clipping : Nullable<SizeArea>
 
+  private isUpscaleShown : boolean
+
+  /**
+   * For lazy calls to updateCanvasSize, this will skip multiple calls in
+   * a row that occur, if updateCanvasSize has not yet been called.
+   *
+   * Essentially if you call lazyUpdateCanvasSize 3 times in a row, it'll
+   * only run the once due to this flag.
+   */
+  private isAwaitingUpdate : number
+
+  private width  : number
+  private height : number
+  private zoom   : number
+
   constructor( viewport:HTMLElement, painter:SkyBrush ) {
+
     /*
      * Canvas HTML Elements
      *
@@ -2054,9 +2079,9 @@ export class CanvasManager {
      * The canvas it's self, the overlay, and the upscale.
      */
 
-    const canvas  = newCanvas()
-    const overlay = newCanvas()
-    const upscale = newCanvas()
+    const canvas  = htmlUtils.newCanvas()
+    const overlay = htmlUtils.newCanvas()
+    const upscale = htmlUtils.newCanvas()
 
     canvas.classList.add(  'skybrush_canvas_draw'    )
     overlay.classList.add( 'skybrush_canvas_overlay' )
@@ -2079,16 +2104,7 @@ export class CanvasManager {
 
     this.isUpscaleShown = false
 
-    /**
-     * For lazy calls to updateCanvasSize, this will skip multiple calls in
-     * a row that occur, if updateCanvasSize has not yet been called.
-     *
-     * Essentially if you call lazyUpdateCanvasSize 3 times in a row, it'll
-     * only run the once due to this flag.
-     */
-    this.isAwaitingUpdate = null
-
-    this.lazyUpscaleTimeout = null
+    this.isAwaitingUpdate = 0
 
     this.width  = this.canvas.width,
     this.height = this.canvas.height,
@@ -2096,7 +2112,6 @@ export class CanvasManager {
 
     this.undos = new UndoStack( UNDO_STACK_SIZE, this.canvas )
     this.upscaleWorkers = []
-    this.upscaleWorkersLength = 0
 
     /* Must be added at the end! */
     viewport.addEventListener( 'scroll', () => {
@@ -2131,12 +2146,8 @@ export class CanvasManager {
   /**
    * @return The current contents of the canvas as an image url.
    */
-  toDataURL( type ) {
-    if ( ! type ) {
-      type = "image/png"
-    }
-
-    return this.canvas.toDataURL( type )
+  toDataURL( imageType:string = 'image/png' ) {
+    return this.canvas.toDataURL( imageType )
   }
 
   /**
@@ -2165,8 +2176,8 @@ export class CanvasManager {
    * @param ev A mouse event to translate.
    * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
    */
-  translateLocation( ev ) {
-    const pos  = ev.offset( this.$canvas )
+  translateLocation( ev:Event ):Position {
+    const pos  = ev.offset( this.canvas )
     const zoom = this.zoom
 
     pos.left /= zoom
@@ -2179,10 +2190,10 @@ export class CanvasManager {
    * @return The offset of the underlying canvas object.
    */
   offset() {
-    return this.$canvas.offset()
+    return this.canvas.offset()
   }
 
-  onEndDraw( fun ) {
+  onEndDraw( fun:() => void ):void {
     this.events.add( 'onDraw', fun )
   }
 
@@ -2195,65 +2206,54 @@ export class CanvasManager {
    */
   endDraw( updateArea?:SizeArea ) {
     let refresh = false
+
     let ux = 0
     let uy = 0
     let uw = 0
     let uh = 0
 
     if ( updateArea ) {
+      refresh = true
       ux = updateArea.x
       uy = updateArea.y
+      uw = updateArea.w
+      uh = updateArea.h
 
-      /*
-       * Supports using both 'w' and 'h' in the update area,
-       * or 'endX' and 'endY'.
-       */
-      if ( updateArea.w !== undefined ) {
-        uw = updateArea.w
-      } else {
-        uw = updateArea.endX - updateArea.x
-      }
-
-      if ( updateArea.h !== undefined ) {
-        uh = updateArea.h
-      } else {
-        uh = updateArea.endY - updateArea.y
-      }
-
-      // if we are updating outside the canvas, leave early
+      // 
+      // If we are updating outside the canvas,
+      // then leave early.
+      //
       if (
           ux+uw < 0 || uy+uh < 0 ||
           ux > this.width || uy > this.height
       ) {
         return false
-      } else {
-        /*
-        * No point refreshing outside of the clipping area,
-        * or if drawing too place outside the clipping area.
-        *
-        * So we quit early if either has happened.
-        *
-        * If drawing has taken place in the clipping,
-        * then we also work out the smallest update area.
-        */
-        const clip = this.clipping
-        if ( clip !== null ) {
-          if (
-              ux > clip.x + clip.w ||
-              uy > clip.y + clip.h ||
-              ux+uw < clip.x ||
-              uy+uh < clip.y
-          ) {
-            return false
-          } else {
-            ux = Math.max( ux, clip.x )
-            uy = Math.max( uy, clip.y )
-            uw = Math.min( uw, clip.w )
-            uh = Math.min( uh, clip.h )
-          }
-        }
+      }
 
-        refresh = true
+      //
+      // No point refreshing outside of the clipping area,
+      // or if drawing too place outside the clipping area.
+      //
+      // So we quit early if either has happened.
+      //
+      // If drawing has taken place in the clipping,
+      // then we also work out the smallest update area.
+      //
+      const clip = this.clipping
+      if ( clip !== null ) {
+        if (
+            ux > clip.x + clip.w ||
+            uy > clip.y + clip.h ||
+            ux+uw < clip.x ||
+            uy+uh < clip.y
+        ) {
+          return false
+        } else {
+          ux = Math.max( ux, clip.x )
+          uy = Math.max( uy, clip.y )
+          uw = Math.min( uw, clip.w )
+          uh = Math.min( uh, clip.h )
+        }
       }
     }
 
@@ -2294,10 +2294,11 @@ export class CanvasManager {
   /**
    * Changes the zoom to match.
    */
-  setZoom( zoom:number, x:number, y:number ) {
+  setZoom( zoom:number, x:number, y:number ):this {
     this.zoom = zoom
-
     this.updateCanvasSize( x, y )
+
+    return this
   }
 
   /**
@@ -2308,18 +2309,16 @@ export class CanvasManager {
    * actually run yet. It will only call once for each time it is called
    * multiple times.
    */
-  lazyUpdateCanvasSize() {
-    if ( ! this.isAwaitingUpdate !== null ) {
+  private lazyUpdateCanvasSize():void {
+    if ( this.isAwaitingUpdate ) {
       clearTimeout( this.isAwaitingUpdate )
     }
 
     this.isAwaitingUpdate = setTimeout(() => {
-      this.isAwaitingUpdate = null
+      this.isAwaitingUpdate = 0
 
       this.updateCanvasSize()
     }, CANVAS_LAZY_REFLOW_DELAY )
-
-    return this
   }
 
   /**
@@ -2342,7 +2341,7 @@ export class CanvasManager {
    * @param zoomX Optional, an x location to zoom in/out of.
    * @param zoomY Optional, a y location to zoom in/out of.
    */
-  updateCanvasSize( zoomX, zoomY ) {
+  private updateCanvasSize( zoomX?:number, zoomY?:number ):void {
     const zoom     = this.zoom,
     const canvas   = this.canvas
     const overlay  = this.overlay
@@ -2373,7 +2372,6 @@ export class CanvasManager {
 
     if (
         zoomX !== undefined &&
-        zoomX !== false &&
         hasScrollLeft
     ) {
 
@@ -2382,12 +2380,10 @@ export class CanvasManager {
        * 
        * Zoom based on a canvas pixel location,
        * or just use the center of the canvas.
+       * 
+       * With the *2 -1, we then convert from: [0.0, 1.0] to [-1.0, 1.0]
        */
-      let zoomXP = ( zoomX !== true ) ?
-          zoomX / this.width :
-          0.5
-
-      // and then convert from: [0.0, 1.0] to [-1.0, 1.0]
+      const zoomXP = ( zoomX / this.width )*2 - 1
       zoomXP = zoomXP*2 - 1
 
       /*
@@ -2400,20 +2396,15 @@ export class CanvasManager {
        * newWidth is divided again, making it newWidth/4, as the scrolling is
        * too extreme.
        */
-      zoomOffsetX = (newWidth/4) * zoomXP
+      zoomOffsetX = ( newWidth / 4 ) * zoomXP
     }
 
     // and now for the zoom Y
     if (
         zoomY !== undefined &&
-        zoomY !== false &&
         hasScrollTop
     ) {
-      let zoomYP = ( zoomY !== true ) ?
-          zoomY / this.height :
-          0.5
-
-      zoomYP = zoomYP*2 - 1
+      const zoomYP = ( zoomY / this.height )*2 - 1
 
       zoomOffsetY = (newHeight/4) * zoomYP
     }
@@ -2454,37 +2445,35 @@ export class CanvasManager {
 
     const viewWidth  = Math.min( newWidth , viewport.width()  )
     const viewHeight = Math.min( newHeight, viewport.height() )
-    this.grid.   updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
+    this.grid.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
     this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
     this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
 
-    if ( this.isAwaitingUpdate !== null ) {
+    if ( this.isAwaitingUpdate ) {
       clearTimeout( this.isAwaitingUpdate )
 
-      this.isAwaitingUpdate = null
+      this.isAwaitingUpdate = 0
     }
   }
 
   /**
    * Cleares all of the future upscale refresh jobs to perform.
    */
-  clearUpscaleWorkers() {
-    for ( let i = 0; i < this.upscaleWorkersLength; i++ ) {
-      cancelAnimationFrame( this.upscaleWorkers[i] )
-      this.upscaleWorkers[i] = null
+  private clearUpscaleWorkers():void {
+    while ( this.upscaleWorkers.length > 0 ) {
+      cancelAnimationFrame( this.upscaleWorkers.pop() )
     }
-
-    this.upscaleWorkersLength = 0
   }
 
   /**
    * Adds redrawUpscale jobs to be performed in the future.
    */
-  futureRedrawUpscale( x:number, y:number, w:number, h:number, includeOverlay:boolean ) {
-    this.upscaleWorkers[ this.upscaleWorkersLength++ ] =
-        requestAnimationFrame(() => {
-          this.redrawUpscale( x, y, w, h, includeOverlay )
-        })
+  private futureRedrawUpscale( x:number, y:number, w:number, h:number, includeOverlay:boolean ):void {
+    const workerID = requestAnimationFrame(() => {
+      this.redrawUpscale( x, y, w, h, includeOverlay )
+    })
+
+    this.upscaleWorkers.push( workerID )
   }
 
   /**
@@ -2508,7 +2497,7 @@ export class CanvasManager {
    * position the upscale canvas. One of these will automatically be
    * cancelled since this will get called twice.
    */
-  refreshUpscale() {
+  private refreshUpscale():void {
     /*
      * Hide the current upscale.
      */
@@ -2676,7 +2665,7 @@ export class CanvasManager {
     return this
   }
 
-  onPaste( fun ):this {
+  onPaste( fun:() => void ):this {
     this.events.add( 'onPaste', fun )
 
     return this
@@ -2729,7 +2718,7 @@ export class CanvasManager {
       this.clipping = null
     }
 
-    this.events.run( 'onClip', this.clipping )
+    this.events.run( 'onClip', null )
 
     return this
   }
@@ -3047,7 +3036,7 @@ export class CanvasManager {
 
       // use existing smoothing
       if ( isSmooth ) {
-        const temp = newCanvas( newWidth, newHeight )
+        const temp = htmlUtils.newCanvas( newWidth, newHeight )
 
         temp.ctx.drawImage(
             this.canvas,
@@ -3109,7 +3098,7 @@ export class CanvasManager {
    * @param newHeight
    */
   private setSize( newWidth:number, newHeight:number, clear:boolean ) {
-    const newC = newCanvas()
+    const newC = htmlUtils.newCanvas()
     const canvas = this.canvas
     const oldCtx = this.overlay.ctx 
 
@@ -3258,8 +3247,8 @@ export class CanvasManager {
      * then image.width and image.height are used.
      * Otherwise width and height are used.
      */
-    const w = (  width >> 0 ) || image.width
-    const h = ( height >> 0 ) || image.height
+    const w = (  width | 0 ) || image.naturalWidth
+    const h = ( height | 0 ) || image.naturalHeight
 
     this.setSize( w, h, true )
     this.drawSafe(() => {
@@ -3269,7 +3258,7 @@ export class CanvasManager {
     return this
   }
 
-  resetUndoRedo() {
+  resetUndoRedo():this {
     this.undos.reset( this.canvas )
 
     return this
@@ -3413,7 +3402,7 @@ export class CanvasManager {
       const w2 = selection.w
       const h2 = selection.h
 
-      const temp = newCanvas( w2, h2 )
+      const temp = htmlUtils.newCanvas( w2, h2 )
       temp.ctx.drawImage( this.canvas, -x, -y )
 
       this.setSize( w2, h2, true )
@@ -4455,7 +4444,7 @@ class ShapeGeometry extends Geometry {
         this.setDrawArea( x1, y1, w, h, size )
       }
 
-      clearCtx( ctx,
+      canvasUtils.clearCtx( ctx,
           this.lastX1,
           this.lastY1,
           this.lastW,
@@ -4770,7 +4759,7 @@ const pickerCommand = new Command({
       const rgb = canvas.colourPick( x, y )
 
       if ( rgb !== null ) {
-        painter.setColor( rgbToColor(rgb[0], rgb[1], rgb[2]) )
+        painter.setColor( colourUtils.rgbToColor(rgb[0], rgb[1], rgb[2]) )
         painter.setAlpha( rgb[3] / 255.0 )
       }
     }
@@ -5034,7 +5023,7 @@ function newCommand() {
           this.maxY = Math.max( this.maxY, y )
 
           const ctx = canvas.getContext() as CanvasRenderingContext2D
-          clearCtx(
+          canvasUtils.clearCtx(
               ctx,
               this.minX,
               this.minY,
@@ -5383,7 +5372,7 @@ function newCommand() {
           onDraw: function( ctx, x1, y1, x2, y2 ) {
             const size = this.size
 
-            clearCtx( ctx,
+            canvasUtils.clearCtx( ctx,
                 this.lastX1, this.lastY1,
                 this.lastW , this.lastH,
                 size
@@ -6298,8 +6287,8 @@ export class BrushCursor {
     this.size  = 1
     this.shape = null
 
-    this.canvas = newCanvas( 1, 1 )
-    this.cursorReplace = new events.Runner()
+    this.canvas = htmlUtils.newCanvas( 1, 1 )
+    this.cursorReplace = new events.Runner( 0 )
 
     if ( isTouch ) {
       this.hideTouch()
@@ -6703,17 +6692,19 @@ function initializeMainButtons( painter, wrap, pickerCommand ) {
    * Open / Close toggle
    */
 
-  const openToggle = $(newAnchor(
-          '<div class="skybrush_open_toggle_text">&#x1F845</div>',
-          'skybrush_header_button',
-          'skybrush_open_toggle'
-      )).
-      leftclick( ev => {
-        ev.preventDefault()
-        ev.stopPropagation()
+  const openToggle = htmlUtils.newAnchor()
+  openToggle.innerHTML = '<div class="skybrush_open_toggle_text">&#x1F845</div>'
+  openToggle.className = 'skybrush_header_button skybrush_open_toggle'
+  openToggle.addEventListener( 'click', ev => {
+    if ( ev.which !== constants.LEFT ) {
+      return
+    }
 
-        painter.toggleGUIPane()
-      })
+    ev.preventDefault()
+    ev.stopPropagation()
+
+    painter.toggleGUIPane()
+  })
 
   /*
    * Zoom In / Out
@@ -6820,7 +6811,7 @@ function initializeMainButtons( painter, wrap, pickerCommand ) {
   picker.appendChild( pickerButton )
   picker.__command = pickerCommand
 
-  painter.onSetCommand(( command ) => {
+  painter.onSetCommand( command => {
     if ( command === picker.__command ) {
       picker.classList.add( 'sb_selected' )
     } else {
@@ -7207,7 +7198,7 @@ function initializeColors( painter, pickerCommand ) {
 
   const updateHue = ( newHue:number ) => {
     hue = newHue
-    const strBackColor = hsvToColor( newHue, 1.0, 1.0 )
+    const strBackColor = colourUtils.hsvToColor( newHue, 1.0, 1.0 )
 
     // update the back of the mixer
     colourBack.style.borderTopColor  =
@@ -7227,7 +7218,7 @@ function initializeColors( painter, pickerCommand ) {
   const colourBack = document.createElement('div')
   colourBack.className = 'skybrush_color_mixer_back'
 
-  const mixerFront = newCanvas( mixerSize, mixerSize )
+  const mixerFront = htmlUtils.newCanvas( mixerSize, mixerSize )
   mixerFront.classList.add( 'skybrush_color_mixer_color_layer' )
   const ctx     = mixerFront.ctx
   const ctxData = ctx.getImageData( 0, 0, mixerSize, mixerSize )
@@ -7259,7 +7250,7 @@ function initializeColors( painter, pickerCommand ) {
 
   /* The Colour Wheel */
 
-  const colourWheelCanvas = newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
+  const colourWheelCanvas = htmlUtils.newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
   colourWheelCanvas.className = 'skybrush_color_wheel_colour_wheel'
   const wheelCtx = colourWheelCanvas.ctx
   const wheelData = wheelCtx.createImageData( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
@@ -7275,11 +7266,11 @@ function initializeColors( painter, pickerCommand ) {
   let i = 0
   for ( let y = 0; y < COLOUR_WHEEL_WIDTH; y++ ) {
     for ( let x = 0; x < COLOUR_WHEEL_WIDTH; x++ ) {
-      const paintHue = atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x )
+      const paintHue = colourUtils.atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x )
 
-      data[i  ] = hsvToR( paintHue, 1, 1 )
-      data[i+1] = hsvToG( paintHue, 1, 1 )
-      data[i+2] = hsvToB( paintHue, 1, 1 )
+      data[i  ] = colourUtils.hsvToR( paintHue, 1, 1 )
+      data[i+1] = colourUtils.hsvToG( paintHue, 1, 1 )
+      data[i+2] = colourUtils.hsvToB( paintHue, 1, 1 )
       data[i+3] = 255
 
       i += 4
@@ -7298,9 +7289,9 @@ function initializeColors( painter, pickerCommand ) {
 
           // change the hue
           if ( hypot <= COLOUR_WHEEL_WIDTH/2 ) {
-            hue = atan2ToHue( distY, distX )
+            hue = colourUtils.atan2ToHue( distY, distX )
             painter.setColor(
-                hsvToColor(
+                colourUtils.hsvToColor(
                     hue,
                     saturation,
                     value
@@ -7336,7 +7327,7 @@ function initializeColors( painter, pickerCommand ) {
       .forwardEvents( mixerFront, 'vmousedown', 'vmousemove' )
 
   const mixerVertical = $('<div>')
-      .addClass( 'skybrush_mixer_vertical_line' ).
+      .addClass( 'skybrush_mixer_vertical_line' )
       .forwardEvents( mixerFront, 'vmousedown', 'vmousemove' )
 
   const mixer = document.createElement( 'div' )
@@ -7347,7 +7338,7 @@ function initializeColors( painter, pickerCommand ) {
   mixer.appendChild( mixerVertical.get(0)     )
   mixer.appendChild( colourWheelWrap          )
 
-  mixerFront.leftdrag( ev => 
+  mixerFront.leftdrag( ev => {
     const pos = ev.offset( mixerFront )
 
     const x = Math.max( pos.left, 0 )
@@ -7360,7 +7351,7 @@ function initializeColors( painter, pickerCommand ) {
       value = 1 - ( y / mixerSize )
       saturation = x / ( mixerSize - (1-value)*mixerSize )
 
-      painter.setColor( hsvToColor(hue, saturation, value) )
+      painter.setColor( colourUtils.hsvToColor(hue, saturation, value) )
     }
 
     ev.preventDefault()
@@ -7435,7 +7426,7 @@ function initializeColors( painter, pickerCommand ) {
     const g = getVal( gInput, 255 )
     const b = getVal( bInput, 255 )
 
-    const newColor = rgbToColor( r, g, b )
+    const newColor = colourUtils.rgbToColor( r, g, b )
     painter.setColor( newColor )
   }
 
@@ -7468,7 +7459,7 @@ function initializeColors( painter, pickerCommand ) {
     const v = getVal( vInput, 100 ) / 100.0
 
     painter.setColor(
-        hsvToColor( h, s, v )
+        colourUtils.hsvToColor( h, s, v )
     )
   }
 
@@ -7610,11 +7601,11 @@ function initializeColors( painter, pickerCommand ) {
     /* Update the Colour Mixer */
 
     // convert colour to full hue
-    const newHue = rgbToHSVHue( r, g, b )
+    const newHue = colourUtils.rgbToHSVHue( r, g, b )
 
     // cache these for laterz
-    saturation = rgbToHSVSaturation( r, g, b )
-    value = rgbToHSVValue( r, g, b )
+    saturation = colourUtils.rgbToHSVSaturation( r, g, b )
+    value = colourUtils.rgbToHSVValue( r, g, b )
 
     if ( ! hasHSVFocus ) {
       sInput.value = Math.round( saturation * 100 )
@@ -7773,10 +7764,6 @@ function initializeShortcuts( painter:SkyBrush, dontGrabCtrlR:boolean ) {
   // make the dom focusable
   domObj.setAttribute( 'tabindex', 0 )
 
-  const redoFun = () => {
-    painter.redo()
-  }
-
   // key code constants
   const ALT    = 18
   const SHIFT  = 16
@@ -7784,22 +7771,26 @@ function initializeShortcuts( painter:SkyBrush, dontGrabCtrlR:boolean ) {
 
   painter.
       /* alternate commands - Shift key */
-      onKeyToggle( SHIFT, (isShiftDown) => {
+      onKeyToggle( SHIFT, isShiftDown => {
         painter.runOnShift( isShiftDown )
       }).
 
       /* alternate commands - Alt key */
-      onKeyToggle( ALT, (isAltDown) => {
+      onKeyToggle( ALT, isAltDown => {
         painter.runOnAlt( isAltDown )
       })
 
   /* Redo - ctrl + r and ctrl + y */
   if ( ! dontGrabCtrlR ) {
-    painter.onCtrl( 'r', redoFun )
+    painter.onCtrl( 'r', () => {
+      painter.redo()
+    })
   }
 
   painter.
-      onCtrl( 'y', redoFun ).
+      onCtrl( 'y', () => {
+        painter.redo()
+      }).
 
       /* Undo - ctrl + z */
       onCtrl( 'z', () => {
@@ -7868,10 +7859,10 @@ function initializeShortcuts( painter:SkyBrush, dontGrabCtrlR:boolean ) {
 
   /* On Alt behaviour - switch to colour picker */
   const pickerSwitchCommand:Command|null = null
-  painter.onAlt((isAlt) => {
+  painter.onAlt( isAlt => {
     if ( isAlt ) {
       if ( pickerSwitchCommand !== painter.pickerCommand ) {
-        pickerSwitchCommand = painter.getCommand()
+        pickerSwitchCommand = painter.getCurrentCommand()
         painter.setCommand( painter.pickerCommand )
       }
     } else {
@@ -7885,52 +7876,5 @@ function initializeShortcuts( painter:SkyBrush, dontGrabCtrlR:boolean ) {
       }
     }
   })
-}
-
-/**
- * Given a value from 0.0 to 1.0,
- * this will return it converted to: 1/MAX_ZOOM to MAX_ZOOM
- *
- * @param p The value to convert.
- * @return The zoom for the value given.
- */
-function percentToZoom( p:number ):number {
-  p = Math.limit( p, 0, 1 )
-
-  // convert p from: 0.0 to 1.0 => -1.0 to 1.0
-  p = (p-0.5) * 2
-
-  // When p is very very close to 1, it can actually increase the zoom in the opposite direction.
-  // So the min/max creates a dead zone, and we add p on as a minor zoom.
-
-  if ( p > 0 ) {
-    return Math.max( MAX_ZOOM*p, 1+p )
-
-  } else if ( p < 0 ) {
-    const newZoom = 1 / ( MAX_ZOOM*(-p) )
-
-    // remember p is negative here, so we are subtracting from 1
-    return Math.min( newZoom, 1+p )
-  }
-
-  return 1
-}
-
-function zoomToPercent( zoom:number ) {
-  zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM )
-
-  let slide = 0
-
-  // converts from: [1/MAX_ZOOM to MAX_ZOOM] => [-1.0 to 1.0]
-  if ( zoom > 1 ) {
-    slide =       zoom / MAX_ZOOM
-  } else if ( zoom < 1 ) {
-    slide = - (1/zoom) / MAX_ZOOM
-  } else {
-    slide = 0.0
-  }
-
-  // convert from [-1.0 to 1.0] => [0.0 to 1.0]
-  return slide/2 + 0.5
 }
 

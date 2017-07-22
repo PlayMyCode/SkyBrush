@@ -1,29 +1,8 @@
 
 import * as constants from 'setup/constants'
-import { htmlToElement } from 'util/html'
-import * as maths from 'util/maths'
-import { Consumer, Nullable } from 'util/function-interfaces'
-
-/**
- * in pixels
- */
-const DEFAULT_WIDTH  = 540
-
-/**
- * in pixels
- */
-const DEFAULT_HEIGHT = 460
-
-/**
- * From 1/MAX_ZOOM to MAX_ZOOM
- */
-const DEFAULT_ZOOM = 1
-
-/**
- * The name of the command to select as default,
- * when the user first sees painter.
- */
-const DEFAULT_COMMAND = 'webby'
+import { Consumer, Consumer2, Nullable } from 'util/function-interfaces'
+import * as htmlUtils from 'util/html'
+import * as mathsUtils from 'util/maths'
 
 export interface SkyBrushOptions<T> {
   grab_ctrl_r ? : boolean
@@ -37,7 +16,10 @@ interface DraggingEvents {
   onEnd  : Nullable<Consumer<MouseEvent>>
 }
 
-type AltShiftSkipState = 'none' | 'shift' | 'alt'
+type AltShiftSkipState =
+  | 'none'
+  | 'shift'
+  | 'alt'
 
 type ProcessDragEvent =
   ( ev:MouseEvent, left:number, top:number ) => void
@@ -99,8 +81,8 @@ type ProcessDragEvent =
  *
  *     <div class="skybrush"></div>
  *
- *     const app = new SkyBrush( $('.skybrush') );
- *     app.newImage( 320, 240 );
+ *     const app = new SkyBrush( $('.skybrush') )
+ *     app.newImage( 320, 240 )
  *
  *
  * @constructor
@@ -133,7 +115,6 @@ type ProcessDragEvent =
  * or even ignoring input.
  */
 export class SkyBrush {
-
   private dom           : HTMLElement
   private guiPane       : HTMLElement
   private guiDom        : HTMLElement
@@ -214,7 +195,7 @@ export class SkyBrush {
     }
 
     // create the basic SkyBrush layout
-    this.dom = htmlToElement(
+    this.dom = htmlUtils.htmlToElement(
         '<div class="skybrush_container">' +
             '<div class="skybrush_wrap">' +
                 '<div class="skybrush_viewport">' +
@@ -229,7 +210,7 @@ export class SkyBrush {
                 '</div>' +
             '</div>' +
         '</div>'
-    );
+    )
 
     container.appendChild( this.dom )
 
@@ -241,24 +222,24 @@ export class SkyBrush {
     this.guiDom   = this.guiPane.querySelector( '.skybrush_gui_pane_content' )
 
     this.viewport = this.dom.querySelector( '.skybrush_viewport_content' ).
-        dblclick((ev) => {
-          ev.stopPropagation();
-          ev.preventDefault();
-        } ).
-        on( 'DOMMouseScroll mousewheel wheel', (ev) => {
+        dblclick( ev => {
+          ev.stopPropagation()
+          ev.preventDefault()
+        }).
+        on( 'DOMMouseScroll mousewheel wheel', ev => {
           if ( ev.shiftKey ) {
-            ev.stopPropagation();
-            ev.preventDefault();
+            ev.stopPropagation()
+            ev.preventDefault()
 
-            const scrollDir = ev.originalEvent.wheelDelta;
+            const scrollDir = ev.originalEvent.wheelDelta
 
             if ( scrollDir < 0 ) {
-              this.zoomOut();
+              this.zoomOut()
             } else if ( scrollDir > 0 ) {
-              this.zoomIn();
+              this.zoomIn()
             }
           }
-        });
+        })
 
     this.events = new events.Handler( this )
     this.canvas = new CanvasManager( this.viewport, this )
@@ -272,15 +253,15 @@ export class SkyBrush {
      * Pull out the colour picker command,
      * as we treat is seperately.
      */
-    let pickerCommand = null;
+    let pickerCommand = null
     for ( let i = 0; i < allCommands.length; i++ ) {
-      const command = allCommands[i];
+      const command = allCommands[i]
 
       if ( command.getName().toLowerCase() === 'picker' ) {
-        allCommands.splice( i, 1 );
-        pickerCommand = command;
+        allCommands.splice( i, 1 )
+        pickerCommand = command
 
-        break;
+        break
       }
     }
 
@@ -289,8 +270,8 @@ export class SkyBrush {
      *
      * @const
      */
-    this.commands = allCommands;
-    this.pickerCommand = pickerCommand;
+    this.commands = allCommands
+    this.pickerCommand = pickerCommand
 
     const zoomLabel = dom.querySelector( '.skybrush_viewport_zoom' )
 
@@ -300,14 +281,14 @@ export class SkyBrush {
     initializeSettings( this )
     initializeShortcuts( this, (options.grab_ctrl_r === false) )
 
-    this.infoBar = new InfoBar( dom );
+    this.infoBar = new InfoBar( dom )
 
-    this.brushCursor = new BrushCursor( this.viewport, IS_TOUCH );
+    this.brushCursor = new BrushCursor( this.viewport, IS_TOUCH )
 
-    this.onSetCommand( this.refreshCursor );
+    this.onSetCommand( this.refreshCursor )
 
     // update the cursor on zoom
-    this.onZoom( function(zoom) {
+    this.onZoom( zoom => {
       this.brushCursor.setZoom( zoom )
       this.refreshCursor()
 
@@ -326,25 +307,25 @@ export class SkyBrush {
       setTimeout(() => {
         zoomLabel.classList.remove( 'sb_show' )
       }, 120 )
-    } )
+    })
 
     /* ## GUI related events ## */
 
     /* Handle GUI dragging. */
-    $(document).
-        bind('vmousedown', (ev) => { return this.runMouseDown(ev); }).
-        bind('vmousemove', (ev) => { return this.runMouseMove(ev); }).
-        bind('vmouseup'  , (ev) => { return this.runMouseUp(ev)  ; });
+    $(document)
+        .bind('vmousedown', (ev) => { return this.runMouseDown(ev) })
+        .bind('vmousemove', (ev) => { return this.runMouseMove(ev) })
+        .bind('vmouseup'  , (ev) => { return this.runMouseUp(ev)   })
 
-    const startingWidth  = options.width  || DEFAULT_WIDTH
-    const startingHeight = options.height || DEFAULT_HEIGHT
+    const startingWidth  = options.width  || constants.DEFAULT_WIDTH
+    const startingHeight = options.height || constants.DEFAULT_HEIGHT
 
-    const defaultCommand = this.getCommand( DEFAULT_COMMAND ) || this.commands[1]
+    const defaultCommand = this.getCommand( constants.DEFAULT_COMMAND ) || this.commands[1]
 
     // Finally, set defaults
     this.setSize( startingWidth, startingHeight ).
         refreshGUIPaneContentArea().
-        setZoom( DEFAULT_ZOOM, undefined, undefined, true ).
+        setZoom( constants.DEFAULT_ZOOM, undefined, undefined, true ).
         setColor( constants.DEFAULT_COLOUR ).
         setAlpha( constants.DEFAULT_ALPHA ).
         setCommand( defaultCommand )
@@ -372,7 +353,7 @@ export class SkyBrush {
   /**
    * Adds an event to the resize handling.
    */
-  onResize( fun ) {
+  onResize( fun:() => void ) {
     this.events.add( 'resize', fun )
   }
 
@@ -384,7 +365,7 @@ export class SkyBrush {
    * when a meta key is also pressed. If that happens, then
    * 'fun' will be run.
    */
-  onCtrl( key, fun ) {
+  onCtrl( key:string, fun:() => void ) {
     if ( !(fun instanceof Function) || (typeof fun !== 'function') ) {
       throw new Error("Function expected for 'onCtrl'")
     }
@@ -423,7 +404,7 @@ export class SkyBrush {
    * @param enabled True to enable, false to disable.
    * @return This SkyBrush instance.
    */
-  setKeysEnabled( enabled:boolean ):SkyBrush {
+  setKeysEnabled( enabled:boolean ):this {
     this.keysEnabled = enabled
 
     return this
@@ -450,10 +431,10 @@ export class SkyBrush {
    * @return This SkyBrush instance (for method chaining).
    */
   onKey2(
-      key:stirng,
-      callback:( ev:KeyboarEvent ) => void 
-  ):SkyBrush {
-    onKey3( null, key, callback )
+      key      : stirng,
+      callback : Consumer<KeyboarEvent>,
+  ):this {
+    return onKey3( null, key, callback )
   }
 
   /**
@@ -475,7 +456,7 @@ export class SkyBrush {
       event: null | 'keyup' | 'keydown',
       key:string,
       callback:Consumer<KeyboarEvent>,
-  ):SkyBrush {
+  ):this {
     const keyTest = newKeyEventTest( key )
 
     return this.onKeyInteraction( event, ev => {
@@ -501,7 +482,7 @@ export class SkyBrush {
    *
    *      skybrush.onKeyToggle( 'a', function(isADown, ev) {
    *          // code here
-   *      } );
+   *      })
    *
    * The above example will be called when 'a' is pressed
    * down, and then again when it is released.
@@ -516,14 +497,14 @@ export class SkyBrush {
   onKeyToggle(
       key:string,
       callback:( ev:KeyboardEvent ) => void
-  ):SkyBrush {
-    return this.
-        onKey3( 'keydown', key, function(ev) {
-          callback.call( this, true, ev );
-        } ).
-        onKey3( 'keyup', key, function(ev) {
-          callback.call( this, false, ev );
-        } );
+  ):this {
+    return this
+        .onKey3( 'keydown', key, ev => {
+          callback.call( this, true, ev )
+        })
+        .onKey3( 'keyup', key, ev => {
+          callback.call( this, false, ev )
+        })
   }
 
   /**
@@ -546,7 +527,7 @@ export class SkyBrush {
       fun:( ev:KeyboardEvent ) => void
   ) {
     if ( ! event ) {
-      event = 'keydown';
+      event = 'keydown'
     }
 
     $(document)[event]((ev) => {
@@ -557,16 +538,16 @@ export class SkyBrush {
           ! $(ev.target).is( 'input' )       &&
             fun.call( this, ev ) === false
       ) {
-        ev.preventDefault();
-        ev.stopPropagation();
+        ev.preventDefault()
+        ev.stopPropagation()
 
-        return false;
+        return false
       } else {
-        return undefined;
+        return undefined
       }
-    } );
+    })
 
-    return this;
+    return this
   }
 
   getInfoBar() {
@@ -580,10 +561,10 @@ export class SkyBrush {
    * Pretty much every draw change will be sent to this,
    * including those which will go to 'onDraw'.
    */
-  onDraw( fun ) {
+  onDraw( fun:() => void ):this {
     this.canvas.onEndDraw( fun )
 
-    return this;
+    return this
   }
 
   /* Event Handlers
@@ -606,8 +587,8 @@ export class SkyBrush {
    * This ensures if we get a true from one of them, it is then
    * not'd into a false, and so disables the mouse cursor change in Chrome.
    */
-  runMouseMove( ev:MouseEvent ) {
-    this.brushCursor.onMove( ev );
+  runMouseMove( ev:MouseEvent ):boolean {
+    this.brushCursor.onMove( ev )
 
     return ! (
         this.processOnDraw( ev ) ||
@@ -615,7 +596,7 @@ export class SkyBrush {
     )
   }
 
-  runMouseUp( ev:MouseEvent ) {
+  runMouseUp( ev:MouseEvent ):false {
     if ( this.isDragging() ) {
       this.processDrag( this.dragging.onEnd, ev )
 
@@ -625,8 +606,6 @@ export class SkyBrush {
 
       this.isDraggingFlag = false
 
-      return false
-
     } else if ( this.isPainting ) {
       this.endDraw( ev )
 
@@ -635,9 +614,9 @@ export class SkyBrush {
       if ( constants.IS_TOUCH ) {
         this.brushCursor.hideTouch()
       }
-
-      return false
     }
+
+    return false
   }
 
   runMouseDown( ev:MouseEvent ) {
@@ -683,7 +662,7 @@ export class SkyBrush {
     }
   }
 
-  runStartDraw( ev:MouseEvent ) {
+  runStartDraw( ev:MouseEvent ):false {
     ev.preventDefault()
 
     if ( constants.IS_TOUCH ) {
@@ -721,14 +700,14 @@ export class SkyBrush {
    * @private
    * @param ev
    */
-  endDraw( ev:MouseEvent ) {
+  endDraw( ev:MouseEvent ):true {
     this.processCommand( 'onUp', ev )
 
     this.canvas.endDraw( this.command.popDrawArea() )
 
     this.events.run( 'onDraw' )
 
-    return true;
+    return true
   }
 
   startDrag( onMove, onEnd ) {
@@ -738,7 +717,7 @@ export class SkyBrush {
 
       this.isDraggingFlag   = true
 
-      return true;
+      return true
     }
   }
 
@@ -758,7 +737,7 @@ export class SkyBrush {
    * @private
    * @param gui The GUI component to display.
    */
-  addGUI( gui:GUI ):SkyBrush {
+  addGUI( gui:GUI ):this {
     const startI = 0
     const last:GUI|null = null
 
@@ -802,9 +781,9 @@ export class SkyBrush {
    * @param {boolean} clear Optional, pass in true to clear the canvas during the resize.
    */
   setSize( newWidth:number, newHeight:number, clear:boolean ): this {
-    this.canvas.setSize( newWidth, newHeight, clear );
+    this.canvas.setSize( newWidth, newHeight, clear )
 
-    return this;
+    return this
   }
 
   /**
@@ -838,7 +817,7 @@ export class SkyBrush {
    * It's used for times when the width/height, and other metrics
    * that might mess up the zoom, have been altered.
    *
-   * It's the same as: this.setZoom( this.getZoom() );
+   * It's the same as: this.setZoom( this.getZoom() )
    */
   updateZoom():this {
     return this.setZoom( this.getZoom() )
@@ -944,20 +923,20 @@ export class SkyBrush {
   setZoom( zoom:number, x:number, y:number ): this;
   setZoom( zoom:number, x:number, y:number, force:boolean ): this;
   setZoom( zoom:number, x?:number, y?:number, force?:boolean ): this {
-    zoom = maths.limit( zoom, 1/constants.MAX_ZOOM, constants.MAX_ZOOM );
+    zoom = mathsUtils.limit( zoom, 1/constants.MAX_ZOOM, constants.MAX_ZOOM )
 
     if ( zoom > 1 ) {
-      zoom = Math.round( zoom );
+      zoom = Math.round( zoom )
     }
 
-    const oldZoom = this.getZoom();
+    const oldZoom = this.getZoom()
 
     if ( zoom !== oldZoom || force ) {
-      this.canvas.setZoom( zoom, x, y );
-      this.events.run( 'onZoom', zoom, x, y );
+      this.canvas.setZoom( zoom, x, y )
+      this.events.run( 'onZoom', zoom, x, y )
     }
 
-    return this;
+    return this
   }
 
   /**
@@ -988,10 +967,10 @@ export class SkyBrush {
   /**
    * Event for when the 'shift' key is pressed, up or down.
    */
-  onShift( fun ) {
-    this.events.add( 'onShift', fun );
+  onShift( fun:Consumer<boolean> ):this {
+    this.events.add( 'onShift', fun )
 
-    return this;
+    return this
   }
 
   /**
@@ -1004,10 +983,10 @@ export class SkyBrush {
    *
    * @param fun The event to run.
    */
-  removeOnShift( fun ) {
-    this.events.remove( 'onShift', fun );
+  removeOnShift( fun:Consumer<boolean> ):this {
+    this.events.remove( 'onShift', fun )
 
-    return this;
+    return this
   }
 
   /**
@@ -1019,14 +998,14 @@ export class SkyBrush {
    *
    * So if you do:
    *
-   *    skybrush.runOnShift( true ).runOnShift( true );
+   *    skybrush.runOnShift( true ).runOnShift( true )
    *
    * ... shift events are called the first time, and ignored
    * on the second (as shift hasn't changed).
    *
    * Of course if you do:
    *
-   *    skybrush.runOnShift( true ).runOnShift( false );
+   *    skybrush.runOnShift( true ).runOnShift( false )
    *
    * ... then events are run twice.
    *
@@ -1083,24 +1062,24 @@ export class SkyBrush {
   /**
    * @return True if shift is current pressed, false if not.
    */
-  isShiftDown() {
-    return this.isShiftDownFlag;
+  isShiftDown():boolean {
+    return this.isShiftDownFlag
   }
 
   /**
    * Callbacks to be run when alt is pressed or released.
    */
-  onAlt(callback) {
-    this.events.add( 'onAlt', callback );
+  onAlt( onAlt:Consumer<boolean> ):this {
+    this.events.add( 'onAlt', onAlt )
 
-    return this;
+    return this
   }
 
   /**
    * @return True if alt is current pressed, false if not.
    */
-  isAltDown() {
-    return this.isAltDownFlag;
+  isAltDown():boolean {
+    return this.isAltDownFlag
   }
 
   /**
@@ -1118,7 +1097,7 @@ export class SkyBrush {
    * @param alpha The alpha value used when drawing to the canvas.
    */
   setAlpha( alpha:number ): this {
-    alpha = maths.limit( alpha, 0, 1 )
+    alpha = mathsUtils.limit( alpha, 0, 1 )
 
     // account for the dead zone
     if ( alpha > 1-constants.ALPHA_DEAD_ZONE ) {
@@ -1164,30 +1143,30 @@ export class SkyBrush {
   /**
    * @param strColor The colour to use when drawing.
    */
-  setColor( strColor ) {
-    this.canvas.setColor( strColor );
+  setColor( strColor:string ):this {
+    this.canvas.setColor( strColor )
 
-    this.events.run( 'onsetcolor', strColor );
+    this.events.run( 'onsetcolor', strColor )
 
-    return this;
+    return this
   }
 
-  onSetCommand( fun ) {
-    this.events.add( 'onsetcommand', fun );
+  onSetCommand( fun:Consumer2<Command, Command> ):this {
+    this.events.add( 'onsetcommand', fun )
 
-    return this;
+    return this
   }
 
-  switchCommand( name:string ) {
-    name = name.toLowerCase();
+  switchCommand( name:string ):this {
+    name = name.toLowerCase()
 
     for ( let i = 0; i < this.commands.length; i++ ) {
       if ( this.commands[i].getName().toLowerCase() === name ) {
-        return this.setCommand( this.commands[i] );
+        return this.setCommand( this.commands[i] )
       }
     }
 
-    return this;
+    return this
   }
 
   /**
@@ -1197,7 +1176,7 @@ export class SkyBrush {
    * @param command The Command object to switch to.
    * @return this SkyBrush object.
    */
-  setCommand( command ) {
+  setCommand( command:Command ):this {
     /*
      * If you click on the same command, multiple times,
      * then nothing happens.
@@ -1223,38 +1202,37 @@ export class SkyBrush {
    * This works in two ways. Calling it with no name returns
    * the currently set command, i.e.
    *
-   *    skybrush.getCommand();
+   *    skybrush.getCommand()
    *
    * Alternatively you can pass in a name, and it will
    * return the stored command with that name, regardless of
    * if it's set or not.
    *
-   *    skybrush.getCommand( 'pencil' );
+   *    skybrush.getCommand( 'pencil' )
    *
-   * @param name Optional, finds the command listed in SkyBrush.
+   * @param name Finds the command listed in SkyBrush.
    * @return The currently set command, or null if you call it before any command is set.
    */
-  getCommand( name:string ) {
-    if ( name ) {
-      name = name.toLowerCase()
+  getCommand( name:string ):Command {
+    name = name.toLowerCase()
 
-      if ( this.pickerCommand.getName().toLowerCase() === name ) {
-        return this.pickerCommand
-
-      } else {
-        for ( let i = 0; i < this.commands.length; i++ ) {
-            const command = this.commands[i];
-
-            if ( command.getName().toLowerCase() === name ) {
-                return command;
-            }
-        }
-
-        return null;
-      }
-    } else {
-      return this.command;
+    if ( this.pickerCommand.getName().toLowerCase() === name ) {
+      return this.pickerCommand
     }
+
+    for ( let i = 0; i < this.commands.length; i++ ) {
+      const command = this.commands[i]
+
+      if ( command.getName().toLowerCase() === name ) {
+        return command
+      }
+    }
+
+    return null
+  }
+
+  getCurrentCommand():Command {
+    return this.command
   }
 
   /**
@@ -1263,36 +1241,38 @@ export class SkyBrush {
    *
    * This is so you can just do ...
    *
-   *    painter.refreshCommand( this );
+   *    painter.refreshCommand( this )
    *
    * ... and not care if you are or aren't the current command.
    *
    * @param Only refresh, if this is the currently set command.
    */
-  refreshCursor( command ) {
+  refreshCursor( command:Command ):this {
     /*
      * Incase this is called right at the beginning,
      * during the setup phase, before any commands have
      * been set.
      */
     if ( this.command && (arguments.length === 0 || this.command === command) ) {
-      this.brushCursor.setCommandCursor( this, this.command );
+      this.brushCursor.setCommandCursor( this, this.command )
     }
+
+    return this
   }
 
   /**
    * @param ev The event to check.
    * @return True if the given event is located inside of the SkyBrush viewport, otherwise false.
    */
-  isInView( ev ) {
-    return ev.isWithin( this.viewport );
+  isInView( ev:Event ):boolean {
+    return ev.isWithin( this.viewport )
   }
 
   /**
    * @return A data url for the current contents in SkyBrush.
    */
-  getImageData( type ) {
-    return this.canvas.toDataURL( type );
+  getImageData( imageType:string ):string {
+    return this.canvas.toDataURL( imageType )
   }
 
   /**
@@ -1303,7 +1283,7 @@ export class SkyBrush {
    *
    * @return A HTML Image holding the items drawn on the canvas.
    */
-  getImage() {
+  getImage():Image {
     const img = new Image()
 
     img.width  = this.canvas.width
@@ -1315,12 +1295,7 @@ export class SkyBrush {
 
   /**
    * Sets an image, or canvas, as the contents of this SkyBrush.
-   * The SkyBrush is   d to accomodate the image.
-   *
-   * AFAIK, there is only one way to get an image's _true_ width/height,
-   * and that is through making a new one and setting it's src to that of the first.
-   * I don't want to do that by default, due to the added cost,
-   * but you can do that if you wish to.
+   * The SkyBrush is resised to accomodate the image.
    *
    * To give the user more options, you can pass in the width/height of the image.
    * This is used when SkyBrush makes it's own copy for editing.
@@ -1330,9 +1305,11 @@ export class SkyBrush {
    * @param width (optional) the width of the image.
    * @param height (optional) the height of the image.
    */
-  setImage( image, width, height ) {
-    this.canvas.setImage( image, width, height );
-    this.reset();
+  setImage( image:Image, width?:number, height?:number ):this {
+    this.canvas.setImage( image, width, height )
+    this.reset()
+
+    return this
   }
 
   /**
@@ -1348,19 +1325,12 @@ export class SkyBrush {
   newImage(): this;
   newImage( width:number, height:number ): this;
   newImage( width?:number, height?:number ): this {
-    if ( ! width ) {
-      width = DEFAULT_WIDTH
-    }
-
-    if ( ! height ) {
-      height = DEFAULT_HEIGHT
-    }
-
-    this
-        .setSize( width, height, true )
-        .reset()
+    const newWidth  = ( width|0) || constants.DEFAULT_WIDTH
+    const newHeight = (height|0) || constants.DEFAULT_HEIGHT
 
     return this
+        .setSize( newWidth, newHeight, true )
+        .reset()
   }
 
   cut(): this {
@@ -1390,16 +1360,16 @@ export class SkyBrush {
     return this.canvas.hasRedo()
   }
 
-  onUndo( fun ) {
-    this.events.add( 'onundo', fun );
+  onUndo( fun:() => void ):this {
+    this.events.add( 'onundo', fun )
 
-    return this;
+    return this
   }
 
-  onRedo( fun ) {
-    this.events.add( 'onredo', fun );
+  onRedo( fun:() => void ):this {
+    this.events.add( 'onredo', fun )
 
-    return this;
+    return this
   }
 
   /**
@@ -1407,12 +1377,12 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  undo() {
+  undo():this {
     if ( this.canvas.undo() ) {
-      this.events.run( 'onundo' );
+      this.events.run( 'onundo' )
     }
 
-    return this;
+    return this
   }
 
   /**
@@ -1420,12 +1390,12 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  redo() {
+  redo():this {
     if ( this.canvas.redo() ) {
-      this.events.run( 'onredo' );
+      this.events.run( 'onredo' )
     }
 
-    return this;
+    return this
   }
 
   /**
@@ -1459,9 +1429,9 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  openGUIPane() {
-    this.guiPane.classList.add( 'sb_open' );
-    this.viewport.parentElement.classList.add( 'sb_open' );
+  openGUIPane():this {
+    this.guiPane.classList.add( 'sb_open' )
+    this.viewport.parentElement.classList.add( 'sb_open' )
 
     this.canvas.lazyUpdateCanvasSize()
     this.refreshGUIPaneContentArea()
@@ -1475,7 +1445,7 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  closeGUIPane() {
+  closeGUIPane():this {
     this.guiPane.classList.remove( 'sb_open' )
     this.viewport.parentElement.classList.remove( 'sb_open' )
 
@@ -1484,21 +1454,21 @@ export class SkyBrush {
     return this
   }
 
-  subtractGUIPaneContentWidth( w ) {
+  subtractGUIPaneContentWidth( w:number ):this {
     this.guiPaneContentWidthSubtract -= w|0
 
     return this.refreshGUIPaneContentArea()
   }
 
-  refreshGUIPaneContentArea() {
+  refreshGUIPaneContentArea():this {
     // at the time of writing, the first child is expected to always be a .skybrush_gui
-    const contentWidth = $( this.guiDom.firstChild ).width() - this.guiPaneContentWidthSubtract;
+    const contentWidth = $( this.guiDom.firstChild ).width() - this.guiPaneContentWidthSubtract
 
     if ( contentWidth < 0 ) {
-      this.guiDom.style.width = '0';
+      this.guiDom.style.width = '0'
 
     } else {
-      this.guiDom.style.width = contentWidth + 'px';
+      this.guiDom.style.width = contentWidth + 'px'
       
     }
 
@@ -1509,7 +1479,7 @@ export class SkyBrush {
    * @return True if the GUI section at the bottom is open, but not locked open.
    *       Otherwise false.
    */
-  isGUIsOverlapping() {
+  isGUIsOverlapping():boolean {
     return this.guiPane.classList.contains( 'sb_open' ) &&
        ! this.viewport.parentElement.classList.contains( 'sb_open' )
   }
@@ -1517,7 +1487,7 @@ export class SkyBrush {
   /**
    * @return True if the GUI section at the bottom is open, and false if closed.
    */
-  isGUIsShown() {
+  isGUIsShown():boolean {
     return this.guiPane.classList.contains( 'sb_open' )
   }
 
@@ -1527,16 +1497,12 @@ export class SkyBrush {
    *
    * @return This SkyBrush instance.
    */
-  toggleGUIPane() {
+  toggleGUIPane():this {
     if ( this.isGUIsShown() ) {
-      this.closeGUIPane()
-
-    } else {
-      this.openGUIPane()
-
+      return this.closeGUIPane()
     }
 
-    return this
+    return this.openGUIPane()
   }
 
   /**
@@ -1552,7 +1518,7 @@ export class SkyBrush {
    *
    * @return This SkyBrush object.
    */
-  reset() {
+  reset():this {
     this.canvas.reset()
     this.setZoom( constants.DEFAULT_ZOOM )
 
@@ -1563,7 +1529,7 @@ export class SkyBrush {
    * SkyBrush helper functions.
    * They are essentially private methods.
    */
-  private processDrag( fun:ProcessDragEvent, ev:MouseEvent ) {
+  private processDrag( fun:ProcessDragEvent, ev:MouseEvent ):boolean {
     if ( fun ) {
       const loc = this.canvas.translateLocation( ev )
       fun( ev, loc.left, loc.top )
@@ -1571,14 +1537,12 @@ export class SkyBrush {
       ev.preventDefault()
 
       return true
-
-    } else {
-      return false
-
     }
+
+    return false
   }
 
-  private processCommand = function( name:string, ev:MouseEvent ) {
+  private processCommand( name:string, ev:MouseEvent ):void {
     const fun = this.command[name]
 
     if ( fun !== undefined ) {
@@ -1587,5 +1551,52 @@ export class SkyBrush {
       this.command[name]( this.canvas, loc.left, loc.top, this, ev )
     }
   }
+}
+
+/**
+ * Given a value from 0.0 to 1.0,
+ * this will return it converted to: 1/MAX_ZOOM to MAX_ZOOM
+ *
+ * @param p The value to convert.
+ * @return The zoom for the value given.
+ */
+function percentToZoom( p:number ):number {
+  p = Math.limit( p, 0, 1 )
+
+  // convert p from: 0.0 to 1.0 => -1.0 to 1.0
+  p = (p-0.5) * 2
+
+  // When p is very very close to 1, it can actually increase the zoom in the opposite direction.
+  // So the min/max creates a dead zone, and we add p on as a minor zoom.
+
+  if ( p > 0 ) {
+    return Math.max( MAX_ZOOM*p, 1+p )
+
+  } else if ( p < 0 ) {
+    const newZoom = 1 / ( MAX_ZOOM*(-p) )
+
+    // remember p is negative here, so we are subtracting from 1
+    return Math.min( newZoom, 1+p )
+  }
+
+  return 1
+}
+
+function zoomToPercent( zoom:number ) {
+  zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM )
+
+  let slide = 0
+
+  // converts from: [1/MAX_ZOOM to MAX_ZOOM] => [-1.0 to 1.0]
+  if ( zoom > 1 ) {
+    slide =       zoom / MAX_ZOOM
+  } else if ( zoom < 1 ) {
+    slide = - (1/zoom) / MAX_ZOOM
+  } else {
+    slide = 0.0
+  }
+
+  // convert from [-1.0 to 1.0] => [0.0 to 1.0]
+  return slide/2 + 0.5
 }
 

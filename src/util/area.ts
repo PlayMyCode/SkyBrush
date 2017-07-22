@@ -1,4 +1,9 @@
 
+export interface Position {
+  left : number
+  top  : number
+}
+
 export interface MinMaxArea {
   minX : number
   maxX : number

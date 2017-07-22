@@ -34,6 +34,27 @@ export const DEFAULT_COLOUR = '#104662' // dark cyan-blue
 export const DEFAULT_CURSOR = 'sb_cursor_default'
 
 /**
+ * in pixels
+ */
+export const DEFAULT_WIDTH  = 540
+
+/**
+ * in pixels
+ */
+export const DEFAULT_HEIGHT = 460
+
+/**
+ * From 1/MAX_ZOOM to MAX_ZOOM
+ */
+export const DEFAULT_ZOOM = 1
+
+/**
+ * The name of the command to select as default,
+ * when the user first sees painter.
+ */
+export const DEFAULT_COMMAND = 'webby'
+
+/**
  * If the alpha is set to a value just below 1,
  * which is within this dead zone, then it's blended up to 1.
  *
