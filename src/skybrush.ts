@@ -289,7 +289,7 @@ export class SkyBrush {
 
     // update the cursor on zoom
     this.onZoom( zoom => {
-      this.brushCursor.setZoom( zoom )
+      this.brushCursor.setZoom( zoom, 'refresh' )
       this.refreshCursor()
 
       zoom *= 100
@@ -325,7 +325,7 @@ export class SkyBrush {
     // Finally, set defaults
     this.setSize( startingWidth, startingHeight ).
         refreshGUIPaneContentArea().
-        setZoom( constants.DEFAULT_ZOOM, undefined, undefined, true ).
+        setZoom( constants.DEFAULT_ZOOM ).
         setColor( constants.DEFAULT_COLOUR ).
         setAlpha( constants.DEFAULT_ALPHA ).
         setCommand( defaultCommand )
@@ -847,12 +847,11 @@ export class SkyBrush {
    * zoomX and zoomY may be 'true' to zoom into the center of the
    * canvas.
    *
-   * @param The percentage, from 0.0 to 1.0, for this to be zoomed.
-   * @param zoomX the location, in canvas pixels, of where to zoom. Optional, pass in undefined for no value.
-   * @param zoomY the location, in canvas pixels, of where to zoom. Optional, pass in undefined for no value.
+   * @param zoom The percentage, from 0.0 to 1.0, for this to be zoomed.
+   * @param zoomXY the location, in canvas pixels, of where to zoom. Optional, zooms into the centre if missing.
    */
-  setZoomPercent( p:number, zoomX:number, zoomY:number ) {
-    return this.setZoom( percentToZoom(p), zoomX, zoomY )
+  setZoomPercent( zoomPercent:number, zoomXY?:Point ) {
+    return this.setZoom( percentToZoom(zoomPercent), zoomXY )
   }
 
   /**
@@ -902,38 +901,18 @@ export class SkyBrush {
    *
    * x and y are in 'canvas pixels'.
    *
-   * Finally the 'force' is because zoom will not fire if no
-   * zoom change has occurred. For 99% of usage, this is ok,
-   * but there is a 1% corner case where you might want to
-   * use this.
-   *
-   * Namely when setting the default zoom, so all events get
-   * fired on startup.
-   *
-   * x and y may also be 'true', which denotes that you wish
-   * to zoom in relation to the center of the canvas.
-   *
    * @param zoom The zoom factor.
-   * @param x optional, the centre of the zoom in canvas pixels.
-   * @param y optional, the centre of the zoom in canvas pixels.
-   * @param force optional, true to force a zoom update (shouldn't ever need to do this).
+   * @param zoomXY The centre of the zoom in canvas pixels.
    */
-  setZoom( zoom:number ): this;
-  setZoom( zoom:number, x:number, y:number ): this;
-  setZoom( zoom:number, x:number, y:number, force:boolean ): this;
-  setZoom( zoom:number, x?:number, y?:number, force?:boolean ): this {
+  setZoom( zoom:number, zoomXY?:Point ): this {
     zoom = mathsUtils.limit( zoom, 1/constants.MAX_ZOOM, constants.MAX_ZOOM )
 
     if ( zoom > 1 ) {
       zoom = Math.round( zoom )
     }
 
-    const oldZoom = this.getZoom()
-
-    if ( zoom !== oldZoom || force ) {
-      this.canvas.setZoom( zoom, x, y )
-      this.events.run( 'onZoom', zoom, x, y )
-    }
+    this.canvas.setZoom( zoom, zoomXY )
+    this.events.run( 'onZoom', zoom, zoomXY )
 
     return this
   }
@@ -942,25 +921,23 @@ export class SkyBrush {
    * Zooms into the location given, or if not provided, the
    * centre of the viewport.
    *
-   * @param {number} x The x co-ordinate to zoom into.
-   * @param {number} y The y co-ordinate to zoom into.
+   * @param zoomXY The center of where we are zooming into. Null to zoom into the centre.
    */
-  zoomIn( x:number, y:number ): this {
+  zoomIn( zoomXY ?: Point ): this {
     const zoom = percentToZoom( this.getZoomPercent() + 1/constants.MAX_ZOOM )
 
-    return this.setZoom( zoom, x, y )
+    return this.setZoom( zoom, zoomXY )
   }
 
   /**
    * Zooms out at the location given (location is optional).
    *
-   * @param {number} x The x co-ordinate to zoom out of.
-   * @param {number} y The y co-ordinate to zoom out of.
+   * @param zoomXY The centre of where we are zooming into, or null for centre of the viewport.
    */
-  zoomOut( x:number, y:number ) {
+  zoomOut( zoomXY ?: Point ) {
     const zoom = percentToZoom( this.getZoomPercent() - 1/constants.MAX_ZOOM )
 
-    return this.setZoom( zoom, x, y )
+    return this.setZoom( zoom, zoomXY )
   }
 
   /**

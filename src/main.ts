@@ -1,6 +1,6 @@
 
 import * as constants from 'setup/constants'
-import { MinMaxArea, SizeArea, Position } from 'util/area'
+import { MinMaxArea, SizeArea, Position, Point } from 'util/area'
 import { Nullable, Consumer, Consumer2, Consumer3 } from 'util/function-interfaces'
 import * as canvasUtils from 'util/canvas'
 import * as htmlUtils from 'util/html'
@@ -207,7 +207,7 @@ const BRUSH_RENDER_FUNCTIONS = {
         (middle-halfSize)+0.4,
         (middle-halfSize)+0.4,
         size-0.8,
-        size-0.8
+        size-0.8,
     )
 
     // an outer square
@@ -217,7 +217,7 @@ const BRUSH_RENDER_FUNCTIONS = {
         middle-halfSize,
         middle-halfSize,
         size,
-        size
+        size,
     )
   },
 
@@ -2042,9 +2042,13 @@ export class CopyManager {
  */
 export class CanvasManager {
   private readonly viewport : HTMLElement
-  private readonly canvas   : HTMLCanvasElement
+  private          canvas   : HTMLCanvasElement
   private readonly overlay  : HTMLCanvasElement
   private readonly upscale  : HTMLCanvasElement
+
+  private          canvasCtx  : CanvasRenderingContext2D
+  private          overlayCtx : CanvasRenderingContext2D
+  private readonly upscaleCtx : CanvasRenderingContext2D
 
   private readonly undos   : UndoStack
   private readonly grid    : GridManager
@@ -2101,8 +2105,13 @@ export class CanvasManager {
     this.overlay  = overlay
     this.upscale  = upscale
 
-    this.events = new events.Handler( this )
+    this.canvasCtx  = canvasUtils.newCtx( canvas )
+    this.overlayCtx = canvasUtils.newCtx( canvas )
+    this.upscaleCtx = canvasUtils.newCtx( canvas )
+
+    this.events           = new events.Handler( this )
     this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY )
+
     this.clipping = null
 
     this.isUpscaleShown = false
@@ -2169,6 +2178,10 @@ export class CanvasManager {
 
   hideOverlay() {
     this.overlay.style.display = 'none'
+  }
+
+  showOverlay() {
+    this.overlay.style.display = ''
   }
 
   /**
@@ -2261,17 +2274,18 @@ export class CanvasManager {
     }
 
     this.drawSafeAlpha(() => {
-      this.canvas.ctx.drawImage( this.overlay, 0, 0 )
+      this.canvasCtx.drawImage( this.overlay, 0, 0 )
     })
 
-    this.overlay.ctx.clearRect( 0, 0, this.overlay.width, this.overlay.height )
+    this.overlayCtx.clearRect( 0, 0, this.overlay.width, this.overlay.height )
 
     if ( refresh ) {
       this.redrawUpscale( ux, uy, uw, uh, false, 0 )
     }
 
-    // reshow the overlay, in case a command hid it
-    this.$overlay.show()
+    // A command could have hidden the overlay.
+    // That's why we call to reshow it.
+    this.showOverlay()
 
     this.undos.add( this.canvas )
 
@@ -2297,9 +2311,9 @@ export class CanvasManager {
   /**
    * Changes the zoom to match.
    */
-  setZoom( zoom:number, x:number, y:number ):this {
+  setZoom( zoom:number, zoomXY ?: Point ):this {
     this.zoom = zoom
-    this.updateCanvasSize( x, y )
+    this.updateCanvasSize( zoomXY )
 
     return this
   }
@@ -2338,23 +2352,21 @@ export class CanvasManager {
    * The idea is that they are the location where someone has clicked,
    * using a command, which has all it's locations normalized.
    *
-   * To use zoomX and zoomY, _both_ must be provided. If you don't want
-   * a zoomY, then just pass in 0 for it.
-   *
-   * @param zoomX Optional, an x location to zoom in/out of.
-   * @param zoomY Optional, a y location to zoom in/out of.
+   * @param zoom A location to zoom in/out of. Provide null for no zoom.
    */
-  private updateCanvasSize( zoomX?:number, zoomY?:number ):void {
-    const zoom     = this.zoom,
+  private updateCanvasSize( zoomXY ?: Point ):void {
+    const zoom     = this.zoom
     const canvas   = this.canvas
     const overlay  = this.overlay
     const viewport = this.viewport
-    const upscale  = this.upscale
+
+    const canvasParent = canvas.parentElement()
+    if ( canvasParent === null ) {
+      return
+    }
 
     const newWidth   = Math.round( this.width  * zoom )
     const newHeight  = Math.round( this.height * zoom )
-
-    const canvasParent = canvas.parentElement()
 
     const moveX = (canvasParent.width()  - newWidth )/2
     const moveY = (canvasParent.height() - newHeight)/2
@@ -2373,54 +2385,44 @@ export class CanvasManager {
     let zoomOffsetX = 0
     let zoomOffsetY = 0
 
-    if (
-        zoomX !== undefined &&
-        hasScrollLeft
-    ) {
+    if ( zoomXY ) {
+      if ( hasScrollLeft ) {
+        /*
+         * A value from 0.0 to 1.0, representing the zoom location.
+         * 
+         * Zoom based on a canvas pixel location,
+         * or just use the center of the canvas.
+         * 
+         * With the *2 -1, we then convert from: [0.0, 1.0] to [-1.0, 1.0]
+         */
+        const zoomXP = ( zoomXY.x / this.width )*2 - 1
 
-      /*
-       * A value from 0.0 to 1.0, representing the zoom location.
-       * 
-       * Zoom based on a canvas pixel location,
-       * or just use the center of the canvas.
-       * 
-       * With the *2 -1, we then convert from: [0.0, 1.0] to [-1.0, 1.0]
-       */
-      const zoomXP = ( zoomX / this.width )*2 - 1
-      zoomXP = zoomXP*2 - 1
+        /*
+         * Divide newWidth by half, so that when it's multiplied against zoomXP,
+         * we are in the range of: [-newWidth/2, newWidth/2].
+         *
+         * This way it'll scroll left when zoomXP is negative, and right
+         * when it's positive.
+         *
+         * newWidth is divided again, making it newWidth/4, as the scrolling is
+         * too extreme.
+         */
+        zoomOffsetX = ( newWidth / 4 ) * zoomXP
+      }
 
-      /*
-       * Divide newWidth by half, so that when it's multiplied against zoomXP,
-       * we are in the range of: [-newWidth/2, newWidth/2].
-       *
-       * This way it'll scroll left when zoomXP is negative, and right
-       * when it's positive.
-       *
-       * newWidth is divided again, making it newWidth/4, as the scrolling is
-       * too extreme.
-       */
-      zoomOffsetX = ( newWidth / 4 ) * zoomXP
-    }
-
-    // and now for the zoom Y
-    if (
-        zoomY !== undefined &&
-        hasScrollTop
-    ) {
-      const zoomYP = ( zoomY / this.height )*2 - 1
-
-      zoomOffsetY = (newHeight/4) * zoomYP
+      // and now for the zoom Y
+      if ( hasScrollTop ) {
+        const zoomYP = ( zoomXY.y / this.height )*2 - 1
+        zoomOffsetY = (newHeight/4) * zoomYP
+      }
     }
 
     // If no scroll bar right now, try to scroll to the middle (doesn't matter if it fails).
     const scrollTopP  = ( hasScrollTop  === 0 ) ? 0.5 : viewport.scrollTopPercent()
     const scrollLeftP = ( hasScrollLeft === 0 ) ? 0.5 : viewport.scrollLeftPercent()
 
-    const heightChange = newHeight / $canvas.height()
-    const widthChange  = newHeight / $canvas.height()
-
-    const scrollTop  = scrollTopP  * (newHeight - viewport.height()) + zoomOffsetY
-    const scrollLeft = scrollLeftP * (newWidth  - viewport.width() ) + zoomOffsetX
+    const scrollTop  = scrollTopP  * (newHeight - viewport.offsetHeight) + zoomOffsetY
+    const scrollLeft = scrollLeftP * (newWidth  - viewport.offsetWidth ) + zoomOffsetX
 
     /*
      * Now apply the changes.
@@ -2446,8 +2448,6 @@ export class CanvasManager {
         CANVAS_UPDATE_SPEED
     )
 
-    const viewWidth  = Math.min( newWidth , viewport.width()  )
-    const viewHeight = Math.min( newHeight, viewport.height() )
     this.grid.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
     this.marquee.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
     this.copyObj.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
@@ -2463,9 +2463,11 @@ export class CanvasManager {
    * Cleares all of the future upscale refresh jobs to perform.
    */
   private clearUpscaleWorkers():void {
-    while ( this.upscaleWorkers.length > 0 ) {
-      cancelAnimationFrame( this.upscaleWorkers.pop() )
+    for ( let i = 0; i < this.upscaleWorkers.length; i++ ) {
+      cancelAnimationFrame( this.upscaleWorkers[i] )
     }
+
+    this.upscaleWorkers.length = 0
   }
 
   /**
@@ -2518,8 +2520,6 @@ export class CanvasManager {
     this.showUpscaleEvent.run(() => {
       this.isUpscaleShown = true
 
-      const zoom = this.zoom
-
       const viewport = this.viewport
       const canvas   = this.canvas
       const upscale  = this.upscale
@@ -2534,10 +2534,10 @@ export class CanvasManager {
       // show the upscale when using positive zoom
       const scrollSize = viewport.scrollBarSize()
 
-      const viewWidth    = viewport.width()   - scrollSize.right
-      const viewHeight   = viewport.height() - scrollSize.bottom
-      const canvasWidth  = $canvas.width()
-      const canvasHeight = $canvas.height()
+      const viewWidth    = viewport.offsetWidth   - scrollSize.right
+      const viewHeight   = viewport.offsetHeight - scrollSize.bottom
+      const canvasWidth  = canvas.offsetWidth
+      const canvasHeight = canvas.offsetHeight
 
       const upWidth = (
           ( canvasWidth < viewWidth )
@@ -2586,7 +2586,7 @@ export class CanvasManager {
       const translateX = (left+0.5)|0
       const translateY = (top+0.5)|0
 
-      upscale.style.display = 'block'
+      upscale.style.display = '' // Set display back to it's initial value.
       upscale.style.opacity = '0'
       upscale.style.backgroundPosition = `${positionX}px ${positionY}px`
       upscale.style.transform = `translate( ${translateX}px, ${translateY} )`
@@ -2633,7 +2633,7 @@ export class CanvasManager {
       if ( this.copyObj.overlapsPaste(clip) ) {
         this.drawSafe(() => {
           this.copyObj.draw( this.canvas )
-          this.overlay.ctx.clearRect( 0, 0, this.width, this.height )
+          this.overlayCtx.clearRect( 0, 0, this.width, this.height )
           this.endDraw( clip )
         })
       }
@@ -2661,7 +2661,7 @@ export class CanvasManager {
    */
   endPaste():this {
     if ( this.copyObj.isPasting() ) {
-      this.overlay.ctx.clearRect( 0, 0, this.width, this.height )
+      this.overlayCtx.clearRect( 0, 0, this.width, this.height )
       this.copyObj.endPaste()
     }
 
@@ -2679,7 +2679,7 @@ export class CanvasManager {
 
     this.copyObj.setCopy( this.canvas, clip.x, clip.y, clip.w, clip.h )
     this.drawSafe(() => {
-      this.canvas.ctx.clearRect( clip.x, clip.y, clip.w, clip.h )
+      this.canvasCtx.clearRect( clip.x, clip.y, clip.w, clip.h )
     })
     this.endDraw( clip )
 
@@ -2699,24 +2699,24 @@ export class CanvasManager {
     return this
   }
 
-  onCopy( fun ):this {
+  onCopy( fun:() => void ):this {
     this.events.add( 'onCopy', fun )
 
     return this
   }
 
   removeClip():this {
-    const ctx     = this.canvas.ctx
-    const overCtx = this.overlay.ctx
+    const cCtx = this.canvasCtx
+    const oCtx = this.overlayCtx
 
     if ( this.clipping !== null ) {
-      const ctxSetup = canvasUtils.backupCtx( ctx )
-      ctx.restore()
-      canvasUtils.restoreCtx( ctx, ctxSetup )
+      const cCtxSetup = canvasUtils.backupCtx( cCtx )
+      cCtx.restore()
+      canvasUtils.restoreCtx( cCtx, cCtxSetup )
 
-      ctxSetup = canvasUtils.backupCtx( overCtx )
-      overCtx.restore()
-      canvasUtils.restoreCtx( overCtx, ctxSetup )
+      const oCtxSetup = canvasUtils.backupCtx( oCtx )
+      oCtx.restore()
+      canvasUtils.restoreCtx( oCtx, oCtxSetup )
 
       this.clipping = null
     }
@@ -2726,7 +2726,7 @@ export class CanvasManager {
     return this
   }
 
-  onClip( f ):this {
+  onClip( f:Consumer<Nullable<SizeArea>> ):this {
     this.events.add( 'onClip', f )
 
     return this
@@ -2751,8 +2751,8 @@ export class CanvasManager {
   }
 
   setClip( x:number, y:number, w:number, h:number ):this {
-    const cCtx = this.canvas.ctx
-    const oCtx = this.overlay.ctx
+    const cCtx = this.canvasCtx
+    const oCtx = this.overlayCtx
 
     this.removeClip()
 
@@ -2851,8 +2851,11 @@ export class CanvasManager {
 
     const canvas   = this.canvas
     const upscale  = this.upscale
-    const upscale  = this.upscale
     const viewport = this.viewport
+
+    const cCtx = this.canvasCtx
+    const oCtx = this.overlayCtx
+    const uCtx = this.upscaleCtx
 
     const zoom = this.zoom
 
@@ -2865,7 +2868,7 @@ export class CanvasManager {
        * So we just fake a draw event (drawing to top left corner),
        * and it's drawing to the whole canvas (full with/height).
        */
-      const pos = this.viewport.offset()
+      const pos = viewport.offset()
       const fakeEv = $.Event( 'mousemove', {
           pageX : pos.left,
           pageY : pos.top,
@@ -2880,8 +2883,8 @@ export class CanvasManager {
     }
 
     // take off 1 to account for the canvas border
-    const scrollTop  = this.viewport.scrollTop()
-    const scrollLeft = this.viewport.scrollLeft()
+    const scrollTop  = viewport.scrollTop()
+    const scrollLeft = viewport.scrollLeft()
 
     // 2) work out how much of the drawing canvas is actually visible
     x = Math.max( x,
@@ -2891,10 +2894,10 @@ export class CanvasManager {
         scrollTop / zoom
     )
     w = Math.min( w,
-        Math.min(canvas.width , this.viewport.width()/zoom )
+        Math.min(canvas.width , viewport.width()/zoom )
     )
     h = Math.min( h,
-        Math.min(canvas.height, this.viewport.height()/zoom )
+        Math.min(canvas.height, viewport.height()/zoom )
     )
 
     /* Check for updating outside of the canvas,
@@ -2936,10 +2939,7 @@ export class CanvasManager {
     const uw = w*zoom
     const uh = h*zoom
 
-    // clear our refresh area
-    const ctx = canvas.ctx
-    const destAlpha = ( ctx.globalCompositeOperation === 'source-atop' )
-    const uCtx = upscale.ctx
+    const destAlpha = ( cCtx.globalCompositeOperation === 'source-atop' )
 
     /*
      * This can go one of three ways:
@@ -2956,8 +2956,9 @@ export class CanvasManager {
 
       const ux2 = Math.round(ux)
       const uy2 = Math.round(uy)
-      const uw2 = Math.round(uw - xDiff*zoom)
-      const uh2 = Math.round(uh - yDiff*zoom)
+
+      let uw2 = Math.round(uw - xDiff*zoom)
+      let uh2 = Math.round(uh - yDiff*zoom)
 
       // if we clip the edge,
       // then clamp the max width/height onto the edges
@@ -3022,11 +3023,11 @@ export class CanvasManager {
           ux, uy, uw, uh,                 // dest x, y, w, h
           zoom, zoom,                     // dest pixel size
 
-          ctx.getImageData(x, y, w, h),   // src
+          cCtx.getImageData(x, y, w, h),   // src
           x, y, w, h,                     // src  x, y, w, h
-          includeOverlay ? this.overlay.ctx.getImageData( x, y, w, h ) : null,
+          includeOverlay ? oCtx.getImageData( x, y, w, h ) : null,
 
-          ( ctx.globalCompositeOperation === 'source-atop' ) // bitmask pixels
+          ( cCtx.globalCompositeOperation === 'source-atop' ) // bitmask pixels
       )
     }
 
@@ -3034,11 +3035,12 @@ export class CanvasManager {
   }
 
   resize( newWidth:number, newHeight:number ):void {
-    if ( this.setSize( newWidth, newHeight ) ) {
+    if ( this.setSize(newWidth, newHeight, false) ) {
       this.endDraw()
     }
   }
 
+  /// @todo, the nearest neighbour can now be replaced with imageSmoothingEnabled https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
   scale( newWidth:number, newHeight:number, isSmooth:boolean ):void {
     if ( newWidth !== this.width || newHeight !== this.height ) {
       this.drawAndEndPaste()
@@ -3046,8 +3048,9 @@ export class CanvasManager {
       // use existing smoothing
       if ( isSmooth ) {
         const temp = htmlUtils.newCanvas( newWidth, newHeight )
+        const tCtx = temp.getContext( '2d' ) as CanvasRenderingContext2D
 
-        temp.ctx.drawImage(
+        tCtx.drawImage(
             this.canvas,
             0, 0, this.width, this.height,
             0, 0,   newWidth,   newHeight,
@@ -3055,13 +3058,14 @@ export class CanvasManager {
 
         this.setSize( newWidth, newHeight, true )
         this.drawSafe(() => {
-          this.canvas.ctx.drawImage( temp, 0, 0 )
+          this.canvasCtx.drawImage( temp, 0, 0 )
         })
+
       // use nearest neighbour
       } else {
         const oldW = this.width
         const oldH = this.height
-        const srcData = this.canvas.ctx.getImageData( 0, 0, oldW, oldH )
+        const srcData = this.canvasCtx.getImageData( 0, 0, oldW, oldH )
 
         this.setSize( newWidth, newHeight, true )
 
@@ -3087,15 +3091,15 @@ export class CanvasManager {
   }
 
   resetCompositeOpration():canvasUtils.GlobalCompositeOperation  {
-    const compOp = this.canvas.ctx.globalCompositeOperation as canvasUtils.GlobalCompositeOperation
-    this.canvas.ctx.globalCompositeOperation = 'source-over'
+    const compOp = this.canvasCtx.globalCompositeOperation as canvasUtils.GlobalCompositeOperation
+    this.canvasCtx.globalCompositeOperation = 'source-over'
 
     return compOp
   }
 
   resetAlpha():number {
-    const alpha = this.canvas.ctx.globalAlpha
-    this.canvas.ctx.globalAlpha = 1.0
+    const alpha = this.canvasCtx.globalAlpha
+    this.canvasCtx.globalAlpha = 1.0
 
     return alpha
   }
@@ -3105,42 +3109,50 @@ export class CanvasManager {
    *
    * @param newWidth
    * @param newHeight
+   * @param isCleared True if there is both a resize and a clear. False if not.
+   * @return True if the resize happened. False if it were skipped.
    */
-  private setSize( newWidth:number, newHeight:number, clear:boolean ) {
-    const newC = htmlUtils.newCanvas()
-    const canvas = this.canvas
-    const oldCtx = this.overlay.ctx 
-
+  private setSize( newWidth:number, newHeight:number, isCleared:boolean ):boolean {
     if ( newWidth !== this.width || newHeight !== this.height ) {
       this.drawAndEndPaste()
 
-      // create a new canvas, of the required size, and with our content
-      newC.width  = newWidth
-      newC.height = newHeight
-      newC.setAttribute( 'class', canvas.getAttribute('class') )
+      const newCanvas = htmlUtils.newCanvas()
+      const newCtx    = canvasUtils.newCtx( newCanvas )
+      const canvas    = this.canvas
 
-      const ctxSetup = canvasUtils.backupCtx( this.canvas.ctx )
-      const overlayCtxSetup = canvasUtils.backupCtx( oldCtx )
+      // Create a new canvas, of the required size, and with our content.
+      newCanvas.width     = newWidth
+      newCanvas.height    = newHeight
+      newCanvas.className = canvas.className
 
-      // replace the current canvas
-      if ( ! clear ) {
-        newC.ctx.drawImage( this.canvas, 0, 0 )
+      const ctxSetup        = canvasUtils.backupCtx( this.canvasCtx  )
+      const overlayCtxSetup = canvasUtils.backupCtx( this.overlayCtx )
+
+      // Replace the current canvas.
+      if ( ! isCleared ) {
+        newCtx.drawImage( this.canvas, 0, 0 )
       }
-      this.$canvas.replaceWith( newC )
 
-      this.canvas = newC
-      this.$canvas = $(newC)
-      this.width  = newWidth
-      this.height = newHeight
+      const parentElement = this.canvas.parentElement
+      if ( parentElement === null ) {
+        return false
+      }
+      parentElement.replaceChild( this.canvas, newCanvas )
 
-      // update the overlay
+      this.width     = newWidth
+      this.height    = newHeight
+      this.canvas    = newCanvas
+      this.canvasCtx = newCtx
+
+      // Update the overlay too.
       this.overlay.width  = newWidth,
       this.overlay.height = newHeight
+      this.overlayCtx     = canvasUtils.newCtx( this.overlay )
 
-      canvasUtils.restoreCtx( this.canvas.ctx  , ctxSetup        )
-      canvasUtils.restoreCtx( this.overlay.ctx , overlayCtxSetup )
+      canvasUtils.restoreCtx( this.canvasCtx , ctxSetup        )
+      canvasUtils.restoreCtx( this.overlayCtx, overlayCtxSetup )
 
-      // re-center
+      // Re-centre.
       this.updateCanvasSize()
 
       return true
@@ -3159,7 +3171,7 @@ export class CanvasManager {
    * @return The underlying 2D context, where the actual graphics are stored.
    */
   getDirectContext() {
-    return this.canvas.ctx
+    return this.canvasCtx
   }
 
   /**
@@ -3172,7 +3184,7 @@ export class CanvasManager {
    * @return The 2D context used for drawing.
    */
   getContext() {
-    return this.overlay.ctx
+    return this.overlayCtx
   }
 
   /**
@@ -3183,14 +3195,16 @@ export class CanvasManager {
    */
   colourPick( x:number, y:number ) {
     if ( x >= 0 && x < this.width && y >= 0 && y < this.height ) {
-      return this.canvas.ctx.getImageData( x, y, 1, 1 ).data
+      return this.canvasCtx.getImageData( x, y, 1, 1 ).data
     } else {
       return null
     }
   }
 
-  getColor() {
-    return this.canvas.ctx.strokeStyle
+  getColor():string {
+    // We are never setting this to a gradient stroke.
+    // So it's ok to force it to be a string, which is an #ffaabb style hex value.
+    return this.canvasCtx.strokeStyle as string
   }
 
   getRGB() {
@@ -3211,15 +3225,15 @@ export class CanvasManager {
    * @param strColor The color to set to this canvas.
    */
   setColor( strColor:string ) {
-    this.canvas.ctx.strokeStyle =
-    this.canvas.ctx.fillStyle =
-    this.overlay.ctx.strokeStyle =
-    this.overlay.ctx.fillStyle =
+    this.canvasCtx.strokeStyle =
+    this.canvasCtx.fillStyle =
+    this.overlayCtx.strokeStyle =
+    this.overlayCtx.fillStyle =
         strColor
   }
 
   useBlendAlpha():this {
-    this.canvas.ctx.globalCompositeOperation = 'source-over'
+    this.canvasCtx.globalCompositeOperation = 'source-over'
 
     return this
   }
@@ -3229,7 +3243,7 @@ export class CanvasManager {
      * false to not.
      */
   useDestinationAlpha():this {
-    this.canvas.ctx.globalCompositeOperation = 'source-atop'
+    this.canvasCtx.globalCompositeOperation = 'source-atop'
 
     return this
   }
@@ -3238,13 +3252,13 @@ export class CanvasManager {
    * @param alpha The alpha value to use when drawing.
    */
   setAlpha( alpha:number ) {
-    this.canvas.ctx.globalAlpha =
-    this.overlay.ctx.globalAlpha =
+    this.canvasCtx.globalAlpha =
+    this.overlayCtx.globalAlpha =
         alpha
   }
 
   getAlpha() {
-    return this.canvas.ctx.globalAlpha
+    return this.canvasCtx.globalAlpha
   }
 
   /**
@@ -3261,7 +3275,7 @@ export class CanvasManager {
 
     this.setSize( w, h, true )
     this.drawSafe(() => {
-      this.canvas.ctx.drawImage( image, 0, 0, w, h )
+      this.canvasCtx.drawImage( image, 0, 0, w, h )
     })
 
     return this
@@ -3307,11 +3321,11 @@ export class CanvasManager {
             canvas.height !== this.canvas.height
         ) {
           this.setSize( canvas.width, canvas.height, true )
-          this.canvas.ctx.drawImage( canvas, 0, 0 )
+          this.canvasCtx.drawImage( canvas, 0, 0 )
           // refresh upscale happens automatically, in the future, by setSize
         } else {
-          this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height )
-          this.canvas.ctx.drawImage( canvas, 0, 0 )
+          this.canvasCtx.clearRect( 0, 0, this.canvas.width, this.canvas.height )
+          this.canvasCtx.drawImage( canvas, 0, 0 )
           this.redrawUpscale()
         }
       })
@@ -3331,7 +3345,7 @@ export class CanvasManager {
   drawSafeAlpha( f:() => void ):this {
     const alpha = this.resetAlpha()
     f()
-    this.canvas.ctx.globalAlpha = alpha
+    this.canvasCtx.globalAlpha = alpha
 
     return this
   }
@@ -3349,8 +3363,8 @@ export class CanvasManager {
   drawSafe( f:() => void ):this {
     const alpha  = this.resetAlpha()
     const compOp = this.resetCompositeOpration()
-    const fillStyle   = this.canvas.ctx.fillStyle
-    const strokeStyle = this.canvas.ctx.strokeStyle
+    const fillStyle   = this.canvasCtx.fillStyle
+    const strokeStyle = this.canvasCtx.strokeStyle
 
     const clip = this.getClip()
     if ( clip ) {
@@ -3363,10 +3377,10 @@ export class CanvasManager {
       this.setClip( clip.x, clip.y, clip.w, clip.h )
     }
 
-    this.canvas.ctx.globalAlpha = alpha
-    this.canvas.ctx.globalCompositeOperation = compOp
-    this.canvas.ctx.fillStyle   = fillStyle
-    this.canvas.ctx.strokeStyle = strokeStyle
+    this.canvasCtx.globalAlpha = alpha
+    this.canvasCtx.globalCompositeOperation = compOp
+    this.canvasCtx.fillStyle   = fillStyle
+    this.canvasCtx.strokeStyle = strokeStyle
 
     return this
   }
@@ -3395,9 +3409,9 @@ export class CanvasManager {
   crop():this {
     this.drawAndEndPaste()
 
-    // check for a marquee selection
-    // and otherwise use the visible area
-    const selection = this.marquee.getPosition()
+    // Check for a marquee selection
+    // and otherwise use the visible area.
+    let selection = this.marquee.getPosition()
     if ( selection === null ) {
       selection = this.getDrawnArea()
     } else {
@@ -3412,12 +3426,12 @@ export class CanvasManager {
       const h2 = selection.h
 
       const temp = htmlUtils.newCanvas( w2, h2 )
-      temp.ctx.drawImage( this.canvas, -x, -y )
+      const tCtx = temp.getContext( '2d' ) as CanvasRenderingContext2D
 
       this.setSize( w2, h2, true )
 
       this.drawSafe(() => {
-        this.canvas.ctx.drawImage( temp, 0, 0 )
+        this.canvasCtx.drawImage( temp, 0, 0 )
       })
 
       this.endDraw()
@@ -3436,7 +3450,7 @@ export class CanvasManager {
     const w = this.width
     const h = this.height
 
-    const data = this.canvas.ctx.getImageData( 0, 0, w, h ).data
+    const data = this.canvasCtx.getImageData( 0, 0, w, h ).data
 
     let minX = 0
     let minY = 0
@@ -3493,7 +3507,7 @@ export class CanvasManager {
     // search for minX
     i = 0
     for ( let x = 0; x < w; x++ ) {
-      const hasAlpha = false
+      let hasAlpha = false
 
       for ( let y = 0; y < h; y++ ) {
         if ( data[i+3] > 0 ) {
@@ -3553,7 +3567,7 @@ export class CanvasManager {
 
   clearAll() {
     this.drawSafe(() => {
-      this.canvas.ctx.clearRect( 0, 0, this.canvas.width, this.canvas.height )
+      this.canvasCtx.clearRect( 0, 0, this.canvas.width, this.canvas.height )
     })
   }
 
@@ -3567,7 +3581,7 @@ export class CanvasManager {
 
     this.drawAndEndPaste()
 
-    this.canvas.ctx.clearRect( 0, 0, w, h )
+    this.canvasCtx.clearRect( 0, 0, w, h )
 
     // push current context to the undo/redo
     // and update the whole screen
@@ -5685,9 +5699,9 @@ function newCommand() {
           onDown: function( canvas, x, y, painter, ev ) {
             if ( painter.isInView(ev) ) {
               if ( this.zoomOut ) {
-                painter.zoomOut( x, y )
+                painter.zoomOut({ x: x, y: y })
               } else {
-                painter.zoomIn( x, y )
+                painter.zoomIn({ x: x, y: y })
               }
             }
           },
@@ -6246,6 +6260,10 @@ export class DirectCursor {
   }
 }
 
+export type RefreshState =
+  | 'refresh'
+  | 'no-refresh'
+
 /**
  * This differs from DirectCursor, in that this deals with the brush size,
  * zoom, and some decision making on how the brush should look.
@@ -6269,6 +6287,14 @@ export class BrushCursor {
   private isHidden  : boolean 
   private isReallyHidden : boolean 
 
+  /**
+   * This is the brush size, at the current zoom level.
+   *
+   * So if the brush size is 10, and the zoom level is 3,
+   * then this value will be 30 (10 * 3).
+   *
+   * @type {number}
+   */
   private zoomSize  : number 
   private size      : number 
 
@@ -6278,20 +6304,12 @@ export class BrushCursor {
     this.cursor   = new DirectCursor( viewport )
     this.viewport = viewport
 
-    /**
-     * This is the brush size, at the current zoom level.
-     *
-     * So if the brush size is 10, and the zoom level is 3,
-     * then this value will be 30 (10 * 3).
-     *
-     * @type {number}
-     */
     this.zoomSize = 1
 
-    // initializes to no size
-    this.isHidden = false
+    // Initializes to no size.
+    this.isHidden       = false
     this.isReallyHidden = false
-    this.isTouch = isTouch
+    this.isTouch        = isTouch
 
     this.size  = 1
     this.shape = null
@@ -6471,10 +6489,10 @@ export class BrushCursor {
    * @param zoom The new zoom value.
    * @param refresh Optional, true if this should refresh, false if not. Defaults to true.
    */
-  setZoom( zoom:number, refresh:boolean ) {
+  setZoom( zoom:number, refresh:RefreshState ) {
     this.zoom = zoom
 
-    if ( this.shape && refresh !== false ) {
+    if ( this.shape && refresh === 'refresh' ) {
       this.setShape( this.shape, this.size )
     }
 
@@ -7261,7 +7279,7 @@ function initializeColors( painter, pickerCommand ) {
 
   const colourWheelCanvas = htmlUtils.newCanvas( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
   colourWheelCanvas.className = 'skybrush_color_wheel_colour_wheel'
-  const wheelCtx = colourWheelCanvas.ctx
+  const wheelCtx  = colourWheelCanvas.getContext( '2d' ) as CanvasRenderingContext2D
   const wheelData = wheelCtx.createImageData( COLOUR_WHEEL_WIDTH, COLOUR_WHEEL_WIDTH )
 
   const wheelLineDom = document.createElement( 'div' )
@@ -7769,6 +7787,7 @@ function initializeShortcuts(
   painter.onCtrl( 187, () => {
     painter.zoomIn()
   })
+
   painter.onCtrl( 189, () => {
     painter.zoomOut()
   })

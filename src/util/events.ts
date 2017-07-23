@@ -19,24 +19,17 @@
  * 
  * @constructor
  */
-export class Handler {
-  constructor( context ) {
-    this.events = {}
+export class Handler<C, T> {
+
+  /// Stores our events.
+  private readonly events : Map<T, Array<() => void>>
+
+  /// Used as 'this' for when we run events.
+  private readonly context : C
+
+  constructor( context:C ) {
+    this.events = new Map()
     this.context = context
-  }
-
-  runEvents( type, context, args, startArgsI ):this {
-    const es = handler.events[type]
-
-    if ( es !== undefined ) {
-      const esArgs = argumentsToArray( args, startArgsI )
-
-      for ( let i = 0; i < es.length; i++ ) {
-        es[i].apply( context, esArgs )
-      }
-    }
-
-    return this
   }
 
   /**
@@ -46,39 +39,13 @@ export class Handler {
    * @param event The event to store.
    * @return this EventHandler object.
    */
-  add( type, event ):this {
-    const es = this.events[ type ]
+  add( type:T, event:() => void ):this {
+    const es = this.events.get( T )
 
-    if ( es === undefined ) {
-      this.events[ type ] = [ event ]
+    if ( ! es ) {
+      this.events.set( type, [event] )
     } else {
       es.push( event )
-    }
-
-    return this
-  }
-
-  /**
-   * Finds the event given for that type, and if found, it
-   * is removed from the event handler.
-   *
-   * If the event is not found, then this does nothing.
-   *
-   * @param type The name of the event.
-   * @param event The callback to remove from being called.
-   * @return This EventHandler object.
-   */
-  remove( type, event ):this {
-    const es = this.events[ type ]
-
-    if ( es !== undefined ) {
-      for ( let i = 0; i < es.length; i++ ) {
-        if ( es[i] === event ) {
-          es.splice( i, 1 )
-
-          break
-        }
-      }
     }
 
     return this
@@ -91,8 +58,18 @@ export class Handler {
    * @param type The type of events to run.
    * @return this EventHandler object.
    */
-  run( type ) {
-    return runEvents( this, type, this.context, arguments, 1 )
+  run( type:T ) {
+    const es = this.events.get( type )
+
+    if ( es ) {
+      const esArgs = argumentsToArray( arguments, 1 )
+
+      for ( let i = 0; i < es.length; i++ ) {
+        es[i].apply( this.context, esArgs )
+      }
+    }
+
+    return this
   }
 }
 
@@ -200,11 +177,7 @@ export class Runner {
     this.event = setTimeout(() => {
       this.event = 0
 
-      if ( self.contextObj !== null ) {
-        f.call( self.contextObj )
-      } else {
-        f()
-      }
+      f()
     }, this.timeout )
 
     return this
