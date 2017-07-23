@@ -1,6 +1,6 @@
 
 import * as constants from 'setup/constants'
-import { Consumer, Consumer2, Nullable } from 'util/function-interfaces'
+import { Consumer, Consumer2, Consumer3, Nullable } from 'util/function-interfaces'
 import * as htmlUtils from 'util/html'
 import * as mathsUtils from 'util/maths'
 
@@ -700,24 +700,23 @@ export class SkyBrush {
    * @private
    * @param ev
    */
-  endDraw( ev:MouseEvent ):true {
+  endDraw( ev:MouseEvent ):void {
     this.processCommand( 'onUp', ev )
 
     this.canvas.endDraw( this.command.popDrawArea() )
 
     this.events.run( 'onDraw' )
-
-    return true
   }
 
-  startDrag( onMove, onEnd ) {
+  startDrag(
+      onMove : Consumer3<MouseEvent, number, number>,
+      onEnd  : Consumer3<MouseEvent, number, number>,
+  ):void {
     if ( ! this.isPainting && !this.isDragging() ) {
-      this.dragging.onMove  = onMove
-      this.dragging.onEnd   = onEnd
+      this.dragging.onMove = onMove
+      this.dragging.onEnd  = onEnd
 
-      this.isDraggingFlag   = true
-
-      return true
+      this.isDraggingFlag  = true
     }
   }
 

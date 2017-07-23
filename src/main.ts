@@ -7,6 +7,7 @@ import * as htmlUtils from 'util/html'
 import * as colourUtils from 'util/colours'
 import * as mathsUtils from 'util/maths'
 import * as events from 'util/events'
+import * as skybrush from 'skybrush'
 
 export * from 'skybrush'
 
@@ -1009,7 +1010,9 @@ export class UndoStack {
     this.maxRedo   = 0
 
     const first = htmlUtils.newCanvas( firstCanvas.width, firstCanvas.height )
-    first.getContext( '2d' ).drawImage( firstCanvas, 0, 0 )
+    const ctx   = first.getContext( '2d' ) as CanvasRenderingContext2D
+
+    ctx.drawImage( firstCanvas, 0, 0 )
 
     this.canvases.length = 0
     this.canvases.push( first )
@@ -1023,8 +1026,9 @@ export class UndoStack {
    */
   add( canvas:HTMLCanvasElement ):this {
     const undoCanvas = this.grabUndoCanvas( canvas.width, canvas.height )
+    const ctx        = undoCanvas.getContext( '2d' ) as CanvasRenderingContext2D
 
-    undoCanvas.getContext( '2d' ).drawImage( canvas, 0, 0 )
+    ctx.drawImage( canvas, 0, 0 )
     this.canvases[ this.undoIndex ] = undoCanvas
 
     return this
@@ -1039,11 +1043,11 @@ export class UndoStack {
     // We've hit the max size of the undo stack.
     // So we must shift an old canvas out and return it.
     if ( this.undoIndex === this.maxSize ) {
-      if ( this.canvas.length === 0 ) {
+      const undoCanvas = this.canvases.shift()
+
+      if ( ! undoCanvas ) {
         return htmlUtils.newCanvas( width, height )
       }
-
-      const undoCanvas = this.canvases.shift()
 
       undoCanvas.width  = width
       undoCanvas.height = height
@@ -1199,7 +1203,7 @@ export class GridManager {
       this.gridW = w
       this.gridH = h
 
-      this.update( w, h )
+      this.update()
     }
 
     return this
@@ -1405,7 +1409,7 @@ export class ViewOverlay {
   constructor( viewport:HTMLElement, className:string ) {
     this.dom = htmlUtils.newDiv( className )
 
-    viewport.append( this.dom )
+    viewport.appendChild( this.dom )
 
     this.x = 0
     this.y = 0
@@ -1443,7 +1447,7 @@ export class ViewOverlay {
   }
 
   append( child:HTMLElement ):this {
-    this.dom.appendChild( arguments[0] )
+    this.dom.appendChild( child )
 
     return this
   }
@@ -1486,7 +1490,7 @@ export class ViewOverlay {
   /**
    * Tells this about any view changes in the SkyBrush viewport.
    */
-  updateViewport( canvasX:number, canvasY:number, width:number, height:number, zoom:number ):this {
+  updateViewport( canvasX:number, canvasY:number, _width:number, _height:number, zoom:number ):this {
     this.zoom    = zoom
     this.canvasX = canvasX
     this.canvasY = canvasY
@@ -1518,7 +1522,7 @@ export class Marquee {
   constructor(
       canvas:CanvasManager,
       viewport:HTMLElement,
-      painter:SkyBrush,
+      painter:skybrush.SkyBrush,
   ) {
     this.canvas = canvas
 
@@ -1546,18 +1550,17 @@ export class Marquee {
 
       ev.preventDefault()
 
-      const x = this.position.x
-      const y = this.position.h
-
       this.startHighlight( false )
 
       painter.startDrag(
-          updateTopLeft,
+          ( ev, x, y ) => {
+            this.updateTopLeft( ev, x, y )
+          },
 
           ( ev, x, y ) => {
-            updateTopLeft(ev, x, y)
+            this.updateTopLeft( ev, x, y )
             this.stopHighlight()
-          }
+          },
       )
     })
 
@@ -1568,18 +1571,17 @@ export class Marquee {
 
       ev.preventDefault()
 
-      const width  = this.position.w
-      const height = this.position.h
-
       this.startHighlight( false )
 
       painter.startDrag(
-          updateWidthHeight,
+          ( ev, x, y ) => {
+            this.updateWidthHeight( ev, x, y )
+          },
 
           ( ev, x, y ) => {
-            updateWidthHeight(ev, x, y)
+            this.updateWidthHeight( ev, x, y )
             this.stopHighlight()
-          }
+          },
       )
     })
   }
@@ -1631,8 +1633,8 @@ export class Marquee {
    * Begins displaying the resize handles.
    */
   showHandles():this {
-    this.topLeftHandle.classListk.add( 'sb_show' )
-    this.bottomRightHandle.classListk.add( 'sb_show' )
+    this.topLeftHandle.classList.add( 'sb_show' )
+    this.bottomRightHandle.classList.add( 'sb_show' )
 
     return this
   }
@@ -1641,8 +1643,8 @@ export class Marquee {
    * Hides the resize handles.
    */
   hideHandles():this {
-    this.topLeftHandle.classListk.remove( 'sb_show' )
-    this.bottomRightHandle.classListk.remove( 'sb_show' )
+    this.topLeftHandle.classList.remove( 'sb_show' )
+    this.bottomRightHandle.classList.remove( 'sb_show' )
 
     return this
   }
@@ -1689,8 +1691,8 @@ export class Marquee {
       const x2 = Math.max( x, 0 )
       const y2 = Math.max( y, 0 )
 
-      const w2 = Math.min( w+x, this.canvas.width  ) - x2
-      const h2 = Math.min( h+y, this.canvas.height ) - y2
+      const w2 = Math.min( w+x, this.canvas.getWidth()  ) - x2
+      const h2 = Math.min( h+y, this.canvas.getHeight() ) - y2
 
       this.selectArea( x2, y2, w2, h2 )
     }
@@ -1772,7 +1774,7 @@ export class Marquee {
    *
    * @return null if there is no selection, or an object describing it.
    */
-  getPosition():boolean {
+  getPosition():Nullable<SizeArea> {
     const hasSelection = this.viewOverlay.hasClass( 'sb_show' )
 
     return hasSelection ?
@@ -1786,7 +1788,7 @@ export class Marquee {
    * and if it is shown it will resize accordingly.
    */
   update():this {
-    if ( dom.hasClass('sb_highlight' ) ) {
+    if ( this.viewOverlay.hasClass('sb_highlight' ) ) {
       this.viewOverlay.addClass('sb_show')
 
       if ( this.hasClipArea() ) {
@@ -1894,10 +1896,10 @@ export class CopyManager {
   }
 
   update():this {
-    if ( this.isPasting() ) {
+    if ( this.isPasting() && this.copy !== null ) {
       this.setCanvasSize(
           this.pasteX    , this.pasteY     ,
-          this.copy.width, this.copy.height
+          this.copy.width, this.copy.height,
       )
     }
 
@@ -1905,7 +1907,10 @@ export class CopyManager {
   }
 
   draw( dest:HTMLCanvasElement ):this {
-    dest.ctx.drawImage( this.copy, this.pasteX, this.pasteY )
+    if ( this.copy !== null ) {
+      const ctx = dest.getContext( '2d' ) as CanvasRenderingContext2D
+      ctx.drawImage( this.copy, this.pasteX, this.pasteY )
+    }
 
     return this
   }
@@ -1927,12 +1932,13 @@ export class CopyManager {
   }
 
   movePaste( dest:HTMLCanvasElement, x:number, y:number, finalize:boolean ):this {
-    if ( this.isPasting() ) {
+    if ( this.isPasting() && this.copy !== null ) {
       x = (this.pasteX + (x || 0)) | 0
       y = (this.pasteY + (y || 0)) | 0
 
-      dest.ctx.clearRect( 0, 0, dest.width, dest.height )
-      dest.ctx.drawImage( this.copy, x, y )
+      const ctx = dest.getContext( '2d' ) as CanvasRenderingContext2D
+      ctx.clearRect( 0, 0, dest.width, dest.height )
+      ctx.drawImage( this.copy, x, y )
       this.setCanvasSize( x, y, this.copy.width, this.copy.height )
 
       if ( finalize ) {
@@ -1945,26 +1951,23 @@ export class CopyManager {
   }
 
   setCopy( canvas:HTMLCanvasElement, x:number, y:number, w:number, h:number ):this {
-    if ( x === undefined ) {
-      x = 0
-      y = 0
-      w = canvas.width
-      h = canvas.height
+    w = Math.min( w, canvas.width  )
+    h = Math.min( h, canvas.height )
 
-    } else {
-      w = Math.min( w, canvas.width  )
-      h = Math.min( h, canvas.height )
-    }
-
+    // todo, remove this.
+    // It exists so that when SkyBrush starts there is nothing to paste.
+    // That's what the null version is.
+    // Better to move that to a boolean or something and then have this as not null.
     if ( this.copy === null ) {
       this.copy = htmlUtils.newCanvas( w, h )
-
     } else {
       this.copy.width  = w
       this.copy.height = h
     }
 
-    this.copy.getContext( '2d' ).drawImage( canvas, -x, -y )
+    const ctx = this.copy.getContext( '2d' ) as CanvasRenderingContext2D
+    ctx.drawImage( canvas, -x, -y )
+
     this.copyX = x
     this.copyY = y
 
@@ -1972,7 +1975,7 @@ export class CopyManager {
   }
 
   overlapsPaste( area:SizeArea ):boolean {
-    if ( this.isPasting() ) {
+    if ( this.isPasting() && this.copy !== null ) {
       const x = this.pasteX
       const y = this.pasteY
       const w = this.copy.width
@@ -2070,7 +2073,7 @@ export class CanvasManager {
   private height : number
   private zoom   : number
 
-  constructor( viewport:HTMLElement, painter:SkyBrush ) {
+  constructor( viewport:HTMLElement, painter:skybrush.SkyBrush ) {
 
     /*
      * Canvas HTML Elements
@@ -2138,7 +2141,7 @@ export class CanvasManager {
 
     painter.onSetAlpha(() => {
       if ( this.copyObj.isPasting() ) {
-        this.copyObj.movePaste( this.overlay, 0, 0 )
+        this.copyObj.movePaste( this.overlay, 0, 0, false )
       }
     })
   }
@@ -2227,7 +2230,7 @@ export class CanvasManager {
           ux+uw < 0 || uy+uh < 0 ||
           ux > this.width || uy > this.height
       ) {
-        return false
+        return
       }
 
       //
@@ -2247,13 +2250,13 @@ export class CanvasManager {
             ux+uw < clip.x ||
             uy+uh < clip.y
         ) {
-          return false
-        } else {
-          ux = Math.max( ux, clip.x )
-          uy = Math.max( uy, clip.y )
-          uw = Math.min( uw, clip.w )
-          uh = Math.min( uh, clip.h )
+          return
         }
+
+        ux = Math.max( ux, clip.x )
+        uy = Math.max( uy, clip.y )
+        uw = Math.min( uw, clip.w )
+        uh = Math.min( uh, clip.h )
       }
     }
 
@@ -2264,7 +2267,7 @@ export class CanvasManager {
     this.overlay.ctx.clearRect( 0, 0, this.overlay.width, this.overlay.height )
 
     if ( refresh ) {
-      this.redrawUpscale( ux, uy, uw, uh )
+      this.redrawUpscale( ux, uy, uw, uh, false, 0 )
     }
 
     // reshow the overlay, in case a command hid it
@@ -2470,7 +2473,7 @@ export class CanvasManager {
    */
   private futureRedrawUpscale( x:number, y:number, w:number, h:number, includeOverlay:boolean ):void {
     const workerID = requestAnimationFrame(() => {
-      this.redrawUpscale( x, y, w, h, includeOverlay )
+      this.redrawUpscale( x, y, w, h, includeOverlay, 0 )
     })
 
     this.upscaleWorkers.push( workerID )
@@ -2792,9 +2795,17 @@ export class CanvasManager {
    * @param y
    * @param w
    * @param h
-   * @param Optional, extra pixels to add on to the x, y, w and h.
+   * @param includeOverlay True if we include the overlay in the refresh, and false if not.
+   * @param buffer extra pixels to add on to the x, y, w and h.
    */
-  redrawUpscale( x, y, w, h, includeOverlay, buffer ):boolean {
+  redrawUpscale(
+      x:number,
+      y:number,
+      w:number,
+      h:number,
+      includeOverlay:boolean,
+      buffer:number,
+  ):boolean {
     if ( Math.abs(w) < 1 ) {
       if ( w < 1 ) {
         w = w
@@ -2825,12 +2836,10 @@ export class CanvasManager {
       y -= h
     }
 
-    if ( buffer !== undefined ) {
-      x -= buffer
-      y -= buffer
-      h += buffer*2
-      w += buffer*2
-    }
+    x -= buffer
+    y -= buffer
+    h += buffer*2
+    w += buffer*2
 
     /*
      * After handling the buffer, and other possible values,
@@ -4051,7 +4060,7 @@ export class Command {
    *
    * @return The HTML dom with all the control structures for this command.
    */
-  createControlsDom( painter:SkyBrush ):HTMLElement {
+  createControlsDom( painter:skybrush.SkyBrush ):HTMLElement {
     /*
      * Controls dom is loaded in a lazy way so painter
      * starts up a tad faster,
@@ -7751,7 +7760,10 @@ function initializeCommands( painter, commandsList, picker ) {
  * Sets up some common shortcuts,
  * not that not all are set here, such as undo/redo.
  */
-function initializeShortcuts( painter:SkyBrush, dontGrabCtrlR:boolean ) {
+function initializeShortcuts(
+    painter:skybrush.SkyBrush,
+    dontGrabCtrlR:boolean,
+):void {
   const domObj = painter.dom
 
   painter.onCtrl( 187, () => {

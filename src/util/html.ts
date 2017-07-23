@@ -1,12 +1,5 @@
 
-import { initialiseCtx } from 'util/canvas'
-
 const HTML_TO_ELEMENT_DOM = document.createElement('div')
-
-export type CanvasCtx = {
-  dom : HTMLCanvasElement
-  ctx : CanvasRenderingContext2D
-}
 
 /**
  * @private
