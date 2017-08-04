@@ -1,25 +1,19 @@
-
+﻿
 /**
  * If we are touch, or not.
- *
- * @const
- * @type {boolean}
  */
 export const IS_TOUCH = !! (window as any).Touch
 
 /**
  * Are we on iOS?
  */
-export const IS_IOS = ( 
+export const IS_IOS = (
     /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-    ! window.MSStream
+    ! window['MSStream']
 )
 
 /**
  * Starting alpha value.
- *
- * @const
- * @type {number}
  */
 export const DEFAULT_ALPHA = 1
 
@@ -59,37 +53,39 @@ export const DEFAULT_COMMAND = 'webby'
  * which is within this dead zone, then it's blended up to 1.
  *
  * This is to make it easier to select an alpha of 1.
- *
- * @const
- * @type {number}
  */
 export const ALPHA_DEAD_ZONE = 0.03
 
-
-/**
- * Mouse constants, so the code is more readable.
- *
- * @const
- * @private
- * @type {number}
- */
-export const LEFT   = 1
-export const RIGHT  = 2
-export const MIDDLE = 3
-
 /**
  *
- * @const
- * @type {string}
  */
 export const GUI_CSS_PREFIX = 'sb_gui_'
 
 /**
  * When a GUI component in the bar is hidden, and it becomes thinner
  * and greyed out, this is the width is will minimize to.
- *
- * @const
- * @type {string}
  */
 export const GUI_CONTENT_WIDTH_WHEN_HIDDEN = 40
 
+/**
+ * The prefix added to command css classes.
+ *
+ * So 'picker' becomes 'sb_command_picker' if
+ * the prefix is 'sb_command_'.
+ */
+export const COMMAND_CSS_PREFIX = 'sb_command_'
+
+/**
+ *
+ */
+export const CONTROL_CSS_PREFIX = 'sb_control_'
+
+/**
+ * The maximum zoom level.
+ *
+ * min zoom is: 1 / MAX_ZOOM
+ *
+ * @const
+ * @type {number}
+ */
+export const MAX_ZOOM = 16

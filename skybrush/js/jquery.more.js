@@ -2,12 +2,12 @@
 
 /**
  * @license
- * 
+ *
  * jQuery.more.js
 
  * Copyright (c) 2012 Joseph Lenton
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of the <organization> nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -57,20 +57,20 @@
 
 /**
  * jQuery.more.js
- * 
+ *
  * This is a bunch of basic stuff, some jQuery extensions, some non-jQuery, for
  * building GUI apps in JS. It is not a UI manager, but instead is there to help
  * you build custom UIs. Especially custom UIs which require very custom items,
  * like a painting application.
- * 
+ *
  * It started life being built for Play My Code, then had some stuff added via
  * SkyBrush, and now is more general purpose.
- * 
+ *
  * It also includes some shorthand, like 'leftdown' and 'leftup' as left-click
  * specific alternatives to 'mousedown' and 'mouseup'. Methods involving
  * scrollbars, browser feature sniffing, working with forms (like AJAXy POST),
  * and more.
- * 
+ *
  * It also includes some generic classes which aim to fit into specific design
  * patterns. For example having lots of events hanging off a event handler, you
  * can achieve that using the EventHandler constructor.
@@ -78,7 +78,7 @@
 (function(window, document, $, jQuery, undefined){
     /*
      * Extra functions.
-     * 
+     *
      * These are generic functions, used here, but also
      * available for outside use.
      */
@@ -86,16 +86,16 @@
     /**
      * Given a condition, if the condition is false,
      * an error is raised. The error contains the message given.
-     * 
+     *
      * msg can also be a function, which is run when condition
      * is false, and it's returned value is thrown.
-     * 
+     *
      * Extra arguments can also be passed in, which will be
      * outputted onto the console before the error is thrown.
      * This allows you to do something like:
-     * 
+     *
      *     assert( x !== undefined && y !== undefined, "invalid x or y", x, y );
-     * 
+     *
      * If x or y is undefined in the example, they are each
      * outputted to the console. and then the error is thrown.
      */
@@ -113,23 +113,23 @@
             throw new Error( "assertion error, " + msg );
         }
     };
- 
+
     /**
      * Given an Arguments object, this will copy the elements
      * into an array, and return that array.
-     * 
+     *
      * The startIndex is optional, and is there to state where
      * to copying. If start is outside of the arguments array,
      * then an empty array is returned.
-     * 
+     *
      * 'num' is optional, and states how many to copy from
      * startIndex, until the end. If there are not enough
      * elements to copy, then the extra values are skipped.
      * The returned array will not be padded with undefined
      * or null, or anything like that.
-     * 
+     *
      * This can also be used on arrays.
-     * 
+     *
      * @param args The Arguments object to copy.
      * @param startIndex Optional, the index to start copying from.
      * @param num Optional, the number of elements to copy.
@@ -167,7 +167,7 @@
      */
 
     /**
-     * 
+     *
      */
     var toCssPx = function( n ) {
         if ( n === NaN ) {
@@ -184,10 +184,10 @@
     // catch all document.write() calls
     (function(document){
         var write = document.write;
-        
+
         document.write = function(q) {
-            log('document.write(): ',arguments); 
-        
+            log('document.write(): ',arguments);
+
             if (/docwriteregexwhitelist/.test(q)) {
                 write.apply(document,arguments);
             }
@@ -197,11 +197,11 @@
     /**
      * Feature sniffing for various browsers.
      *
-     * 
+     *
      * If you set an input type to 'date', and it's supported,
      * then it sticks. If it is not supported, it goes back to
      * the default, 'text'.
-     * 
+     *
      * This just goes through all the types we want to test,
      * and uses that trick to test for support.
      */
@@ -361,7 +361,7 @@
                 var x = 0,
                     y = 0,
                     z = 0;
-  
+
                 var dom = this.get(0);
                 if ( dom ) {
                     var style = dom.style;
@@ -391,7 +391,7 @@
             } else {
                 if ( z === undefined ) {
                     z = 0;
-                } else { 
+                } else {
                     z = toCssPx( z );
                 }
 
@@ -430,16 +430,16 @@
 
     /**
      * Event Additions.
-     * 
+     *
      * Extra methods for the event, such as for location translation.
      */
     (function() {
         /**
          * This will 'offset' the location of the event
          * by the dom's location in the document.
-         * 
+         *
          * The result is then returned.
-         * 
+         *
          * Essentially it turns the 'pageX' and 'pageY'
          * co-ordinates into local ones within the dom.
          */
@@ -486,26 +486,26 @@
                 x, y,
                 w, h,
                 scrollSize;
-            
+
             if ( pos !== null ) {
                 x = this.pageX - pos.left;
                 y = this.pageY - pos.top ;
-                
+
                 w = $dom.width();
                 h = $dom.height();
-                
+
                 scrollSize = $dom.scrollBarSize();
             // pos will be null if run on something like 'document',
             // in which case we use the window
             } else {
                 x = this.pageX - $dom.scrollLeft();
                 y = this.pageY - $dom.scrollTop();
-                
+
                 var $window = $(window);
-                
+
                 w = $window.width();
                 h = $window.height();
-                
+
                 scrollSize = $(document).scrollBarSize();
             }
 
@@ -526,7 +526,7 @@
         $.fn.serializeObject = function() {
             var o = {};
             var a = this.serializeArray();
-            
+
             $.each(a, function() {
                 if (o[this.name]) {
                     if (!o[this.name].push) {
@@ -537,48 +537,48 @@
                     o[this.name] = this.value || '';
                 }
             });
-            
+
             return o;
         };
 
         /**
          * Gathers all of the inputs from this element,
          * and returns them in an object mapping inputs name to the input object.
-         * 
+         *
          * Usage:
-         * 
+         *
          * var strUser = $(form).inputs().username.val();
-         * 
+         *
          * ... or ...
-         * 
+         *
          * var inputs = $(form).inputs();
          * var user = inputs.username.val();
          * var pass = inputs.password.val();
          */
         $.fn.inputs = function() {
             var values = {};
-                
+
             this.find( ':input' ).each( function() {
                 values[ this.name ] = $(this);
             } );
-            
+
             return values;
         };
-        
+
         var wrapButtonEvent = function( _this, fun, name, button ) {
             var wrapper = function(ev) {
                 // if is a left click
-                if ( 
+                if (
                         (ev.button === undefined && button === 0) ||
                          ev.button === button
                 ) {
                     return fun.call( this, ev );
                 }
             };
-            
+
             return $(_this).bind( name, wrapper );
         };
-        
+
         /**
          * Forces only numeric input when the key is pressed.
          *
@@ -598,7 +598,7 @@
 
                     if (
                             e.altKey || e.ctrlKey || e.metaKey || (
-                                    // numbers   
+                                    // numbers
                                     key >= 48 && key <= 57 ||
                                     // Numeric keypad
                                     key >= 96 && key <= 105 ||
@@ -621,7 +621,7 @@
                 });
             });
         };
-        
+
         $.fn.vclick = function( fun ) {
             if ( $.browser.iOS ) {
                 return this.bind( 'vclick', fun );
@@ -640,13 +640,13 @@
 
         /**
          * Helper for just attaching an event to the left click.
-         * 
+         *
          * The function is run just like a normal mouse down,
          * the only difference being that it's left click only (and so ignores
          * right and middle clicks).
-         * 
+         *
          * This is to avoid the constant button checking, you'd normally have to do.
-         * 
+         *
          * Usage:
          *   $('<div>').leftdown( function(ev) {
          *      // do left down stuff here
@@ -666,7 +666,7 @@
         $.fn.leftup = function( fun ) {
             return wrapButtonEvent( this, fun, 'mouseup', 0 );
         };
-        
+
         $.fn.rightdown = function( fun ) {
             return wrapButtonEvent( this, fun, 'mousedown', 1 );
         };
@@ -677,27 +677,27 @@
         /**
          * An event that is run if 'leftdown' is used when the mouse is on top of a scroll bar.
          * This works for both horizontal and vertical scroll bars.
-         * 
+         *
          * It only works on the left mouse button because scroll bars
          * can only be dragged using that.
-         * 
+         *
          * @param fun The function to run.
          * @return this.
          */
         $.fn.scrolldown = function( fun ) {
             return scrollEvent( this, 'mousedown', fun );
         };
-        
+
         /**
          * Run when the mouse is pressed up, on a scroll bar.
-         * 
+         *
          * @param fun The function to run.
          * @return this.
          */
         $.fn.scrollup = function( fun ) {
             return scrollEvent( this, 'leftup', fun );
         };
-        
+
         /**
          * Helper function avoid code duplication with 'scrollup' and 'scrolldown'.
          */
@@ -708,13 +708,13 @@
                 }
             } );
         };
-        
+
         /**
          * Returns an object containing the size of the right and bottom scroll bars.
          * They will be a number, rather then true or false, as no scroll bar is represented by 0, which equates to false.
-         * 
+         *
          * The other reason is so you can simultanously use this for working out the size of the scroll bars in a component.
-         * 
+         *
          * Usage:
          *   if ( $('.foo').scrollBarSize().right ) {
          *      // do something
@@ -722,13 +722,13 @@
          *   if ( $('.foo').scrollBarSize().bottom ) {
          *      // do something
          *   }
-         * 
+         *
          * @return An object with 'right' and 'bottom' properties, stating the width of those bars, or 0 if not present.
          */
         $.fn.scrollBarSize = function() {
             var _this = this.get(0),
                 scrollSize = $.scrollBarWidth();
-            
+
             if ( _this === document ) {
                 var $window = $(window);
 
@@ -760,9 +760,9 @@
                 }
             }
         };
-        
+
         var _scrollbarWidth = 0;
-        
+
         /**
          * @return The size of scroll bars in the current browser.
          */
@@ -785,7 +785,7 @@
                     textarea1.style.top      = "-1000px";
                     textarea1.style.left     = "-1000px";
                     textarea1.style.overflow = "hidden";
-                    
+
                     document.body.appendChild( textarea1 );
                     document.body.appendChild( textarea2 );
 
@@ -815,13 +815,13 @@
                     document.body.removeChild( div );
                 }
             }
-            
+
             return _scrollbarWidth;
         };
-        
+
         $.fn.leftdrag = function( f ) {
             var isDragging = false;
-            
+
             this.
                     leftdown( function(ev) {
                         isDragging = true;
@@ -838,20 +838,20 @@
                             return f.call( this, ev );
                         }
                     } );
-            
+
             $(document).leftup( function(ev) {
                 if ( isDragging ) {
                     isDragging = false;
                 }
             } );
-            
+
             return this;
         };
-        
+
         /**
          * If a parameter is given:
          *     Scrolls based on a percentage, from 0.0 to 1.0.
-         * 
+         *
          * If no parameter:
          *     Returns the current scroll top as a percentage, a value from 0.0 to 1.0.
          */
@@ -864,44 +864,44 @@
                 return this.scrollTop( diff * p );
             }
         };
-        
+
         /**
          * The number of pixels offscreen along the scroll bar,
          * outside of the view.
-         * 
+         *
          * This is essentially the total scroll height - the visible height.
-         * 
+         *
          * @return The number of pixels available offscreen.
          */
         $.fn.scrollTopAvailable = function() {
             return Math.max( this.get(0).scrollHeight - this.height(), 0 );
         }
-        
+
         /**
          * The number of pixels offscreen along the scroll bar,
          * outside of the view.
-         * 
+         *
          * This is essentially the total scroll width - the visible width.
-         * 
+         *
          * @return The number of pixels available offscreen.
          */
         $.fn.scrollLeftAvailable = function() {
             return Math.max( this.get(0).scrollWidth - this.width(), 0 );
         }
-        
+
         /**
          * Scrolls based on a percentage, from 0.0 to 1.0.
          */
         $.fn.scrollLeftPercent = function( p ) {
             var diff = this.scrollLeftAvailable();
-            
+
             if ( p === undefined ) {
                 return ( diff === 0 ) ? 0 : this.scrollLeft() / diff;
             } else {
                 return this.scrollLeft( diff * p );
             }
         };
-        
+
         var onEventsFun = function( callback ) {
             return function() {
                 for ( var i = 0; i < arguments.length; i++ ) {
@@ -914,7 +914,7 @@
                         this.bind( event, callback );
                     }
                 }
-                
+
                 return this;
             };
         };
@@ -938,12 +938,12 @@
          * For the events given, this will append events that will stop propogation.
          * These have to be actual jQuery events, accessible through methods,
          * like 'click' or 'mousedown'.
-         * 
+         *
          * Multiple parameters can be supplied as a part of the arguments.
-         * 
+         *
          * Usgage:
          *     $('<a>').stopPropogation( 'click', 'mousedown' );
-         * 
+         *
          * @return This jQuery object is returned.
          */
         $.fn.killEvent = onEventsFun( function(ev) {
@@ -978,7 +978,7 @@
 
             return this;
         };
-        
+
         /**
          * The same as 'addClass', only this wraps it within a check
          * for the class first. This is because the standard jQuery
@@ -1012,10 +1012,10 @@
          * $(images).bind('load', function (e) {
          *   // Do stuff on load
          * });
-         * 
+         *
          * Note that you can bind the 'error' event on data uri images, this will trigger when
          * data uri images isn't supported.
-         * 
+         *
          * Tested in:
          * FF 3+
          * IE 6-8
@@ -1035,21 +1035,21 @@
                     else if ( this.readyState === 'uninitialized' && this.src.indexOf('data:') === 0 ) {
                         $(this).trigger('error');
                     }
-                    
+
                     else {
                         $(this).bind('load', hollaback.handler);
                     }
                 }
             }
         };
-        
+
         /**
          * Allows you to replace one image, with another.
          * It copies over attributes, and fades out the old image,
          * and fades in the new one.
-         * 
+         *
          * Note that this does not copy events across.
-         * 
+         *
          * usage:
          *     $('.avatar').replaceImageSrc( '/images/replacement.png' );
          */
@@ -1057,25 +1057,25 @@
             this.animate({opacity: 0}, function() {
                 var _this = $(this);
                 var newThumb = new Image();
-                
+
                 newThumb.src = src;
                 newThumb.onload = function() {
                     newThumb.onload = null;
-                    
+
                     newThumb = $(newThumb);
                     newThumb.attr('id', _this.attr('id'));
                     newThumb.attr('class', _this.attr('class'));
-                    
+
                     _this.replaceWith( newThumb );
                     newThumb.fadeIn(250);
-                    
+
                     if ( callback ) {
                         callback.call( newThumb );
                     }
                 };
             } );
         };
-        
+
         /**
          * Adds form submission through the ajax iframe method to jQuery.
          */
@@ -1083,7 +1083,7 @@
             var stripOuterHTMLAroundJSON = function( str ) {
                 var start = str.indexOf( '{' );
                 var end   = str.lastIndexOf( '}' );
-                
+
                 if ( start > -1 && end > -1 ) {
                     // +1 because end is exclusive, not inclusive
                     return str.substring( start, end+1 );
@@ -1091,12 +1091,12 @@
                     return str;
                 }
             };
-            
+
             var loaded = function( form, iFrame, id, onComplete ) {
                 if ( form.attr('_aim_recursive_submit_check') ) {
                     form.removeAttr( '_aim_recursive_submit_check' );
                 }
-                
+
                 var iFrameObj = iFrame.get(0);
                 var d;
                 if ( iFrameObj.contentDocument ) {
@@ -1113,7 +1113,7 @@
                 ) {
                     onComplete( d.body.innerHTML );
                 }
-                
+
                 // Remove the iFrame after use,
                 // but can't remove straight away as it messes up (silly) Chrome.
                 // Must also be at least 1 second away,
@@ -1122,10 +1122,10 @@
                     $(id).parent('div').remove();
                 }, 1000 );
             };
-            
+
             /**
              * This is the original AIM wrapper, with a few minor changes.
-             * 
+             *
              *  AJAX IFRAME METHOD (AIM)
              *  http://www.webtoolkit.info/
              */
@@ -1139,27 +1139,27 @@
                         load( function() {
                             loaded( form, $(this), frameID, onComplete );
                         } );
-                
+
                 if ( onError ) {
                     iFrame.error( onError );
                 }
-                
+
                 var div = $('<div>').append( iFrame );
                 document.body.appendChild( div.get(0) );
-                
+
                 return frameID;
             };
-            
+
             /**
              * Glue code wrapping AIM to our jQuery interface.
              */
             var sendForm = function( method, url, form, onComplete, onError, type ) {
                 form = $(form);
-                
+
                 if ( form.attr('_aim_recursive_submit_check') ) {
                     return false;
                 }
-                
+
                 var newOnComplete;
                 if ( typeof(onComplete) == 'function' ) {
                     if ( type && type.toLowerCase() == 'json' ) {
@@ -1188,7 +1188,7 @@
                 } else {
                     url += '&php_error_is_ajax=true';
                 }
-                
+
                 var frameID = frame( form, newOnComplete, onError );
                 form.
                         attr( '_aim_recursive_submit_check', true ).
@@ -1196,17 +1196,17 @@
                         attr( 'action', url     ).
                         attr( 'enctype', "multipart/form-data" ).
                         attr( 'target', frameID );
-                
+
                 form.submit();
-                
+
                 return true;
             };
-            
+
             /* jQuery interface */
             $.getForm = function( url, form, onComplete, onError, type ) {
                 return sendForm( 'get', url, form, onComplete, onError, type );
             };
-            
+
             $.postForm = function( url, form, onComplete, onError, type ) {
                 return sendForm( 'post', url, form, onComplete, onError, type );
             };
@@ -1218,14 +1218,14 @@
          * A hint to use the MozBeforePaint event,
          * as it can be slightly faster than passing in
          * a function each time.
-         * 
+         *
          * From FF 5 onwards, this gives a massive speed down.
          */
         var USE_MOZ_BEFORE_PAINT = ( $.browser.mozilla && $.browser.version < 5 );
 
         /**
          * Used only by setTimeout and setInterval.
-         * 
+         *
          * When they are used, their id value is set here.
          */
         var NO_ID = 0;
@@ -1233,7 +1233,7 @@
         /**
          * A common interface for timeouts and intervals.
          * This will attempt to use the 'requestAnimationFrame' where available.
-         * 
+         *
          * If it is not available, then it will use set timeout or set interval.
          */
         var anim = {
@@ -1241,7 +1241,7 @@
                  * Returns the 'requestAnimationFrame' function for this
                  * browser, by normalizing the various types based on
                  * vendor prefix.
-                 * 
+                 *
                  * @nosideeffects
                  * @return {?function(...*)}
                  */
@@ -1253,7 +1253,7 @@
                             window.msRequestAnimationFrame     ||
                             null ;
                 },
-        
+
                 /**
                  * @param callback A callback function to perform on each frame.
                  * @param interval optional, and is how long the 'setInterval' version should take between frames.
@@ -1311,12 +1311,12 @@
                  * If you want a repeating animation frame,
                  * use 'anim.interval'.
                  * It aims to be the best solution.
-                 * 
+                 *
                  * If you disagree, use a bespoke solution.
-                 * 
+                 *
                  * Do not use this for set interval, as it's
                  * just not designed with it in mind.
-                 * 
+                 *
                  * @param callback The callback function to call on each frame.
                  * @param canvas optional, a HTMLElement used for requestAnimationFrame, as a hint of where to redraw (used by some browsers).
                  */
@@ -1390,10 +1390,10 @@
          * add callbacks to this event handler, and then tell it to
          * run all those callbacks on demand. That way the updates
          * can be easily added, and run, as needed.
-         * 
+         *
          * You can attach functions, using 'add', and then run them later,
          * using 'context'.
-         * 
+         *
          * @constructor
          * @private
          */
@@ -1471,7 +1471,7 @@
                 },
 
                 /**
-                 * 
+                 *
                  */
                 setContext: function( context ) {
                     this.context = context;
@@ -1480,7 +1480,7 @@
                 /**
                  * Runs all of the events stored under the type given.
                  * Each event is called as if it were run on the 'context' object.
-                 * 
+                 *
                  * @param type The type of events to run.
                  * @return this EventHandler object.
                  */
@@ -1501,64 +1501,64 @@
 
         /**
          * EventRunner timing utility function.
-         * 
+         *
          * A common design pattern is to run a function repeatedly, using setTimeout,
          * but when you schedule a function to run, all previously waiting functions
          * should be cancelled.
-         * 
+         *
          * Something like:
-         * 
+         *
          * var currentWork = null;
-         * 
+         *
          * function run( callback ) {
          *     if ( currentWork !== null ) {
          *      clearTimeout( currentWork );
          *     }
-         * 
+         *
          *     currentWork = setTimeout( function() {
          *          currentWork = null;
          *          callback();
          *     } );
          * }
-         * 
+         *
          * The idea is that 'runBar' might be called repeatedly,
          * and each time it cancels any existing work,
          * and sets up a new batch of work to be run instead.
-         * 
+         *
          * If there is no work to be cancelled, then the current work
          * is run anyway.
-         * 
+         *
          * The EventRunner implements this design pattern.
-         * 
+         *
          * Usage:
          *     var runner = new EventRunner( timeout );
          *     runner.run( function() {
          *          // do work
          *     } );
-         * 
+         *
          * If 'run' is called before the previous 'run' was ever called,
          * then the previous 'run' is cancelled, and the new one replaces it.
-         * 
+         *
          * To clarify, and to help be clear about what this does:
          * 'run' will cancel a timeout for a previously set function,
          * if you call 'run' before that timeout is fired.
          * This is the whole point of this EventRunner.
-         * 
+         *
          * 'run' can also be cancelled using the 'clear' method,
          * and 'maybeRun' allows you to only set if there is not a function
          * waiting. 'isPending' also allows you to check if a function is set
          * for a timeout, or not.
-         * 
+         *
          * The time to use for timeouts is set in the constructor.
          */
         Runner: (function() {
             /**
              * The timeout paramter is the amount of time the EventRunner should use
              * when it schedules a function to be called.
-             * 
+             *
              * This is in milliseconds, and it defaults to 0 (run as soon as possible,
              * on the next JS cycle).
-             * 
+             *
              * @constructor
              * @param timeout Optional, the length of time for functions to wait when passed into 'run'. Defaults to 0.
              * @param context Optional, the context which is used when calling the event. 'null' is used by default.
@@ -1567,7 +1567,7 @@
                 this.event = null;
                 this.contextObj = null;
                 this.timeoutVal = 0;
-                
+
                 if ( arguments.length > 0 ) {
                     this.timeout( timeout );
                 }
@@ -1576,24 +1576,24 @@
                     this.context( context );
                 }
             };
-            
+
             EventRunner.prototype = {
                 /**
                  * This can run in one of two ways.
-                 * 
+                 *
                  * If there is no parameter, then the current timeout is returned.
-                 * 
+                 *
                  *      var timeout = event.timeout();
-                 * 
+                 *
                  * If a newTimeout parameter is provided, then the current timeout
                  * is replaced with it, and the old timeout is returned.
-                 * 
+                 *
                  *      // change the timeout
                  *      event.timeout( newTimeout );
-                 *      
+                 *
                  *      // change the timeout, and store the old one
                  *      var oldTimeout = event.timeout( newTimeout );
-                 * 
+                 *
                  * @param newTimeout Optional, a new timeout in milliseconds for functions to use when scheduled.
                  * @return The current timeout, if no paramter, the old timeout. If a value is provided, then this object is returned.
                  */
@@ -1630,12 +1630,12 @@
 
                 /**
                  * Cleares the current function waiting on a timeout.
-                 * 
+                 *
                  * If no function is waiting, then this silently does nothing.
-                 * 
+                 *
                  * True or false is returned to tell you if it did or did not
                  * need to clear.
-                 * 
+                 *
                  * @return true if there was an event pending, false if not.
                  */
                 clear: function() {
@@ -1643,26 +1643,26 @@
                         clearTimeout( this.event );
                         this.event = null;
                     }
-                    
+
                     return this;
                 },
-                
+
                 /**
                  * States if the EventRunner currently has a function
                  * waiting on a timeout, or not.
-                 * 
+                 *
                  * @return True if a function is waiting, false if not.
                  */
                 isPending: function() {
                     return ( this.event !== null ) ;
                 },
-                
+
                 /**
                  * 'run' sets up a timeout to run the given function in the future.
-                 * 
+                 *
                  * If a function is currently waiting on a timeout to be called,
                  * then it will be cancelled before the given function is set to be run.
-                 * 
+                 *
                  * @param f The function to perform in the timeout.
                  * @return This object, for method chaining.
                  */
@@ -1690,13 +1690,13 @@
                  * maybeRun is the same as run,
                  * except it will only run the given function,
                  * if there is no function to run.
-                 * 
+                 *
                  * If there is a function already waiting to be run,
                  * then nothing will happen.
-                 * 
+                 *
                  * Tbh this is mostly here for completeness,
                  * only if you really don't want to cancel the old job.
-                 * 
+                 *
                  * @param f The function to perform in the timeout.
                  * @return This object, for method chaining.
                  */
@@ -1708,11 +1708,11 @@
                     }
                 }
             };
-            
+
             return EventRunner;
         })()
     };
-    
+
     /* ### Adding extra global JS functions */
 
     /**
@@ -1751,16 +1751,16 @@
     /**
      * This new and improved version of round allows you to add
      * the nearest value.
-     * 
+     *
      * For example, the normal Math.round rounds to the nearest
      * whole number; it rounds to the nearest '1'. This allows
      * you to specify a different value to round to, such as '2',
      * the nearest '16', or the nearest '0.9382'.
-     * 
+     *
      *  var val = Math.round( 1.3984532, 0.28349 );
-     * 
+     *
      * The second value is optional, and default to 1.
-     * 
+     *
      * @param n The value to round.
      * @param step Optional, the nearest value to round to.
      */

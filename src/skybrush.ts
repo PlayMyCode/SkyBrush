@@ -1,5 +1,6 @@
-
+﻿
 import * as constants from 'setup/constants'
+import { Point } from 'util/area'
 import { Consumer, Consumer2, Consumer3, Nullable } from 'util/function-interfaces'
 import * as htmlUtils from 'util/html'
 import * as mathsUtils from 'util/maths'
@@ -129,7 +130,7 @@ export class SkyBrush {
 
   // this is to reduce the width of the content area in the GUI pane,
   // when those GUIs are collapsed.
-  
+
   private guiPaneContentWidthSubtract = 0
   private infoBar       : InfoBar
 
@@ -138,14 +139,14 @@ export class SkyBrush {
   private pickerCommand : Command|null
 
 
-  
-  // 
+
+  //
   // Flags
   //
-  
+
   private isDraggingFlag  : boolean = false
   private isPainting      : boolean = false
-  
+
   // A flag for skipping either 'shift' or 'alt' events,
   // so only one of them is ever active at any time.
   //
@@ -189,7 +190,7 @@ export class SkyBrush {
     if ( DISABLE_CONTEXT_MENU ) {
       container.addEventListener( 'contextmenu', ev => {
         ev.preventDefault()
-        
+
         return false
       })
     }
@@ -365,14 +366,14 @@ export class SkyBrush {
    * when a meta key is also pressed. If that happens, then
    * 'fun' will be run.
    */
-  onCtrl( key:string, fun:() => void ) {
+  onCtrl( key:string|number, fun:() => void ) {
     if ( !(fun instanceof Function) || (typeof fun !== 'function') ) {
       throw new Error("Function expected for 'onCtrl'")
     }
 
     const keyTest = newKeyEventTest( key )
 
-    return this.onKeyInteraction( null, (ev) => {
+    return this.onKeyInteraction( null, ev => {
       if ( (ev.ctrlKey || ev.metaKey) && keyTest(ev) ) {
         fun.call( this, ev )
 
@@ -422,23 +423,22 @@ export class SkyBrush {
    *
    * Can be called in one of two ways, first:
    *
-   *     skybrush.onKey2( 'a', function(ev) { ... } )
+   *     skybrush.onKey( 'a', function(ev) { ... } )
    *
    * Where you just state the key to bind to, and pass in a
    * function to run when it is hit.
    *
-   * @see onKey3
    * @return This SkyBrush instance (for method chaining).
    */
-  onKey2(
-      key      : stirng,
-      callback : Consumer<KeyboarEvent>,
+  private onKey(
+      key      : string,
+      callback : Consumer<KeyboardEvent>,
   ):this {
-    return onKey3( null, key, callback )
+    return this.onKey3( null, key, callback )
   }
 
   /**
-   * Alternatively to onKey2:
+   * Alternatively to onKey:
    *
    *     skybrush.onKey3( 'keydown', 'a', function(ev) { ... } )
    *
@@ -452,10 +452,10 @@ export class SkyBrush {
    * This only fires if the ctrl or meta key is not pressed!
    * For attaching to those, use the 'onCtrl' method.
    */
-  onKey3(
+  private onKey3(
       event: null | 'keyup' | 'keydown',
       key:string,
-      callback:Consumer<KeyboarEvent>,
+      callback:Consumer<KeyboardEvent>,
   ):this {
     const keyTest = newKeyEventTest( key )
 
@@ -522,7 +522,7 @@ export class SkyBrush {
    * @param fun The callback to run on key input.
    * @return This SkyBrush instance (for method chaining).
    */
-  onKeyInteraction( 
+  onKeyInteraction(
       event: null | 'keydown' | 'keyup',
       fun:( ev:KeyboardEvent ) => void
   ) {
@@ -1445,7 +1445,7 @@ export class SkyBrush {
 
     } else {
       this.guiDom.style.width = contentWidth + 'px'
-      
+
     }
 
     return this
@@ -1537,7 +1537,7 @@ export class SkyBrush {
  * @return The zoom for the value given.
  */
 function percentToZoom( p:number ):number {
-  p = Math.limit( p, 0, 1 )
+  p = mathsUtils.limit( p, 0, 1 )
 
   // convert p from: 0.0 to 1.0 => -1.0 to 1.0
   p = (p-0.5) * 2
@@ -1546,10 +1546,10 @@ function percentToZoom( p:number ):number {
   // So the min/max creates a dead zone, and we add p on as a minor zoom.
 
   if ( p > 0 ) {
-    return Math.max( MAX_ZOOM*p, 1+p )
+    return Math.max( constants.MAX_ZOOM*p, 1+p )
 
   } else if ( p < 0 ) {
-    const newZoom = 1 / ( MAX_ZOOM*(-p) )
+    const newZoom = 1 / ( constants.MAX_ZOOM*(-p) )
 
     // remember p is negative here, so we are subtracting from 1
     return Math.min( newZoom, 1+p )
@@ -1559,15 +1559,15 @@ function percentToZoom( p:number ):number {
 }
 
 function zoomToPercent( zoom:number ) {
-  zoom = Math.limit( zoom, 1/MAX_ZOOM, MAX_ZOOM )
+  zoom = mathsUtils.limit( zoom, 1/constants.MAX_ZOOM, constants.MAX_ZOOM )
 
   let slide = 0
 
   // converts from: [1/MAX_ZOOM to MAX_ZOOM] => [-1.0 to 1.0]
   if ( zoom > 1 ) {
-    slide =       zoom / MAX_ZOOM
+    slide =       zoom / constants.MAX_ZOOM
   } else if ( zoom < 1 ) {
-    slide = - (1/zoom) / MAX_ZOOM
+    slide = - (1/zoom) / constants.MAX_ZOOM
   } else {
     slide = 0.0
   }
@@ -1576,3 +1576,52 @@ function zoomToPercent( zoom:number ) {
   return slide/2 + 0.5
 }
 
+function newKeyEventTest( key:string|number ) {
+  if ( typeof key === 'number' ) {
+    return newKeyEventTestNumeric( key|0 )
+  } else if ( typeof key === 'string' ) {
+    return newKeyEventTestString( key )
+  } else {
+    throw new Error( `expected string or number for key ${key}` )
+  }
+}
+
+function newKeyEventTestNumeric( key:number ) {
+  return function( ev:KeyboardEvent ) {
+    if ( ev.charCode !== 0 ) {
+      return ev.charCode === key
+    } else {
+      return ev.keyCode  === key
+    }
+  }
+}
+
+function newKeyEventTestString( key:string ) {
+  key = normalizeKey( key )
+
+  return function( ev:KeyboardEvent ) {
+    if ( ev['char'] ) {
+      return ev['char'] === key
+    } else if ( ev.key !== undefined ) {
+      return normalizeKey( ev.key ) === key
+    } else {
+       return normalizeKey( String.fromCharCode(ev.keyCode) ) === key
+    }
+  }
+}
+
+function normalizeKey( key:string ):string {
+  if ( key.length > 1 ) {
+    key = key.toLowerCase()
+
+    if ( key === 'del' ) {
+      key = 'delete'
+
+    } else if ( key === 'esc' ) {
+      key = 'escape'
+
+    }
+  }
+
+  return key
+}

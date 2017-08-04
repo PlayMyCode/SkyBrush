@@ -1,14 +1,15 @@
-
+﻿
 import * as constants from 'setup/constants'
 import { MinMaxArea, SizeArea, Position, Point } from 'util/area'
-import { Nullable, Consumer, Consumer2, Consumer3 } from 'util/function-interfaces'
+import { Nullable, Consumer, Consumer2 } from 'util/function-interfaces'
+import * as cursors from 'commands/cursors'
 import * as canvasUtils from 'util/canvas'
 import * as htmlUtils from 'util/html'
 import * as colourUtils from 'util/colours'
 import * as mathsUtils from 'util/maths'
+import * as inputUtils from 'util/input'
 import * as events from 'util/events'
 import * as skybrush from 'skybrush'
-
 export * from 'skybrush'
 
 /**
@@ -141,121 +142,10 @@ export * from 'skybrush'
  */
 
 /**
- * The functions used for rendering the custom cursors.
- * These are functions, in the form:
- *
- *      ( ctx:Canvas:2DContext, canvas:HTMLCanvasElement, size:number ) ->
- *
- * They can draw to the canvas, but shouldn't resize it. The size is
- * provided as advice, on how big they should render, and so may match the
- * actual size of the canvas.
- *
- * These functions should also set their own colours, and alpha
- * transparency, for when they draw.
- */
-type RenderFunction =
-  Consumer3<CanvasRenderingContext2D, HTMLCanvasElement, number>
-
-const BRUSH_RENDER_FUNCTIONS = {
-  CROSSHAIR: (() => {
-    const renderCrossHair = function( ctx:CanvasRenderingContext2D, size:number ) {
-      const halfSize = size / 2
-
-      // top middle line
-      ctx.moveTo( halfSize, 0          )
-      ctx.lineTo( halfSize, halfSize-2 )
-
-      // bottom middle line
-      ctx.moveTo( halfSize, halfSize+2 )
-      ctx.lineTo( halfSize, size       )
-
-      // left line
-      ctx.moveTo( 0         , halfSize )
-      ctx.lineTo( halfSize-2, halfSize )
-
-      // right line
-      ctx.moveTo( size      , halfSize )
-      ctx.lineTo( halfSize+2, halfSize )
-
-      ctx.stroke()
-
-      // a dot in the centre
-      ctx.fillRect( halfSize-0.5, halfSize-0.5, 1, 1 )
-    }
-
-    return ( ctx:CanvasRenderingContext2D, _canvas:HTMLCanvasElement, size:number ) => {
-      ctx.globalAlpha = 0.75
-
-      ctx.strokeStyle = ctx.fillStyle = '#fff'
-      ctx.translate( 0.2, 0.2 )
-      renderCrossHair( ctx, size )
-
-      ctx.strokeStyle = ctx.fillStyle = '#000'
-      ctx.translate( -0.4, -0.4 )
-      renderCrossHair( ctx, size )
-    }
-  })(),
-
-  SQUARE: ( ctx:CanvasRenderingContext2D, canvas:HTMLCanvasElement, size:number ) => {
-    const middle   = canvas.width/2
-    const halfSize = size/2
-
-    // an outer square
-    ctx.strokeStyle = '#fff'
-    ctx.globalAlpha = 0.9
-    ctx.strokeRect(
-        (middle-halfSize)+0.4,
-        (middle-halfSize)+0.4,
-        size-0.8,
-        size-0.8,
-    )
-
-    // an outer square
-    ctx.strokeStyle = '#000'
-    ctx.globalAlpha = 1
-    ctx.strokeRect(
-        middle-halfSize,
-        middle-halfSize,
-        size,
-        size,
-    )
-  },
-
-  CIRCLE: ( ctx:CanvasRenderingContext2D, canvas:HTMLCanvasElement, size:number ) => {
-    const middle = canvas.width/2
-    const halfSize = size = 2
-
-    // an inner circle
-    ctx.strokeStyle = '#fff'
-    ctx.globalAlpha = 0.9
-    circlePath( ctx,
-        (middle-halfSize)+0.7,
-        (middle-halfSize)+0.7,
-        size-1.4,
-        size-1.4
-    )
-    ctx.stroke()
-
-    // an outer circle
-    ctx.strokeStyle = '#000'
-    ctx.globalAlpha = 1
-    circlePath( ctx,
-        middle - halfSize,
-        middle - halfSize,
-        size,
-        size
-    )
-    ctx.stroke()
-  },
-}
-
-/**
  * @const
  */
 const DEFAULT_GRID_WIDTH  = 5 // pixels
 const DEFAULT_GRID_HEIGHT = 5 // pixels
-
-const MAX_NATIVE_CURSOR_SIZE = 128
 
 /**
  * Warning, this should always be greater than the time it takes to
@@ -264,82 +154,12 @@ const MAX_NATIVE_CURSOR_SIZE = 128
 const CANVAS_LAZY_REFLOW_DELAY = 180
 
 /**
- * @const
- * @type {string}
- */
-const NO_CURSOR_CSS = 'sb_cursor_none'
-
-/**
- * The size of the crosshair brush.
- */
-const CROSSHAIR_CURSOR_SIZE = 19
-
-/**
- * A data url, of a crosshair, for use as a cursor.
- *
- * It's generated once, to avoid generating it multiple times, during
- * use.
- */
-const CROSSHAIR_CURSOR_DATA_URL = (() => {
-  const canvas = document.createElement( 'canvas' )
-  canvas.width = canvas.height = CROSSHAIR_CURSOR_SIZE
-
-  const ctx = canvas.getContext( '2d' ) as CanvasRenderingContext2D
-
-  ctx.beginPath()
-  ctx.lineCap   = 'round'
-  ctx.lineWidth = 1
-
-  BRUSH_RENDER_FUNCTIONS.CROSSHAIR( ctx, canvas, CROSSHAIR_CURSOR_SIZE )
-
-  return canvas.toDataURL()
-})()
-
-/**
- * The the total cursor size is below this,
- * then it's swapped out,
- * and a crosshair is used instead.
- *
- * @const
- * @type {number}
- */
-const BRUSH_CURSOR_MINIMUM_SIZE = 5
-
-/**
- * The number of pixels to add onto the brush canvas,
- * when it's being drawn.
- *
- * These are extra pixels around the edge, as a little padding.
- *
- * If the edge of the brush is too flat, because it's being cut off,
- * then just increase this value and it should get fixed.
- */
-const BRUSH_CURSOR_PADDING = 2
-
-/**
  * The default size for brushes.
  *
  * @const
  * @type {number}
  */
 const DEFAULT_BRUSH_SIZE = 2
-
-/**
- * The prefix added to command css classes.
- *
- * So 'picker' becomes 'sb_command_picker' if
- * the prefix is 'sb_command_'.
- *
- * @const
- * @type {string}
- */
-const COMMAND_CSS_PREFIX = 'sb_command_'
-
-/**
- * @const
- * @type {string}
- */
-const CONTROL_CSS_PREFIX = 'sb_control_'
 
 /**
  * Minimum width of a horizontal/vertical line on the colour
@@ -412,16 +232,6 @@ const CANVAS_UPDATE_SPEED = 200
  * @type {number}
  */
 const UNDO_STACK_SIZE = 40
-
-/**
- * The maximum zoom level.
- *
- * min zoom is: 1 / MAX_ZOOM
- *
- * @const
- * @type {number}
- */
-const MAX_ZOOM = 16
 
 /**
  * The maximum brush size allowed.
@@ -823,10 +633,10 @@ function copyNearestNeighbour(
 }
 
 export interface SliderOptions {
-  min   : number 
-  max   : number 
-  step  : number 
-  value : number 
+  min   : number
+  max   : number
+  step  : number
+  value : number
 
   onChange : Consumer2<number, number>
 }
@@ -896,34 +706,6 @@ export function newGridLine( direction:GridDirection, x:number, y:number ) {
 }
 
 /**
- * Sets up a circle path on the context given.
- *
- * This is everthing involved with drawing a circle
- * _but_ the actual stroke/fill.
- */
-export function circlePath(
-    ctx:CanvasRenderingContext2D,
-    x:number, y:number,
-    w:number, h:number,
-) {
-  const kappa = 0.5522848
-  const ox = (w / 2) * kappa   // control point offset horizontal
-  const oy = (h / 2) * kappa   // control point offset vertical
-  const xe = x + w             // x-end
-  const ye = y + h             // y-end
-  const xm = x + w / 2         // x-middle
-  const ym = y + h / 2         // y-middle
-
-  ctx.beginPath()
-  ctx.moveTo( x, ym )
-  ctx.bezierCurveTo( x      , ym - oy, xm - ox, y      , xm, y  )
-  ctx.bezierCurveTo( xm + ox, y      , xe     , ym - oy, xe, ym )
-  ctx.bezierCurveTo( xe     , ym + oy, xm + ox, ye     , xm, ye )
-  ctx.bezierCurveTo( xm - ox, ye     , x      , ym + oy, x , ym )
-  ctx.closePath()
-}
-
-/**
  * Creates a new canvas, and returns it,
  * but after being painted with a checkerboard.
  *
@@ -984,14 +766,14 @@ export class UndoStack {
   private undoIndex : number
   private maxRedo   : number
 
-  /// 
+  ///
   /// The maximum number of canvases we will ever hold.
-  /// 
+  ///
   private readonly maxSize : number
 
-  /// 
+  ///
   /// Where we are holding our redo/undo canvases.
-  /// 
+  ///
   private readonly canvases : HTMLCanvasElement[]
 
   constructor( size:number, firstCanvas:HTMLCanvasElement ) {
@@ -1149,24 +931,24 @@ export type GridDirection =
  * @constructor
  */
 export class GridManager {
-  private readonly dom : HTMLElement 
+  private readonly dom : HTMLElement
 
-  private offsetX : number 
-  private offsetY : number 
+  private offsetX : number
+  private offsetY : number
 
-  /// 
+  ///
   /// The width of each grid section. So it could be 5, or 10.
   /// In pixels.
-  /// 
-  private gridW : number 
-  
-  /// 
+  ///
+  private gridW : number
+
+  ///
   /// The height of each grid section. So it could be 5, or 10.
   /// In pixels.
-  /// 
-  private gridH : number 
+  ///
+  private gridH : number
 
-  private zoom : number 
+  private zoom : number
 
   /**
    * This updates in a lazy way.
@@ -1174,7 +956,7 @@ export class GridManager {
    * The isDirty flag is denoted to state that the dom does need to update when
    * it is shown.
    */
-  private isDirty : boolean 
+  private isDirty : boolean
 
   constructor ( viewport:HTMLElement ) {
     const dom = document.createElement( 'div' )
@@ -1509,12 +1291,12 @@ export class Marquee {
   private readonly viewOverlay : ViewOverlay
   private readonly canvas      : CanvasManager
 
-  private readonly topLeftHandle     : HTMLElement 
-  private readonly bottomRightHandle : HTMLElement 
+  private readonly topLeftHandle     : HTMLElement
+  private readonly bottomRightHandle : HTMLElement
 
-  /// 
+  ///
   /// Where the marquee is positioned on the screen.
-  /// 
+  ///
   private readonly position : SizeArea
 
   private isShowingHandles : boolean
@@ -1535,21 +1317,15 @@ export class Marquee {
     this.topLeftHandle     = topLeft
     this.bottomRightHandle = bottomRight
 
-    this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' ).
-        append( topLeft ).
-        append( bottomRight )
+    this.viewOverlay = new ViewOverlay( viewport, 'skybrush_marquee' )
+        .append( topLeft )
+        .append( bottomRight )
 
     this.position = { x: 0, y: 0, w: 0, h: 0 }
 
     this.isShowingHandles = false
 
-    topLeft.addEventListener( 'mousedown', ev => {
-      if ( ev.which !== constants.LEFT ) {
-        return
-      }
-
-      ev.preventDefault()
-
+    inputUtils.leftDown( topLeft, () => {
       this.startHighlight( false )
 
       painter.startDrag(
@@ -1564,13 +1340,7 @@ export class Marquee {
       )
     })
 
-    bottomRight.addEventListener( 'mousedown', ev => {
-      if ( ev.which !== constants.LEFT ) {
-        return
-      }
-
-      ev.preventDefault()
-
+    inputUtils.leftDown( bottomRight, () => {
       this.startHighlight( false )
 
       painter.startDrag(
@@ -1779,7 +1549,7 @@ export class Marquee {
 
     return hasSelection ?
         this.position :
-        null 
+        null
   }
 
   /**
@@ -1803,14 +1573,14 @@ export class Marquee {
         this.viewOverlay.removeClass('sb_temporary_hide')
       }
     } else if ( this.hasClipArea() ) {
-      this.viewOverlay.
-          removeClass('sb_outside').
-          addClass('sb_reposition')
+      this.viewOverlay
+          .removeClass('sb_outside')
+          .addClass('sb_reposition')
     } else {
-      this.viewOverlay.
-          removeClass('sb_outside').
-          removeClass('sb_reposition').
-          removeClass('sb_show')
+      this.viewOverlay
+          .removeClass('sb_outside')
+          .removeClass('sb_reposition')
+          .removeClass('sb_show')
     }
 
     //
@@ -2005,6 +1775,12 @@ export class CopyManager {
   }
 }
 
+export type CanvasEvent =
+  | 'onDraw'
+  | 'onPaste'
+  | 'onCopy'
+  | 'onClip'
+
 /**
  * This is a fat prototype that manages the whole canvas stack.
  *
@@ -2055,7 +1831,7 @@ export class CanvasManager {
   private readonly marquee : Marquee
   private readonly copyObj : CopyManager
 
-  private readonly events : events.Handler
+  private readonly events : events.Handler<this, CanvasEvent>
 
   private readonly showUpscaleEvent : events.Runner
   private readonly upscaleWorkers : number[]
@@ -2109,7 +1885,7 @@ export class CanvasManager {
     this.overlayCtx = canvasUtils.newCtx( canvas )
     this.upscaleCtx = canvasUtils.newCtx( canvas )
 
-    this.events           = new events.Handler( this )
+    this.events           = new events.Handler<this, CanvasEvent>( this )
     this.showUpscaleEvent = new events.Runner( UPSCALE_SCROLL_DELAY )
 
     this.clipping = null
@@ -2120,7 +1896,7 @@ export class CanvasManager {
 
     this.width  = this.canvas.width,
     this.height = this.canvas.height,
-    this.zoom   = 1 
+    this.zoom   = 1
 
     this.undos = new UndoStack( UNDO_STACK_SIZE, this.canvas )
     this.upscaleWorkers = []
@@ -2235,7 +2011,7 @@ export class CanvasManager {
       uw = updateArea.w
       uh = updateArea.h
 
-      // 
+      //
       // If we are updating outside the canvas,
       // then leave early.
       //
@@ -2360,7 +2136,7 @@ export class CanvasManager {
     const overlay  = this.overlay
     const viewport = this.viewport
 
-    const canvasParent = canvas.parentElement()
+    const canvasParent = canvas.parentElement
     if ( canvasParent === null ) {
       return
     }
@@ -2389,10 +2165,10 @@ export class CanvasManager {
       if ( hasScrollLeft ) {
         /*
          * A value from 0.0 to 1.0, representing the zoom location.
-         * 
+         *
          * Zoom based on a canvas pixel location,
          * or just use the center of the canvas.
-         * 
+         *
          * With the *2 -1, we then convert from: [0.0, 1.0] to [-1.0, 1.0]
          */
         const zoomXP = ( zoomXY.x / this.width )*2 - 1
@@ -2503,6 +2279,7 @@ export class CanvasManager {
    * cancelled since this will get called twice.
    */
   private refreshUpscale():void {
+
     /*
      * Hide the current upscale.
      */
@@ -2531,10 +2308,9 @@ export class CanvasManager {
        * First the size.
        */
 
-      // show the upscale when using positive zoom
-      const scrollSize = viewport.scrollBarSize()
-
-      const viewWidth    = viewport.offsetWidth   - scrollSize.right
+      // Show the upscale when using positive zoom.
+      const scrollSize   = htmlUtils.scrollBarSize( viewport )
+      const viewWidth    = viewport.offsetWidth  - scrollSize.right
       const viewHeight   = viewport.offsetHeight - scrollSize.bottom
       const canvasWidth  = canvas.offsetWidth
       const canvasHeight = canvas.offsetHeight
@@ -2564,7 +2340,7 @@ export class CanvasManager {
       const scrollTop  = viewport.scrollTop()
       const scrollLeft = viewport.scrollLeft()
 
-      const canvasPos = $canvas.translate()
+      const canvasPos = canvas.translate()
       if ( canvasWidth < viewWidth ) {
         left = canvasPos.x
       } else {
@@ -2593,7 +2369,7 @@ export class CanvasManager {
 
       requestAnimationFrame(() => {
         // upscale _after_ making it visible
-        this.redrawUpscale()
+        this.redrawUpscaleFullScreen()
 
         upscale.style.opacity = '1'
       })
@@ -2778,6 +2554,31 @@ export class CanvasManager {
     return this
   }
 
+  redrawUpscaleFullScreen() {
+    /*
+     * The maths for this bit proved to be really difficult to work out.
+     * It would be out by just a couple of sub-pixels (no idea why).
+     *
+     * So we just fake a draw event (drawing to top left corner),
+     * and it's drawing to the whole canvas (full with/height).
+     */
+    const pos = this.viewport.offset()
+    const fakeEv = $.Event( 'mousemove', {
+        pageX : pos.left,
+        pageY : pos.top,
+    })
+
+    // todo, this is used to get the layout of the canvas. Skip the event stuff and instead just get the location directly.
+    const location = this.translateLocation( fakeEv )
+
+    const x = location.left
+    const y = location.top
+    const w = this.width
+    const h = this.height
+
+    return this.redrawUpscale( x, y, w, h, false, 0 )
+  }
+
   /**
    * Redraws the contents of the upscaled canvas.
    *
@@ -2858,29 +2659,6 @@ export class CanvasManager {
     const uCtx = this.upscaleCtx
 
     const zoom = this.zoom
-
-    // 1) handle the no-args version (update whole screen)
-    if ( x === undefined ) {
-      /*
-       * The maths for this bit proved to be really difficult to work out.
-       * It would be out by just a couple of sub-pixels (no idea why).
-       *
-       * So we just fake a draw event (drawing to top left corner),
-       * and it's drawing to the whole canvas (full with/height).
-       */
-      const pos = viewport.offset()
-      const fakeEv = $.Event( 'mousemove', {
-          pageX : pos.left,
-          pageY : pos.top,
-      })
-
-      const location = this.translateLocation( fakeEv )
-
-      x = location.left
-      y = location.top
-      w = this.width
-      h = this.height
-    }
 
     // take off 1 to account for the canvas border
     const scrollTop  = viewport.scrollTop()
@@ -3288,9 +3066,9 @@ export class CanvasManager {
   }
 
   reset() {
-    this.resetUndoRedo().
-        endPaste().
-        marquee.clear()
+    this.resetUndoRedo()
+        .endPaste()
+        .marquee.clear()
 
     this.grid.hide()
   }
@@ -3326,7 +3104,7 @@ export class CanvasManager {
         } else {
           this.canvasCtx.clearRect( 0, 0, this.canvas.width, this.canvas.height )
           this.canvasCtx.drawImage( canvas, 0, 0 )
-          this.redrawUpscale()
+          this.redrawUpscaleFullScreen()
         }
       })
 
@@ -3427,6 +3205,7 @@ export class CanvasManager {
 
       const temp = htmlUtils.newCanvas( w2, h2 )
       const tCtx = temp.getContext( '2d' ) as CanvasRenderingContext2D
+      tCtx.drawImage( this.canvas, -x, -y )
 
       this.setSize( w2, h2, true )
 
@@ -3500,7 +3279,7 @@ export class CanvasManager {
       if ( hasAlpha ) {
         break
       }
-      
+
       maxY = y
     }
 
@@ -3521,7 +3300,7 @@ export class CanvasManager {
       if ( hasAlpha ) {
         break
       }
-      
+
       minX = x+1
     }
 
@@ -3546,7 +3325,7 @@ export class CanvasManager {
       if ( hasAlpha ) {
         break
       }
-      
+
       maxX = x
     }
 
@@ -3674,19 +3453,13 @@ function newCommandControl(
     throw new Error( "Control is missing 'field' field" )
   }
 
-  const defaultField = (
-      control.hasOwnProperty( 'value' )
-          ? control.value
-          : command[ field ]
-  )
-
   const cDom = document.createElement( 'div' )
   cDom.className =
       'skybrush_control '         +
-      CONTROL_CSS_PREFIX + type   +
+      constants.CONTROL_CSS_PREFIX + type   +
       ((css !== undefined) ?
           ' sb_' + css :
-          '' ) 
+          '' )
 
   const label = document.createElement('div')
   label.className = 'skybrush_command_control_label'
@@ -3694,6 +3467,12 @@ function newCommandControl(
   cDom.appendChild( label )
 
   const cssID = controlNameToCSSID( name )
+
+  let defaultField = (
+      control.hasOwnProperty( 'value' )
+          ? control.value
+          : command[ field ]
+  )
 
   /*
    * Create the Dom Element based on it's type.
@@ -3746,8 +3525,9 @@ function newCommandControl(
 
       option = (option+1) % numOptions
       if ( names ) {
-        toggle.val( names[option] )
+        toggle.value = `${names[option]}`
       }
+
       if ( cssStates && cssStates[option] ) {
         toggle.classList.add( cssStates[option] )
       }
@@ -3755,7 +3535,7 @@ function newCommandControl(
 
     switchOption()
 
-    toggle.addEventListener( 'click', function(ev) {
+    toggle.addEventListener( 'click', ev => {
         ev.stopPropagation()
         ev.preventDefault()
         switchOption()
@@ -3772,37 +3552,42 @@ function newCommandControl(
 
     cDom.appendChild( toggle.get(0) )
   } else if ( type === 'slider' ) {
-    const min  = control.min
-    const max  = control.max
-    const step = control.step || 1
+    const input = newNumericInput( false, 'skybrush_input' )
+    const min   = control.min
+    const max   = control.max
+    const step  = control.step || 1
 
     if ( defaultField === undefined ) {
       defaultField = Math.max( 1, min )
     }
 
-    const handleInputChange = function( ev:KeyboardEvent ) {
+    const handleInputChange = ( ev:KeyboardEvent ) => {
       // key up, and key down
       if ( ev.keyCode === 38 ) {
-        const val = parseFloat( this.value )
+        const val = parseFloat( input.value )
 
         if ( val < max ) {
-          this.value = '' + Math.min( max, val + step )
+          input.value = `${Math.min( max, val + step )}`
         }
 
       } else if ( ev.keyCode === 40 ) {
-        const val = parseFloat( this.value )
+        const val = parseFloat( input.value )
 
         if ( val > min ) {
-          this.value = '' + Math.max( min, val - step )
+          input.value = `${Math.max( min, val - step )}`
         }
       }
 
       requestAnimationFrame(() => {
-        const n = this.value
+        let n = parseInt( input.value )
 
-        if ( n && n >= 1 ) {
+        if ( isNaN(n) ) {
+          return
+        }
+        
+        if ( n >= 1 ) {
           n = Math.round( n )
-          slider.value = n
+          input.value = `${n}`
 
           command[ field ] = n
 
@@ -3817,14 +3602,13 @@ function newCommandControl(
       })
     }
 
-    const val = newNumericInput( false, 'skybrush_input' )
-    val.setAttribute( 'step', step )
-    val.setAttribute( 'min', min )
-    val.setAttribute( 'max', max )
-    val.addEventListener( 'keydown', handleInputChange )
-    val.addEventListener( 'change',  handleInputChange )
+    input.setAttribute( 'step', step )
+    input.setAttribute( 'min', min )
+    input.setAttribute( 'max', max )
+    input.addEventListener( 'keydown', handleInputChange )
+    input.addEventListener( 'change',  handleInputChange )
     // initialize
-    val.value = defaultField
+    input.value = defaultField
 
     const slider = newSlider({
         step  : step,
@@ -3832,9 +3616,9 @@ function newCommandControl(
         max   : max,
         value : defaultField,
 
-        onChange : ( n, p ) => {
+        onChange : n => {
           command[ field ] = n
-          val.val( n )
+          input.value = `${n}`
 
           if ( callback ) {
             callback.call( command, n, painter )
@@ -3848,10 +3632,10 @@ function newCommandControl(
     slider.classList.add( cssID )
 
     cDom.appendChild( slider )
-    cDom.appendChild( val    )
+    cDom.appendChild( input  )
 
   } else {
-    throw new Error( "Unknown control setup given" )
+    throw new Error( `Unknown control setup given` )
 
   }
 
@@ -3922,303 +3706,6 @@ function newCommandControl(
  * @param setup The information needed for this command.
  * @param controlsSetup An array listing all of the commands for this control.
  */
-export class Command {
-  constructor( setup ) {
-    this.name    = setup.name    || '' 
-    this.caption = setup.caption || '' 
-    this.cursor  = setup.cursor  || null
-    this.css     = setup.css ?
-        COMMAND_CSS_PREFIX + setup.css :
-        ''                             
-
-    this.drawArea = null
-
-    this.dom = null
-    this.domInitialized = false
-    this.controlsSetup = setup.controls
-
-    if ( setup.onDown ) {
-      this.onDown = setup.onDown
-    }
-
-    if ( setup.onDownOnMove ) {
-      this.onDown =
-      this.onMove =
-           setup.onDownOnMove
-    }
-
-    if ( setup.onMoveOnUp ) {
-      this.onUp   =
-      this.onMove =
-          setup.onMoveOnUp
-    }
-
-    if ( setup.onMove ) {
-      this.onMove = setup.onMove
-    }
-
-    if ( setup.onUp ) {
-      this.onUp = setup.onUp
-    }
-
-    this.whenAttached = setup.onAttach || null
-    this.whenDetached = setup.onDetach || null
-
-    const onShift = setup.onShift
-    if ( onShift ) {
-      const thisCommand = this
-
-      this.shiftDown = function( isShiftDown ) {
-        // This should use both 'self' and 'this' here, it is not
-        // a bug.
-        onShift.call( thisCommand, isShiftDown, this )
-      }
-    } else {
-      this.shiftDown = null
-    }
-
-    this.isInAttach = false
-    this.isInDetach = false
-  }
-
-  getCSS() {
-    return this.css
-  }
-
-  /**
-   * Called when a Command object is set as the current
-   * command.
-   *
-   * @param painter The parent SkyBrush instance this is being attached to.
-   */
-  onAttach( painter ) {
-    if ( ! this.isInAttach ) {
-      this.isInAttach = true
-
-      if ( this.whenAttached ) {
-        this.whenAttached.call( this, painter )
-      }
-
-      if ( this.shiftDown ) {
-        painter.onShift( this.shiftDown )
-
-        // call if shift is down,
-        // so control is properly setup
-        if ( painter.isShiftDown() ) {
-          this.shiftDown.call( painter, true )
-        }
-      }
-
-      this.isInAttach = false
-    }
-  }
-
-  /**
-   * For when a Command object is detached from SkyBrush,
-   * and it is no longer set as the current command.
-   *
-   * @param painter The parent SkyBrush instance this is being detached from.
-   */
-  onDetach( painter ) {
-    if ( ! this.isInDetach ) {
-      this.isInDetach = true
-
-      if ( this.shiftDown ) {
-        painter.removeOnShift( this.shiftDown )
-
-        /*
-         * If changing whilst shift is down,
-         * we call as though it was lifte,
-         * so it's like it was released.
-         */
-        if ( painter.isShiftDown() ) {
-          this.shiftDown.call( painter, false )
-        }
-      }
-
-      if ( this.whenDetached ) {
-        this.whenDetached.call( this, painter )
-      }
-
-      this.isInDetach = false
-    }
-  }
-
-  getCursor() {
-    return this.cursor
-  }
-
-  getCaption() {
-    return this.caption
-  }
-
-  getName() {
-    return this.name
-  }
-
-  /**
-   * Finds the control stated, based on it's 'name'.
-   *
-   * If the control is not found, then an empty jQuery
-   * object will be returned.
-   *
-   * @param A jQuery object for the control.
-   */
-  getControl( name:string ):HTMLElement {
-    return this.getControlsDom().getElementsByClassName( controlNameToCSSID(name) )[0]
-  }
-
-  /**
-   * This returns null if there are no controls
-   * for this command.
-   *
-   * @return The HTML dom with all the control structures for this command.
-   */
-  createControlsDom( painter:skybrush.SkyBrush ):HTMLElement {
-    /*
-     * Controls dom is loaded in a lazy way so painter
-     * starts up a tad faster,
-     */
-    if ( ! this.domInitialized ) {
-      this.domInitialized = true
-
-      const dom = document.createElement( 'div' )
-      dom.className = 'skybrush_command_controls_inner' 
-
-      const controlsSetup = this.controlsSetup
-      if ( ! controlsSetup ) {
-        dom.innerHTML = '<div class="skybrush_command_no_controls">no settings</div>'
-      } else if ( controlsSetup instanceof Array ) {
-        for ( let i = 0; i < controlsSetup.length; i++ ) {
-          dom.appendChild(
-              newCommandControl( this, controlsSetup[i], painter )
-          )
-        }
-      } else {
-        dom.appendChild(
-            newCommandControl( this, controlsSetup, painter )
-        )
-      }
-
-      this.dom = dom
-    }
-
-    return this.dom
-  }
-
-  /**
-   * Returns the dom containing all of the command options
-   * for this Command, or null if there is no dom.
-   *
-   * There would be no dom if there are no options.
-   */
-  getControlsDom() {
-    return this.dom
-  }
-
-  popDrawArea() {
-    const t = this.drawArea
-    this.drawArea = null
-
-    return t
-  }
-
-  addDrawArea( x, y, w, h, buffer ) {
-    const da = this.drawArea
-
-    if ( da !== null ) {
-      buffer = buffer || 1
-
-      if ( h === undefined ) {
-        x -= w/2,
-        y -= w/2
-        h = w
-      }
-
-      if ( w < 0 ) {
-        x -= w
-        w = -w
-      }
-
-      if ( h < 0 ) {
-        y -= h
-        h = -h
-      }
-
-      da.x    = Math.min( da.x   , x - buffer )
-      da.y    = Math.min( da.y   , y - buffer )
-      da.endX = Math.max( da.endX, x+w+buffer )
-      da.endY = Math.max( da.endY, y+h+buffer )
-    } else {
-      this.setDrawArea( x, y, w, h, buffer )
-    }
-
-    return this
-  }
-
-  /**
-   * This can be used in a single args version, to allow passing
-   * the Draw Area object from one command to another.
-   *
-   * Usage:
-   *      brush.setDrawArea( otherBrush.popDrawArea() )
-   *
-   * You can also use it in a multi-args version to setup a drawing/refresh area.
-   *
-   * @param x
-   * @param y
-   * @param w or size, w when h is provided and size when it's omitted.
-   * @param h Optional,
-   * @param buffer Optional, a buffer around the area to be updated. This must be at least 1.
-   */
-  setDrawArea( x, y, w, h, buffer ):this {
-    // If used in single args version,
-    // this allows setting 'null' as the draw area (no draw)
-    if ( y === undefined && x !== undefined ) {
-      this.drawArea = x
-    } else {
-      buffer = buffer || 1
-
-      if ( h === undefined ) {
-        x -= w,
-        y -= w
-        h  = w
-      }
-
-      if ( w < 0 ) {
-        w  = -w
-        x -=  w
-      }
-
-      if ( h < 0 ) {
-        h  = -h
-        y -=  h
-      }
-
-      this.drawArea = {
-          x: x-buffer,
-          y: y-buffer,
-          endX: x+w+buffer,
-          endY: y+h+buffer,
-      }
-    }
-
-    return this
-  }
-}
-
-/**
- * The standard minimum and maximum brush sizes,
- * and a way to limit them.
- */
-const BRUSH_SIZE = {
-  min: 1,
-  max: MAX_BRUSH_SIZE,
-
-  limit: function( size ) {
-    return Math.limit( size, this.min, this.max )
-  }
-}
 
 /**
  * Creates a new Brush, with the name, css class and events given.
@@ -4229,6 +3716,8 @@ const BRUSH_SIZE = {
  * @private
  */
 class Brush extends Command {
+  private size : number
+
   constructor( setup ) {
     const brushSizeControl = {
         name: 'Size',
@@ -4277,7 +3766,7 @@ class Brush extends Command {
    * @param size The new size for this brush.
    */
   setSize( size:number ) {
-    this.size = BRUSH_SIZE.limit( size )
+    this.size = mathsUtils.limit( size, 1, MAX_BRUSH_SIZE )
   }
 
   /**
@@ -4569,8 +4058,8 @@ function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:n
   }
 
   const inc = Math.min( aXDiff, aYDiff )
-  const xInc = xDiff / inc
-  const yInc = yDiff / inc
+  let xInc = xDiff / inc
+  let yInc = yDiff / inc
 
   let yStart = y0
   let yEnd   = y1
@@ -4610,7 +4099,7 @@ function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:n
       for ( let y = yStart; y < yEnd; y++ ) {
         const drawX = x|0
         const drawY = y|0
-        const xWidth = ((x + xInc)|0) - drawX 
+        const xWidth = ((x + xInc)|0) - drawX
 
         ctx.fillRect( drawX, drawY, xWidth, 1 )
 
@@ -4625,7 +4114,7 @@ function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:n
       for ( let x = xStart; x < xEnd; x++ ) {
         const drawX = x|0
         const drawY = y|0
-        const yWidth = ((y + yInc)|0) - drawY 
+        const yWidth = ((y + yInc)|0) - drawY
 
         ctx.fillRect( drawX, drawY, 1, yWidth )
 
@@ -4723,9 +4212,8 @@ class PixelBrush extends Brush {
       y -= (size/2) | 0
 
       this.pencilCommand( canvas, x, y, size )
-      canvas.redrawUpscale( x|0, y|0, 0, 0, undefined, size )
-
-      this.addDrawArea( x|0, y|0, size )
+      canvas.redrawUpscale( x|0, y|0, 0, 0, false, size )
+      this.addDrawAreaAroundPoint( x, y, size )
     }
 
     setup.onMoveOnUp = function( canvas:HTMLCanvasElement, x:number, y:number ) {
@@ -4760,7 +4248,7 @@ class PixelBrush extends Brush {
 
       renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size)
 
-      canvas.redrawUpscale( x|0, y|0, diffX, diffY, undefined, size )
+      canvas.redrawUpscale( x|0, y|0, diffX, diffY, false, size )
       this.addDrawArea( x|0, y|0, diffX, diffY, size )
 
       this.lastX = x
@@ -4822,7 +4310,7 @@ const eraser =
           }
       })
 
-      const softErase = new Brush( {
+      const softErase = new Brush({
           name: 'Soft Eraser',
           css : 'soft_eraser',
 
@@ -4836,11 +4324,12 @@ const eraser =
             const diffY = this.lastY - y
 
             this.drawLine( canvas.getDirectContext(), x, y )
-            canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, undefined, this.size*2 )
+            canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, false, this.size*2 )
 
             this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 )
           }
-      } )
+      })
+
       softErase.drawLine = function( ctx:CanvasRenderingContext2D, x:number, y:number ) {
         const compOp = ctx.globalCompositeOperation
 
@@ -4862,33 +4351,33 @@ const eraser =
         this.lastY = y
       }
 
-      const eraser = new Command( {
+      const eraser = new Command({
           name: 'Eraser',
           css : 'eraser',
           caption: 'Eraser | shortcut: e',
 
-          onDown: function( canvas, x, y ) {
-            const brush = this.isAliased   ? this.soft : this.hard 
+          onDown: ( canvas, x:number, y:number, ) => {
+            const brush = this.isAliased ? softErase : hardErase
 
             brush.size = this.size
             brush.onDown( canvas, x, y )
             this.brush = brush
           },
 
-          onMove: function( canvas, x, y ) {
+          onMove: function( canvas, x:number, y:number, ) {
             this.brush.onMove( canvas, x, y )
           },
 
-          onUp: function( canvas, x, y ) {
+          onUp: function( canvas, x:number, y:number, ) {
             this.brush.onUp( canvas, x, y )
-            this.setDrawArea( this.brush.popDrawArea() )
+            this.setDrawAreaObj( this.brush.popDrawArea() )
           },
 
-          cursor: function( cursor, painter ) {
-            if ( this.isChecked ) {
-              cursor.setCircle( this.size )
+          cursor: () => {
+            if ( eraser.isAliased ) {
+              cursors.CIRCLE_CURSOR( eraser )
             } else {
-              cursor.setSquare( this.size )
+              cursors.SQUARE_CURSOR( eraser )
             }
           },
 
@@ -4928,138 +4417,133 @@ const eraser =
               eraserSwitch = null
             }
           }
-      } )
-      eraser.soft = softErase
-      eraser.hard = hardErase
+      })
 
       return eraser
     })()
 
 function newCommand() {
+  const pencilCommand = new PixelBrush({
+      name: 'Pencil',
+      css : 'pencil',
+      caption: 'Pencil | shortcut: p, shift: switches to eraser',
+
+      onDraw: function( canvas, x, y, size ) {
+        x = x|0
+        y = y|0
+
+        canvas.getDirectContext().fillRect( x, y, size, size )
+      },
+
+      cursor: cursors.SQUARE_CURSOR,
+
+      onShift: switchToEraser,
+  })
+
+  /*
+   * The state of the brush is kept in the canvas.
+   * You see it will clear the path you have made
+   * when you call 'beginPath'.
+   *
+   * So we call it once, when the mouse goes down,
+   * and then just add points when it gets moved.
+   * As a result the context stores all our points
+   * for us.
+   *
+   * We just keep adding points, clear and stroke
+   * on each move. At the end we call 'beginPath'
+   * to clear it, but in practice any other brush
+   * will call this anyway before they use the
+   * context.
+   */
+  const standardBrushCommand = new class extends Brush({
+      name: 'Brush',
+      css : 'brush',
+      caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
+
+      cursor: cursors.CIRCLE_CURSOR,
+
+      onDown: function( canvas, x, y ) {
+        this.x =
+            this.lastX =
+            this.minX =
+            this.maxX = x
+
+        this.y =
+            this.lastY =
+            this.minY =
+            this.maxY = y
+
+        const ctx = canvas.getContext() as CanvasRenderingContext2D
+        ctx.lineWidth = this.size
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+
+        /*
+         * This is to trick it into starting a line,
+         * when the mouse goes down.
+         */
+        ctx.moveTo( x-0.1, y-0.1 )
+        ctx.lineTo( x, y )
+        this.updateLine( canvas, x, y )
+
+        canvas.hideOverlay()
+        canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
+      },
+      onMove: function( canvas, x, y ) {
+        this.updateLine( canvas, x, y )
+
+        canvas.hideOverlay()
+        canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
+      },
+      onUp: function( canvas, x, y ) {
+        this.updateLine( canvas, x, y )
+
+        // end the current path
+        canvas.getContext().beginPath()
+
+        this.setDrawArea(
+            this.minX,
+            this.minY,
+            this.maxX-this.minX,
+            this.maxY-this.minY,
+            this.size,
+        )
+      },
+
+      onShift: switchToEraser,
+  })
+
+  standardBrushCommand.updateLine = function( canvas, x, y ) {
+    const lastX = this.lastX = this.x
+    const lastY = this.lastY = this.y
+
+    this.x = x
+    this.y = y
+
+    this.minX = Math.min( this.minX, x )
+    this.maxX = Math.max( this.maxX, x )
+    this.minY = Math.min( this.minY, y )
+    this.maxY = Math.max( this.maxY, y )
+
+    const ctx = canvas.getContext() as CanvasRenderingContext2D
+    canvasUtils.clearCtx(
+        ctx,
+        this.minX,
+        this.minY,
+        this.maxX - this.minX,
+        this.maxY - this.minY,
+        this.size
+    )
+    ctx.lineTo( x, y )
+    ctx.stroke()
+  }
+
   return [
       pickerCommand,
-
-      new PixelBrush({
-          name: 'Pencil',
-          css : 'pencil',
-          caption: 'Pencil | shortcut: p, shift: switches to eraser',
-
-          onDraw: function( canvas, x, y, size ) {
-            x = x|0
-            y = y|0
-
-            canvas.getDirectContext().fillRect( x, y, size, size )
-          },
-
-          cursor: function( cursor, painter ) {
-            cursor.setSquare( this.size )
-          },
-
-          onShift: switchToEraser,
-      }),
-      (function() {
-        /*
-         * The state of the brush is kept in the canvas.
-         * You see it will clear the path you have made
-         * when you call 'beginPath'.
-         *
-         * So we call it once, when the mouse goes down,
-         * and then just add points when it gets moved.
-         * As a result the context stores all our points
-         * for us.
-         *
-         * We just keep adding points, clear and stroke
-         * on each move. At the end we call 'beginPath'
-         * to clear it, but in practice any other brush
-         * will call this anyway before they use the
-         * context.
-         */
-        const b = new Brush({
-            name: 'Brush',
-            css : 'brush',
-            caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
-
-            cursor: function( cursor, painter ) {
-              cursor.setCircle( this.size )
-            },
-
-            onDown: function( canvas, x, y ) {
-              this.x =
-                  this.lastX =
-                  this.minX =
-                  this.maxX = x
-
-              this.y =
-                  this.lastY =
-                  this.minY =
-                  this.maxY = y
-
-              const ctx = canvas.getContext() as CanvasRenderingContext2D
-              ctx.lineWidth = this.size
-              ctx.lineCap = 'round'
-              ctx.lineJoin = 'round'
-              ctx.beginPath()
-
-              /*
-               * This is to trick it into starting a line,
-               * when the mouse goes down.
-               */
-              ctx.moveTo( x-0.1, y-0.1 )
-              ctx.lineTo( x, y )
-              this.updateLine( canvas, x, y )
-
-              canvas.hideOverlay()
-              canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
-            },
-            onMove: function( canvas, x, y ) {
-              this.updateLine( canvas, x, y )
-
-              canvas.hideOverlay()
-              canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
-            },
-            onUp: function( canvas, x, y ) {
-              this.updateLine( canvas, x, y )
-
-              // end the current path
-              canvas.getContext().beginPath()
-
-              this.setDrawArea(
-                  this.minX, this.minY,
-                  this.maxX-this.minX, this.maxY-this.minY,
-                  this.size,
-              )
-            },
-
-            onShift: switchToEraser,
-        })
-
-        b.updateLine = function( canvas, x, y ) {
-          const lastX = this.lastX = this.x
-          const lastY = this.lastY = this.y
-
-          this.x = x
-          this.y = y
-
-          this.minX = Math.min( this.minX, x )
-          this.maxX = Math.max( this.maxX, x )
-          this.minY = Math.min( this.minY, y )
-          this.maxY = Math.max( this.maxY, y )
-
-          const ctx = canvas.getContext() as CanvasRenderingContext2D
-          canvasUtils.clearCtx(
-              ctx,
-              this.minX,
-              this.minY,
-              this.maxX - this.minX,
-              this.maxY - this.minY,
-              this.size
-          )
-          ctx.lineTo( x, y )
-          ctx.stroke()
-        }
-
-        return b
-      })(),
+      pencilCommand,
+      standardBrushCommand,
 
       (function() {
         /*
@@ -5073,9 +4557,7 @@ function newCommand() {
             css : 'web',
             caption: 'Web Brush | shortcut: w, shift: switches to eraser',
 
-            cursor: function(cursor, painter) {
-              cursor.setCircle( this.size )
-            },
+            cursor: cursors.CIRCLE_CURSOR,
 
             controls: [
                 {
@@ -5188,9 +4670,11 @@ function newCommand() {
               canvas.getContext().beginPath()
 
               this.setDrawArea(
-                  this.minX, this.minY,
-                  this.maxX-this.minX, this.maxY-this.minY,
-                  this.size
+                  this.minX,
+                  this.minY,
+                  this.maxX-this.minX,
+                  this.maxY-this.minY,
+                  this.size,
               )
             },
 
@@ -5366,7 +4850,7 @@ function newCommand() {
           caption: 'Draw Circle | shortcut: c, shift: toggles outline',
 
           onDraw: function( ctx, x1, y1, x2, y2 ) {
-            circlePath( ctx, x1, y1, x2-x1, y2-y1 )
+            canvasUtils.circlePath( ctx, x1, y1, x2-x1, y2-y1 )
 
             if ( this.isOutline ) {
               ctx.lineWidth = this.size
@@ -5476,7 +4960,14 @@ function newCommand() {
              * @param clipH
              * @param seenPixels
              */
-            const store = function( fromI, toX, toY, clipW, clipH, seenPixels ):number {
+            const store = function(
+                fromI:number,
+                toX:number,
+                toY:number,
+                clipW:number,
+                clipH:number,
+                seenPixels:number,
+            ):number {
               if ( 0 <= toX && toX < clipW && 0 <= toY && toY < clipH ) {
                 const toI = toY*clipW + toX
 
@@ -5490,7 +4981,11 @@ function newCommand() {
               return fromI
             }
 
-            return function( canvas:HTMLCanvasElement, mouseX:number, mouseY:number ) {
+            return function(
+                canvas:HTMLCanvasElement,
+                mouseX:number,
+                mouseY:number,
+            ):void {
               // Floor the location, and make it clear to the VM
               // that these values are integers (the |0 code).
               mouseX = mouseX|0
@@ -5538,12 +5033,12 @@ function newCommand() {
                  * So they extend from 0 to clipW/H.
                  */
 
-                // used for the update area at the end,
-                // default to where it was clicked to begin with
-                const minX = mouseX-clipX
-                const maxX = mouseX-clipX
-                const minY = mouseY-clipY
-                const maxY = mouseY-clipY
+                // Used for the update area at the end.
+                // Default to where it was clicked to begin with.
+                let minX = mouseX-clipX
+                let maxX = mouseX-clipX
+                let minY = mouseY-clipY
+                let maxY = mouseY-clipY
 
                 /**
                  * The pixels we have seen so far, and it also
@@ -5722,8 +5217,8 @@ function newCommand() {
             const zoom = painter.getZoom()
 
             if (
-                (  this.zoomOut && zoom === (1/MAX_ZOOM) ) ||
-                ( !this.zoomOut && zoom === MAX_ZOOM )
+                (  this.zoomOut && zoom === (1/constants.MAX_ZOOM) ) ||
+                ( !this.zoomOut && zoom === constants.MAX_ZOOM )
             ) {
               cursor.setClass( 'sb_cursor_zoom_blank' )
             } else if ( this.zoomOut ) {
@@ -5748,20 +5243,20 @@ function newCommand() {
           },
 
           onDown: function( canvas, x, y, painter, ev ) {
-            canvas.getMarquee().
-                startHighlight()
+            canvas.getMarquee()
+                .startHighlight()
 
             this.startX = x
             this.startY = y
           },
           onMove: function(canvas, x, y) {
-            canvas.getMarquee().
-                select( this.startX, this.startY, x, y )
+            canvas.getMarquee()
+                .select( this.startX, this.startY, x, y )
           },
           onUp: function( canvas, x, y ) {
-            canvas.getMarquee().
-                select( this.startX, this.startY, x, y ).
-                stopHighlight()
+            canvas.getMarquee()
+                .select( this.startX, this.startY, x, y )
+                .stopHighlight()
           }
       } ),
 
@@ -5774,7 +5269,7 @@ function newCommand() {
        *  = If down and moved, and there is a copy selection, it should be moved but not pasted.
        *  = If down and moved, and there is no copy selection, it should cut and move the whole canvas.
        */
-      new Command( {
+      new Command({
           name: 'Move',
           css : 'move',
           caption: 'Move Tool | shortcut: m',
@@ -5814,763 +5309,6 @@ function newCommand() {
   ]
 }
 
-function useNativeCursor( size:number ):boolean {
-  return ( size < MAX_NATIVE_CURSOR_SIZE )
-}
-
-/**
- * Handles setting the cursor directly, with little management.
- *
- * The point is that this deals with creating and setting a cursor in
- * different ways, without caring about why, or what it is for.
- *
- * i.e. this deals with data urls and CSS classes, whilst BrushCursor deals
- * with crosshairs, squares and circles.
- *
- * The real point of this is to bind all of the setting by url, setting by
- * class, and hiding the cursor, into one place, to simplify the
- * BrushCursor.
- */
-export class DirectCursor {
-  constructor( viewport:HTMLElement ) {
-    const dom = document.createElement( 'div' )
-    dom.className = 'skybrush_brush'
-
-    viewport.append( dom )
-
-    this.dom            = dom
-
-    this.viewport       = viewport
-    this.cursorDataURL  = null
-    this.cursorClass    = null
-
-    this.inScrollbar    = false
-    this.isHidden       = false
-
-    // sensible defaults, so they are never 'undefined'
-    this.lastX          = 0
-    this.lastY          = 0
-
-    this.lastLeft       = 0
-    this.lastTop        = 0
-
-    this.fakeShown      = false
-
-    /**
-     * This is the size of the fake cursor.
-     *
-     * @type {number}
-     */
-    this.displaySize = 0
-
-    this.cssSetup = {
-        height: -1,
-        width : -1,
-        'background-position': '',
-    }
-
-    // ensure it's all setup right!
-    this.setClass( constants.DEFAULT_CURSOR )
-  }
-
-  /**
-   * Cleares the items set on the cursor, so it's back to it's default state.
-   */
-  clearCursor() {
-    this.clearCursorInner()
-
-    this.dom.className = 'skybrush_brush'
-
-    this.fakeShown = false
-    this.cursorDataURL = null
-    this.cursorClass = null
-
-    return this
-  }
-
-  clearCursorInner() {
-    if ( this.cursorDataURL !== null ) {
-      this.dom.className = 'skybrush_brush'
-      this.viewport.css( 'cursor', '' )
-    }
-
-    this.viewport.classList.remove( NO_CURSOR_CSS )
-
-    if ( this.cursorClass !== null ) {
-      if ( this.cursorClass !== NO_CURSOR_CSS ) {
-        this.viewport.classList.remove( this.cursorClass )
-      }
-    }
-
-    return this
-  }
-
-  /**
-   * Sets the cursor to display the data url given. Only the url needs to be
-   * given, i.e.
-   *
-   *  cursor.setCursorURL( '/cursors/crosshair.cur', size )
-   *
-   * This can also take a data url, but it only works if the browser actually
-   * supports them.
-   *
-   * @param The data URI for the cursor.
-   * @param size, the size of the cursor when displayed.
-   */
-  setCursorURL( url:string, size:number ):this {
-    url = this.calculateUrl( url, size )
-
-    if ( ! this.inScrollbar ) {
-      this.setCursorURLInner( url, size )
-    }
-
-    this.cursorClass = null
-    this.cursorDataURL = url
-    this.displaySize = size
-    this.fakeShown = ! useNativeCursor( size )
-
-    return this
-  }
-
-  setCursorURLInner( url:string, size:number ):void {
-    this.clearCursorInner()
-
-    if ( useNativeCursor(size) ) {
-      if ( ! this.isHidden ) {
-        this.viewport.css( 'cursor', url )
-      }
-    } else {
-      this.viewport.classList.add( NO_CURSOR_CSS )
-      this.dom.style.backgroundImage = url
-
-      if ( ! this.isHidden ) {
-        this.dom.className = 'skybrush_brush sb_show'
-      }
-    }
-  }
-
-  /**
-   * @return True if the fake cursor, is currently visible, and false if not.
-   */
-  isFakeShown():boolean {
-    return this.fakeShown
-  }
-
-  calculateUrl( url:string, size:number ):string {
-    if ( useNativeCursor(size) ) {
-      /*
-       * The location is off by one,
-       * when applied as a cursor url.
-       *
-       * So I subtract 1, to correct.
-       */
-      const loc = size/2 - 1
-
-      return `url(${url}) ${loc} ${loc}, auto`
-    } else {
-      return `url(${url}`
-    }
-  }
-
-  /**
-   * Adds the CSS class to the viewport, that the cursor is within.
-   */
-  setClass( klass:string ):this {
-    if ( ! this.inScrollbar ) {
-      this.clearCursor()
-
-      if ( ! this.isHidden ) {
-        this.viewport.classList.add( klass )
-      }
-    }
-
-    this.cursorClass   = klass
-    this.cursorDataURL = null
-    this.fakeShown     = false
-
-    return this
-  }
-
-  /**
-   * Sets the cursor to a blank one.
-   */
-  setBlankCursor():this {
-    this.setClass( NO_CURSOR_CSS )
-
-    return this
-  }
-
-  /**
-   * Call this, when the cursor has entered a Scrollbar.
-   *
-   * Don't worry about what it does, just do it.
-   */
-  enterScrollbar():this {
-    if ( ! this.inScrollbar ) {
-      this.clearCursorInner()
-      this.inScrollbar = true
-    }
-
-    return this
-  }
-
-  /**
-   * Call this, when the cursor has left a Scrollbar.
-   *
-   * Don't worry about what it does, just do it.
-   */
-  leaveScrollbar():this {
-    if ( this.inScrollbar ) {
-      this.inScrollbar = false
-
-      if ( this.cursorClass ) {
-        this.setClass( this.cursorClass )
-      } else if ( this.cursorDataURL ) {
-        this.setCursorURLInner( this.cursorDataURL, this.displaySize )
-      }
-    }
-
-    return this
-  }
-
-  update( ev:MouseEvent ):this {
-    this.updateMove( ev.pageX, ev.pageY )
-    this.updateScrollbarCursor( ev )
-
-    return this
-  }
-
-  /**
-   * In Chrome (and other browsers?) the cursor also applies to the scrollbar.
-   * So when we move over the scroll bar, we turn off the custom cursor,
-   * and set it to the standard one.
-   *
-   * It then gets turned back, if we have moved out, and have an old
-   * cursor to set.
-   *
-   * @param ev The event for the mouse movement.
-   * @return true if we are overlapping the scrollbar, false if not.
-   */
-  updateScrollbarCursor( ev:MouseEvent ):this {
-    const x = ev.pageX
-    const y = ev.pageY
-    const scrollBars = this.viewport.scrollBarSize()
-
-    // work out if we are on top of a scroll bar
-    if ( scrollBars.bottom > 0 || scrollBars.right > 0 ) {
-      const pos = this.viewport.offset()
-
-      if (
-          scrollBars.right > 0 &&
-          pos.left + (this.viewport.width() - scrollBars.right) < ev.pageX
-      ) {
-        this.enterScrollbar()
-      } else if (
-          scrollBars.bottom > 0 &&
-          pos.top  + (this.viewport.height() - scrollBars.bottom) < ev.pageY
-      ) {
-        this.enterScrollbar()
-      } else {
-        this.leaveScrollbar()
-      }
-    } else {
-      this.leaveScrollbar()
-    }
-
-    return this
-  }
-
-  /**
-   * pageX and pageY are optional. If omitted, this will
-   * presume it is at the same location as the last time
-   * this was called.
-   */
-  updateMove( pageX:number, pageY:number ):this {
-    if ( this.isFakeShown() ) {
-      const viewport = this.viewport
-
-      if ( pageX === undefined || pageY === undefined ) {
-        pageX = this.lastX
-        pageY = this.lastY
-      }
-
-      const displaySize  = this.displaySize
-      const displaySize2 = displaySize/2
-      const pos          = viewport.offset()
-      const scrollBars   = viewport.scrollBarSize()
-
-      const scrollX = viewport.scrollLeft()
-      const scrollY = viewport.scrollTop()
-      const viewportHeight = viewport.height() - scrollBars.bottom
-      const viewportWidth  = viewport.width()  - scrollBars.right
-
-        /*
-         * If the cursor is near the top or bottom edge,
-         * then the cursor is obscured using 'background-position'.
-         *
-         * When this is true, it'll do it on the bottom,
-         * and when false, it does this for the top edge.
-         *
-         * hideFromRight does the same, but on the x axis.
-         */
-      const hideFromBottom = false
-      const hideFromRight  = false
-
-      /*
-       * We have the location, in the middle, of the cursor on the screen.
-       * This is the 'fixed' position, where no scrolling taken into account.
-       *
-       * We then convert this into the top/left position,
-       * and then add on the scrolling.
-       */
-
-      const middleX = (pageX - pos.left)
-      const middleY = (pageY - pos.top )
-
-      let left   = 0
-      let top    = 0
-      let width  = 0
-      let height = 0
-
-      /*
-       * Now translate from middle to top/left, for:
-       *  - if over the top edge
-       *  - if over the bottom edge
-       *  - if between those edges
-       */
-
-      if ( middleY-displaySize2 < 0 ) {
-        top    = 0
-        height = displaySize + (middleY-displaySize2)
-      } else if ( middleY+displaySize2 > viewportHeight ) {
-        top    = middleY-displaySize2
-        height = viewportHeight - (middleY-displaySize2)
-
-        hideFromBottom = true
-      } else {
-        top    = middleY - (displaySize2-1)
-        height = displaySize
-      }
-
-      if ( middleX-displaySize2 < 0 ) {
-        left  = 0
-        width = displaySize + (middleX-displaySize2)
-      } else if ( middleX+displaySize2 > viewportWidth ) {
-        left  = middleX-displaySize2
-        width = viewportWidth - (middleX-displaySize2)
-
-        hideFromRight = true
-      } else {
-        left  = middleX - (displaySize2-1)
-        width = displaySize
-      }
-
-      top  += scrollY
-      left += scrollX
-
-      if ( left !== this.lastLeft || top !== this.lastTop ) {
-        this.lastLeft = left
-        this.lastTop  = top
-
-        this.dom.style.transform = `translate( ${left}px, ${top}px )`
-
-        this.lastX = pageX
-        this.lastY = pageY
-      }
-
-      /*
-       * Now alter the width/height,
-       * and the background position.
-       */
-
-      width  = Math.max( width , 0 )
-      height = Math.max( height, 0 )
-
-      const cssSetup = this.cssSetup
-      if (
-          height !== cssSetup.height ||
-          width  !== cssSetup.width
-      ) {
-        const positionY = ! hideFromBottom ?
-              -(displaySize-height) + 'px' :
-               0
-        const positionX = ! hideFromRight ?
-              -(displaySize-width ) + 'px' :
-               0
-
-        const newBackPosition = positionX + ' ' + positionY
-        if ( newBackPosition !== cssSetup['background-position'] ) {
-          cssSetup['background-position'] = newBackPosition
-          this.dom.style.backgroundPosition = newBackPosition
-        }
-
-        if ( width !== cssSetup.width ) {
-          cssSetup.width = width
-          this.dom.style.width = width + 'px'
-        }
-
-        if ( height !== cssSetup.height ) {
-          cssSetup.height = height
-          this.dom.height = height + 'px'
-        }
-      }
-    }
-
-    return this
-  }
-
-  /**
-   * Hides this cursor so that it is no longer shown, at all. This
-   * includes both the real cursor, and the fake cursor built using an
-   * HTML element.
-   */
-  hide():this {
-    if ( ! this.isHidden ) {
-      this.isHidden = true
-
-      if ( this.cursorClass !== null ) {
-        this.viewport.classList.remove( this.cursorClass )
-      } else if ( this.cursorDataURL ) {
-        this.viewport.css( 'cursor', '' )
-      }
-
-      this.viewport.classList.add( NO_CURSOR_CSS )
-      this.dom.className = 'skybrush_brush'
-    }
-
-    return this
-  }
-
-  /**
-   * If the cursor is hidden, then it will now be shown. Otherwise this
-   * will do nothing.
-   */
-  show():this {
-    if ( this.isHidden ) {
-      this.isHidden = false
-
-      if ( this.cursorClass ) {
-        this.setClass( this.cursorClass )
-      } else if ( this.cursorDataURL ) {
-        this.setCursorURLInner( this.cursorDataURL, this.displaySize )
-      }
-    }
-
-    return this
-  }
-}
-
-export type RefreshState =
-  | 'refresh'
-  | 'no-refresh'
-
-/**
- * This differs from DirectCursor, in that this deals with the brush size,
- * zoom, and some decision making on how the brush should look.
- *
- * If 'isTouch' is set, then only 'showTouch' and 'hideTouch'
- * will actually allow this to be seen or not. The other 'show' and 'hide'
- * will still look like they work, and will as far as they can, except
- * nothing actually appeares.
- *
- * @param painter The SkyBrush instance.
- * @param viewport The view area this is a cursor for.
- * @param isTouch True if this is working with touch, false if not.
- */
-export class BrushCursor {
-  private readonly cursor   : DirectCursor 
-  private readonly viewport : HTMLElement  
-  private readonly canvas   : HTMLCanvasElement 
-
-  private readonly isTouch : boolean 
-
-  private isHidden  : boolean 
-  private isReallyHidden : boolean 
-
-  /**
-   * This is the brush size, at the current zoom level.
-   *
-   * So if the brush size is 10, and the zoom level is 3,
-   * then this value will be 30 (10 * 3).
-   *
-   * @type {number}
-   */
-  private zoomSize  : number 
-  private size      : number 
-
-  private shape : Nullable<RenderFunction>
-
-  constructor( viewport:HTMLElement, isTouch:boolean ) {
-    this.cursor   = new DirectCursor( viewport )
-    this.viewport = viewport
-
-    this.zoomSize = 1
-
-    // Initializes to no size.
-    this.isHidden       = false
-    this.isReallyHidden = false
-    this.isTouch        = isTouch
-
-    this.size  = 1
-    this.shape = null
-
-    this.canvas = htmlUtils.newCanvas( 1, 1 )
-    this.cursorReplace = new events.Runner( 0 )
-
-    if ( isTouch ) {
-      this.hideTouch()
-    }
-  }
-
-  setCrosshair():this {
-    this.cursor.setCursorURL( CROSSHAIR_CURSOR_DATA_URL, CROSSHAIR_CURSOR_SIZE )
-    this.shape = null
-
-    return this
-  }
-
-  onMove( ev:MouseEvent ):this {
-    this.cursor.update( ev )
-
-    return this
-  }
-
-  showTouch():this {
-    // don't show if hidden!
-    if ( this.isTouch && ! this.isHidden ) {
-      this.showInner()
-    }
-
-    return this
-  }
-
-  hideTouch():this {
-    if ( this.isTouch ) {
-      this.hideInner()
-    }
-
-    return this
-  }
-
-  show():this {
-    this.isHidden = false
-
-    this.renderShape( this.render, this.zoomSize )
-
-    if ( ! this.isTouch ) {
-      this.showInner()
-    }
-
-    return this
-  }
-
-  hide():this {
-    this.isHidden = true
-
-    if ( ! this.isTouch ) {
-      this.hideInner()
-    }
-
-    return this
-  }
-
-  showInner():this {
-    if ( this.isReallyHidden ) {
-      this.isReallyHidden = false
-
-      this.cursor.show()
-    }
-
-    return this
-  }
-
-  hideInner():this {
-    if ( ! this.isReallyHidden ) {
-      this.isReallyHidden = true
-      this.cursor.hide()
-    }
-
-    return this
-  }
-
-  /**
-   * Returns if the *fake* brush is shown.
-   * This is regardless of if the brush cursor is rendered using the
-   * background image, or as a native cursor.
-   *
-   * If the fake brush is shown, then a standard url, which is not calculated
-   * by the brush cursor, will be in use. For example, the zoom cursor, or
-   * the standard cursor icon.
-   */
-  isShown() {
-    return ! this.isHidden 
-  }
-
-  setCircle( size:number ) {
-    return this.setShape( BRUSH_RENDER_FUNCTIONS.CIRCLE, size )
-  }
-
-  setSquare( size:number ) {
-    return this.setShape( BRUSH_RENDER_FUNCTIONS.SQUARE, size )
-  }
-
-  /**
-   * Sets the shape, a second time.
-   */
-  setShape( render:RenderFunction, size:number ):this {
-    if ( ! render ) {
-      throw new Error( "undefined brush render given" )
-    }
-
-    this.shape = render
-    this.size  = size
-    const zoom = this.zoom
-
-    const newSize = Math.max( (size*zoom) | 0, 1 )
-    if ( newSize <= BRUSH_CURSOR_MINIMUM_SIZE ) {
-      newSize = BRUSH_CURSOR_MINIMUM_SIZE
-    }
-
-    this.renderShape( render, newSize )
-
-    return this
-  }
-
-  renderShape( render:RenderFunction, newSize:number ):void {
-    if ( render !== null ) {
-      this.zoomSize = newSize
-      this.shape = render
-
-      if ( ! this.isHidden ) {
-        // draws a cross hair
-        if ( newSize <= BRUSH_CURSOR_MINIMUM_SIZE ) {
-          this.setCrosshair()
-        } else {
-          const canvas = this.canvas
-          const ctx = canvas.getContext( '2d' )
-          const canvasSize  = newSize + BRUSH_CURSOR_PADDING
-
-          canvas.width = canvas.height = canvasSize
-
-          ctx.beginPath()
-          ctx.lineCap   = 'round'
-          ctx.lineWidth = 1
-
-          this.shape( ctx, canvas, newSize )
-
-          const middle = canvas.width/2
-
-          // draw a dot in the centre
-          ctx.beginPath()
-
-          ctx.strokeStyle = '#fff'
-          ctx.globalAlpha = 0.9
-          ctx.strokeRect( middle-0.75, middle-0.75, 1.5, 1.5 )
-
-          ctx.strokeStyle = '#000'
-          ctx.globalAlpha = 0.6
-          ctx.strokeRect( middle-0.5 , middle-0.5 , 1  , 1   )
-
-          this.cursor.setCursorURL( canvas.toDataURL(), canvas.width )
-        }
-      }
-    }
-  }
-
-  /**
-   * Sets the zoom.
-   *
-   * The refresh parameter is optional, and defaults to true. When false,
-   * this will not do any kind of redrawing.
-   *
-   * That is useful, if you are planning to refresh yourself, after calling
-   * this.
-   *
-   * @param zoom The new zoom value.
-   * @param refresh Optional, true if this should refresh, false if not. Defaults to true.
-   */
-  setZoom( zoom:number, refresh:RefreshState ) {
-    this.zoom = zoom
-
-    if ( this.shape && refresh === 'refresh' ) {
-      this.setShape( this.shape, this.size )
-    }
-
-    return this
-  }
-
-  setCommandCursor( painter, command ) {
-    const cursor = command.getCursor()
-
-    if ( ! cursor ) {
-      this.cursor.setBlankCursor()
-    } else if ( typeof cursor === 'string' ) {
-      this.cursor.setClass( cursor )
-    } else {
-      cursor.call( command, this, painter )
-    }
-
-    return this
-  }
-
-  setClass( klass:string ) {
-    this.cursor.setClass( klass )
-    this.shape = null
-
-    return this
-  }
-}
-
-function normalizeKey( key:string ):string {
-  if ( key.length > 1 ) {
-    key = key.toLowerCase()
-
-    if ( key === 'del' ) {
-      key = 'delete'
-    } else if ( key === 'esc' ) {
-      key = 'escape'
-    }
-  }
-
-  return key
-}
-
-const newKeyEventTest = (function() {
-  const newKeyEventTestNumeric = function( key ) {
-    return function(ev) {
-      if ( ev.charCode !== 0 ) {
-        return ev.charCode === key
-      } else {
-        return ev.keyCode  === key
-      }
-    }
-  }
-
-  const newKeyEventTestString = function( key ) {
-    key = normalizeKey( key )
-
-    return function(ev) {
-      if ( ev['char'] ) {
-        return ev['char'] === key
-      } else if ( ev.key !== undefined ) {
-        return normalizeKey( ev.key ) === key
-      } else {
-         return normalizeKey( String.fromCharCode(ev.keyCode) ) === key
-      }
-    }
-  }
-
-  return function( key ) {
-    if ( typeof key === 'number' ) {
-      return newKeyEventTestNumeric( key|0 )
-    } else if ( typeof key === 'string' ) {
-      return newKeyEventTestString( key )
-    } else {
-      throw new Exception( "expected string or number for key" + key )
-    }
-  }
-})()
-
 /*
  * Private functions used by the SkyBrush.
  */
@@ -6593,7 +5331,7 @@ function newTextDiv( className:string, textContent:string ) {
 function newNumericInput( isDecimal:boolean, className:string ) {
   const input = newInput( 'number', className )
 
-  forceNumeric( input, isDecimal )
+  inputUtils.forceNumeric( input, isDecimal )
 
   return input
 }
@@ -6663,10 +5401,10 @@ function newButton() {
     }
 
     if ( (right-left) > 0 ) {
-      klass += ' sb_' + text.
-          substring( left, right+1 ).
-          toLowerCase().
-          replace( NOT_ALPHA_NUMERIC_LOWER, '_' )
+      klass += ' sb_' + text
+          .substring( left, right+1 )
+          .toLowerCase()
+          .replace( NOT_ALPHA_NUMERIC_LOWER, '_' )
     }
   }
 
@@ -6722,14 +5460,7 @@ function initializeMainButtons( painter, wrap, pickerCommand ) {
   const openToggle = htmlUtils.newAnchor()
   openToggle.innerHTML = '<div class="skybrush_open_toggle_text">&#x1F845</div>'
   openToggle.className = 'skybrush_header_button skybrush_open_toggle'
-  openToggle.addEventListener( 'click', ev => {
-    if ( ev.which !== constants.LEFT ) {
-      return
-    }
-
-    ev.preventDefault()
-    ev.stopPropagation()
-
+  inputUtils.leftClick( openToggle, () => {
     painter.toggleGUIPane()
   })
 
@@ -6836,10 +5567,9 @@ function initializeMainButtons( painter, wrap, pickerCommand ) {
   picker.className = 'skybrush_gui_command ' + pickerCommand.getCSS()
   picker.appendChild( pickerCommandBack )
   picker.appendChild( pickerButton )
-  picker.__command = pickerCommand
 
   painter.onSetCommand( command => {
-    if ( command === picker.__command ) {
+    if ( command === pickerCommand ) {
       picker.classList.add( 'sb_selected' )
     } else {
       picker.classList.remove( 'sb_selected' )
@@ -6862,9 +5592,9 @@ function initializeMainButtons( painter, wrap, pickerCommand ) {
    * so he gets put aside on his own, to watch over toggling the panel
    * open.
    */
-  const gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false ).
-      setPainter( painter ).
-      appendDirect( copyButtons, colourInfo )
+  const gui = new GUI([ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false )
+      .setPainter( painter )
+      .appendDirect( copyButtons, colourInfo )
 
   wrap.append( gui.dom )
 }
@@ -6990,10 +5720,10 @@ function initializeSettings( painter ) {
 
       form.appendChild( okButton )
 
-      painter.
-          getInfoBar().
-          setContent( form ).
-          show()
+      painter
+          .getInfoBar()
+          .setContent( form )
+          .show()
     })
   }
 
@@ -7137,8 +5867,8 @@ function initializeSettings( painter ) {
   commonControls.appendChild( clear )
   commonControls.appendChild( crop )
 
-  const gui = new GUI( 'Canvas', 'canvas' ).
-      appendDirect( resize, scale, grid, clear, crop )
+  const gui = new GUI( 'Canvas', 'canvas' )
+      .appendDirect( resize, scale, grid, clear, crop )
 
   painter.addGUI( gui )
 }
@@ -7177,9 +5907,9 @@ function initializeColors( painter, pickerCommand ) {
   colorsDom.innerHTML = colorsHTML
 
   let currentColor : Nullable<HTMLElement> = null
-  const colors = $( colorsDom ).
-      killEvent( 'click', 'mousedown' ).
-      leftclick(() => {
+  const colors = $( colorsDom )
+      .killEvent( 'click', 'mousedown' )
+      .leftclick(() => {
         return function( ev:MouseEvent ) {
           const target = ev.target
 
@@ -7386,29 +6116,13 @@ function initializeColors( painter, pickerCommand ) {
 
   /* Current Colour Info */
 
-  const getVal = function( input, max ) {
-    const num = parseInt( input.value )
-
-    if ( isNaN(num) ) {
-      return 0
-    }
-
-    return Math.limit( num, 0, max )
-  }
-
-  const syncAlpha = function() {
-    const val = getVal( this, 1.0 )
-
-    painter.setAlpha( val )
-  }
-
   /* Create the RGB lebel/inputs in the form. */
   const newColourInput = function(
       name       : string,
       css        : string,
-      inputEvent : Consumer<InputEvent>,
       isDecimal  : boolean,
       max        : number,
+      inputEvent : Consumer<InputEvent>,
   ):HTMLInputElement {
     const label = document.createElement('div')
     label.className = 'skybrush_rgb_label'
@@ -7416,27 +6130,27 @@ function initializeColors( painter, pickerCommand ) {
 
     const input = newNumericInput( isDecimal, 'skybrush_rgb_input ' + css )
     input.maxLength = 3
-    input.min       = 0
-    input.max       = max
-    input.step      = ( isDecimal ? 0.01 : 1 )
+    input.min  = 0
+    input.max  = max
+    input.step = ( isDecimal ? 0.01 : 1 )
 
     input.addEventListener( 'change', inputEvent )
-    input.addEventListener( 'keypress', function( ev:KeyboardEvent ) {
+    input.addEventListener( 'keypress', ev => {
       requestAnimationFrame(() => {
         inputEvent.call( input, ev )
       })
     })
-    input.addEventListener( 'blur', function( ev ) {
-      input.value = getVal( input, max )
+
+    input.addEventListener( 'blur', ev => {
+      input.value = htmlUtils.getInputValue( input, max )
       inputEvent.call( input, ev )
     })
 
+    // todo, this should not exist. The label should be the wrap, not the div.
     const inputWrap = document.createElement( 'div' )
     inputWrap.className = 'skybrush_rgb_wrap'
     inputWrap.appendChild( label )
     inputWrap.appendChild( input )
-
-    inputWrap.__input = input
 
     return inputWrap
   }
@@ -7448,25 +6162,29 @@ function initializeColors( painter, pickerCommand ) {
    * This is used for when the RGB values have been altered,
    * and they need to sync those values to the SkyBrush.
    */
-  const syncRGBFormToCurrentColor = function() {
-    const r = getVal( rInput, 255 )
-    const g = getVal( gInput, 255 )
-    const b = getVal( bInput, 255 )
+  const syncRGBFormToCurrentColor = () => {
+    const r = htmlUtils.getInputValue( rInput, 255 )
+    const g = htmlUtils.getInputValue( gInput, 255 )
+    const b = htmlUtils.getInputValue( bInput, 255 )
 
     const newColor = colourUtils.rgbToColor( r, g, b )
     painter.setColor( newColor )
   }
 
-  const rWrap = newColourInput( 'r', 'skybrush_rgb_r', syncRGBFormToCurrentColor, false, 255 )
-  const gWrap = newColourInput( 'g', 'skybrush_rgb_g', syncRGBFormToCurrentColor, false, 255 )
-  const bWrap = newColourInput( 'b', 'skybrush_rgb_b', syncRGBFormToCurrentColor, false, 255 )
+  const rWrap = newColourInput( 'r', 'skybrush_rgb_r', false, 255, syncRGBFormToCurrentColor, )
+  const gWrap = newColourInput( 'g', 'skybrush_rgb_g', false, 255, syncRGBFormToCurrentColor, )
+  const bWrap = newColourInput( 'b', 'skybrush_rgb_b', false, 255, syncRGBFormToCurrentColor, )
 
-  const rInput = rWrap.__input
-  const gInput = gWrap.__input
-  const bInput = bWrap.__input
+  const rInput = rWrap.lastElementChild as HTMLInputElement
+  const gInput = gWrap.lastElementChild as HTMLInputElement
+  const bInput = bWrap.lastElementChild as HTMLInputElement
 
-  const aWrap  = newColourInput( 'a', 'rgb_a', syncAlpha, true, 1.0 )
-  const aInput = aWrap.__input
+  const aWrap  = newColourInput( 'a', 'rgb_a', true, 1.0, () => {
+    const val = htmlUtils.getInputValue( this, 1.0 )
+    painter.setAlpha( val )
+  })
+
+  const aInput = aWrap.lastElementChild as HTMLInputElement
 
   const rgbForm = document.createElement( 'div' )
   rgbForm.className = 'skybrush_rgb_form'
@@ -7479,24 +6197,23 @@ function initializeColors( painter, pickerCommand ) {
    * HSV Form
    */
 
-  const syncHSVFormToCurrentColor = function() {
+  const syncHSVFormToCurrentColor = () => {
     // convert to 0.0 to 1.0 values
-    const h = getVal( hInput, 360 ) / 360.0
-    const s = getVal( sInput, 100 ) / 100.0
-    const v = getVal( vInput, 100 ) / 100.0
+    const h = htmlUtils.getInputValue( hInput, 360 ) / 360.0
+    const s = htmlUtils.getInputValue( sInput, 100 ) / 100.0
+    const v = htmlUtils.getInputValue( vInput, 100 ) / 100.0
+    const hsvColour = colourUtils.hsvToColor( h, s, v )
 
-    painter.setColor(
-        colourUtils.hsvToColor( h, s, v )
-    )
+    painter.setColor( hsvColour )
   }
 
-  const hWrap = newColourInput( 'h', 'skybrush_rgb_h', syncHSVFormToCurrentColor, false, 360 )
-  const sWrap = newColourInput( 's', 'skybrush_rgb_s', syncHSVFormToCurrentColor, false, 100 )
-  const vWrap = newColourInput( 'v', 'skybrush_rgb_v', syncHSVFormToCurrentColor, false, 100 )
+  const hWrap = newColourInput( 'h', 'skybrush_rgb_h', false, 360, syncHSVFormToCurrentColor, )
+  const sWrap = newColourInput( 's', 'skybrush_rgb_s', false, 100, syncHSVFormToCurrentColor, )
+  const vWrap = newColourInput( 'v', 'skybrush_rgb_v', false, 100, syncHSVFormToCurrentColor, )
 
-  const hInput = hWrap.__input
-  const sInput = sWrap.__input
-  const vInput = vWrap.__input
+  const hInput = hWrap.lastElementChild as HTMLInputElement
+  const sInput = sWrap.lastElementChild as HTMLInputElement
+  const vInput = vWrap.lastElementChild as HTMLInputElement
 
   const hsvForm = document.createElement( 'div' )
   hsvForm.className = 'skybrush_hsv_form'
@@ -7560,12 +6277,12 @@ function initializeColors( painter, pickerCommand ) {
   destinationAlpha.appendChild( paintModeLabel )
   destinationAlpha.appendChild( paintModeButton )
 
-  const colorGUI = new GUI( 'Palette', 'colors' ).
-      appendTogether( currentColor, destinationAlpha ).
-      append( mixer )
+  const colorGUI = new GUI( 'Palette', 'colors' )
+      .appendTogether( currentColor, destinationAlpha )
+      .append( mixer )
 
-  const swatchesGUI = new GUI( 'Swatches', 'swatches' ).
-      append( colors )
+  const swatchesGUI = new GUI( 'Swatches', 'swatches' )
+      .append( colors )
 
   painter.addGUI( colorGUI, swatchesGUI )
 
@@ -7574,14 +6291,14 @@ function initializeColors( painter, pickerCommand ) {
   const alphaCanvas = newCheckerboard(
       alphaGradient.width(),
       alphaGradient.height(),
-      true
+      true,
   )
 
-  const updateAlphaFun = function(ev) {
+  const updateAlphaFun = ( ev:Event ) => {
     const pos = $(alphaCanvas).offset()
     const h   = $(alphaCanvas).height()
 
-    const y = Math.limit( ev.pageY - pos.top, 0, h )
+    const y = mathsUtils.limit( ev.pageY - pos.top, 0, h )
     painter.setAlpha( y / h )
 
     ev.preventDefault()
@@ -7649,20 +6366,20 @@ function initializeColors( painter, pickerCommand ) {
     const colX = xVal * colXWidth
     const colY = yVal * colYHeight
 
-    mixerVertical.
-        translate( colX, 0 ).
-        height(
-            Math.limit(
+    mixerVertical
+        .translate( colX, 0 )
+        .height(
+            mathsUtils.limit(
                 (mixerSize - colX) + COLOUR_MIXER_MIN_WIDTH,
                 COLOUR_MIXER_MIN_WIDTH,
                 COLOUR_MIXER_WIDTH
             )
         )
 
-    mixerHorizontal.
-        translate( 0, colY ).
-        width(
-            Math.limit(
+    mixerHorizontal
+        .translate( 0, colY )
+        .width(
+            mathsUtils.limit(
                 (mixerSize - colY) + COLOUR_MIXER_MIN_WIDTH,
                 COLOUR_MIXER_MIN_WIDTH,
                 COLOUR_MIXER_WIDTH
@@ -7683,7 +6400,7 @@ function initializeColors( painter, pickerCommand ) {
     }
   })
 
-  painter.onSetAlpha(( alpha ) => {
+  painter.onSetAlpha( alpha => {
     const y = Math.floor( alpha*alphaBar.clientHeight )
     alphaBarLine.translate( 0, y )
 
@@ -7726,7 +6443,7 @@ function initializeCommands( painter, commandsList, picker ) {
       ev.preventDefault()
       ev.stopPropagation()
 
-      painter.setCommand( this.parentNode.__command )
+      painter.setCommand( c )
     })
 
     command.appendChild( commandButton )
@@ -7758,7 +6475,7 @@ function initializeCommands( painter, commandsList, picker ) {
       }
     }
 
-    let controls
+    let controls : Nullable<HTMLElement> = null
     if ( lastCommand !== null ) {
       controls = lastCommand.getControlsDom()
 
@@ -7800,14 +6517,14 @@ function initializeShortcuts(
   const SHIFT  = 16
   const DELETE = 46
 
-  painter.
+  painter
       /* alternate commands - Shift key */
-      onKeyToggle( SHIFT, isShiftDown => {
+      .onKeyToggle( SHIFT, isShiftDown => {
         painter.runOnShift( isShiftDown )
-      }).
+      })
 
       /* alternate commands - Alt key */
-      onKeyToggle( ALT, isAltDown => {
+      .onKeyToggle( ALT, isAltDown => {
         painter.runOnAlt( isAltDown )
       })
 
@@ -7818,48 +6535,50 @@ function initializeShortcuts(
     })
   }
 
-  painter.
-      onCtrl( 'y', () => {
+  painter
+      .onCtrl( 'y', () => {
         painter.redo()
-      }).
+      })
 
       /* Undo - ctrl + z */
-      onCtrl( 'z', () => {
+      .onCtrl( 'z', () => {
         painter.undo()
-      }).
+      })
 
       /* Crop - ctrl+e */
-      onCtrl( 'e', () => {
+      .onCtrl( 'e', () => {
         painter.getCanvas().crop()
-      }).
+      })
 
       /* Clear - delete key */
-      onKey( DELETE, () => {
+      .onKey( DELETE, () => {
         painter.getCanvas().clear()
-      }).
+      })
 
       /* Copy */
-      onCtrl( 'c', () => {
+      .onCtrl( 'c', () => {
         painter.copy()
-      }).
+      })
 
       /* Cut */
-      onCtrl( 'x', () => {
+      .onCtrl( 'x', () => {
         painter.cut()
-      }).
+      })
 
       /* Paste */
-      onCtrl( 'v', () => {
+      .onCtrl( 'v', () => {
         painter.paste()
-      }).
+      })
 
       /* Select All */
-      onCtrl( 'a', () => {
-        painter.getCanvas().getMarquee().
-            startHighlight().
-            select( 0, 0, painter.getWidth(), painter.getHeight() ).
-            stopHighlight()
-      } )
+      .onCtrl( 'a', () => {
+        painter
+            .getCanvas()
+            .getMarquee()
+            .startHighlight()
+            .select( 0, 0, painter.getWidth(), painter.getHeight() )
+            .stopHighlight()
+      })
 
   /* Command Key Bindings */
 
@@ -7889,7 +6608,7 @@ function initializeShortcuts(
   bindCommand( 'k', 'picker' )
 
   /* On Alt behaviour - switch to colour picker */
-  const pickerSwitchCommand:Command|null = null
+  let pickerSwitchCommand:Nullable<Command> = null
   painter.onAlt( isAlt => {
     if ( isAlt ) {
       if ( pickerSwitchCommand !== painter.pickerCommand ) {

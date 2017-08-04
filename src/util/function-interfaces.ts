@@ -1,6 +1,7 @@
-
+﻿
 export type Nullable<T> =
-  null | T
+  | T
+  | null
 
 export type Consumer0 =
   () => void
@@ -43,4 +44,3 @@ export type Callback3<V1, V2, V3> =
 
 export type Callback4<V1, V2, V3, V4> =
   Consumer< Consumer4<V1, V2, V3, V4> >
-

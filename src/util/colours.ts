@@ -290,7 +290,7 @@ export function hsvToG( h:number, s:number, v:number ):number {
  * @param   {number} v       The value
  * @return  {Array.<number>} The RGB representation
  */
-export function hsvToRGB( h:number, s:number, v:number ):number {
+export function hsvToRGB( h:number, s:number, v:number ):[ number, number, number ] {
   let r = 0
   let g = 0
   let b = 0

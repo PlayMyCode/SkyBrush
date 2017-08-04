@@ -1,14 +1,62 @@
 
+import { Consumer } from 'util/function-interfaces'
+
+/**
+ * Mouse constants, so the code is more readable.
+ */
+export const LEFT   = 1
+export const RIGHT  = 2
+export const MIDDLE = 3
+
+type MouseEventName =
+  | 'click'
+  | 'mousedown'
+  | 'mouseup'
+
+type MouseButton =
+  | 1 // LEFT
+  | 2 // RIGHT
+  | 3 // MIDDLE
+
+export function leftClick( dom: Node, f: Consumer<MouseEvent> ): void {
+  onMouseEvent( dom, 'click', LEFT, f )
+}
+
+export function leftUp( dom: Node, f: Consumer<MouseEvent> ): void {
+  onMouseEvent( dom, 'mouseup', LEFT, f )
+}
+
+export function leftDown( dom: Node, f: Consumer<MouseEvent> ): void {
+  onMouseEvent( dom, 'mousedown', LEFT, f )
+}
+
+function onMouseEvent(
+    dom         : Node,
+    eventName   : MouseEventName,
+    whichButton : MouseButton,
+    f : Consumer<MouseEvent>,
+) {
+  dom.addEventListener( eventName, ( ev : MouseEvent ) => {
+    if ( ev.which !== whichButton ) {
+      return
+    }
+
+    ev.preventDefault()
+
+    f( ev )
+  })
+}
+
 export function forceNumeric(
     input : HTMLInputElement,
     allowDecimal : boolean,
 ) {
   input.addEventListener( 'keydown', ev => {
-    const key = e.which || e.keyCode
+    const key = ev.which || ev.keyCode
 
     if (
-        e.altKey || e.ctrlKey || e.metaKey || (
-            // numbers   
+        ev.altKey || ev.ctrlKey || ev.metaKey || (
+            // numbers
             key >= 48 && key <= 57 ||
             // Numeric keypad
             key >= 96 && key <= 105 ||

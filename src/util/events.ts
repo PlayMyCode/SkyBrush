@@ -35,15 +35,15 @@ export class Handler<C, T> {
   /**
    * Adds a new event to store under the 'type'.
    *
-   * @param type The type of event being stored.
+   * @param eventType The type of event being stored.
    * @param event The event to store.
    * @return this EventHandler object.
    */
-  add( type:T, event:() => void ):this {
-    const es = this.events.get( T )
+  add( eventType:T, event:() => void ):this {
+    const es = this.events.get( eventType )
 
     if ( ! es ) {
-      this.events.set( type, [event] )
+      this.events.set( eventType, [event] )
     } else {
       es.push( event )
     }
@@ -55,14 +55,18 @@ export class Handler<C, T> {
    * Runs all of the events stored under the type given.
    * Each event is called as if it were run on the 'context' object.
    * 
-   * @param type The type of events to run.
+   * @param eventType The type of events to run.
    * @return this EventHandler object.
    */
-  run( type:T ) {
-    const es = this.events.get( type )
+  run( eventType:T ) {
+    const es = this.events.get( eventType )
 
     if ( es ) {
-      const esArgs = argumentsToArray( arguments, 1 )
+      // Convert arguments into an array.
+      const esArgs = new Array( arguments.length - 1 )
+      for ( let i = 1; i < arguments.length; i++ ) {
+        esArgs[i-1] = arguments[i]
+      }
 
       for ( let i = 0; i < es.length; i++ ) {
         es[i].apply( this.context, esArgs )

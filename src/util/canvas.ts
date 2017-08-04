@@ -1,4 +1,4 @@
-
+﻿
 export interface CtxBackupProperties {
   fillStyle                : FillStyle
   strokeStyle              : StrokeStyle
@@ -6,7 +6,7 @@ export interface CtxBackupProperties {
   lineJoin                 : LineJoin
   lineWidth                : number
   globalAlpha              : number
-  globalCompositeOperation : GlobalCompositeOperation 
+  globalCompositeOperation : GlobalCompositeOperation
 }
 
 export type FillStyle =
@@ -60,7 +60,7 @@ export type GlobalCompositeOperation =
 export function newCtx(
     canvas : HTMLCanvasElement,
 ):CanvasRenderingContext2D {
-  const ctx = canvas.getContext( '2d' )
+  const ctx = canvas.getContext( '2d' ) as CanvasRenderingContext2D
 
   initialiseCtx( ctx )
   ctx.save()
@@ -74,11 +74,11 @@ export function backupCtx(
   return {
     fillStyle                : ctx.fillStyle,
     strokeStyle              : ctx.strokeStyle,
-    lineCap                  : ctx.lineCap,
-    lineJoin                 : ctx.lineJoin,
+    lineCap                  : ctx.lineCap as LineCap,
+    lineJoin                 : ctx.lineJoin as LineJoin,
     lineWidth                : ctx.lineWidth,
     globalAlpha              : ctx.globalAlpha,
-    globalCompositeOperation : ctx.globalCompositeOperation,
+    globalCompositeOperation : ctx.globalCompositeOperation as GlobalCompositeOperation,
   }
 }
 
@@ -158,3 +158,60 @@ export function clearCtx(
   ctx.clearRect( x, y, w, h )
 }
 
+/**
+ * Sets up a circle path on the context given.
+ *
+ * This is everthing involved with drawing a circle
+ * _but_ the actual stroke/fill.
+ */
+export function circlePath(
+    ctx:CanvasRenderingContext2D,
+    x:number, y:number,
+    w:number, h:number,
+) {
+  const kappa = 0.5522848
+  const ox = (w / 2) * kappa   // control point offset horizontal
+  const oy = (h / 2) * kappa   // control point offset vertical
+  const xe = x + w             // x-end
+  const ye = y + h             // y-end
+  const xm = x + w / 2         // x-middle
+  const ym = y + h / 2         // y-middle
+
+  ctx.beginPath()
+  ctx.moveTo( x, ym )
+  ctx.bezierCurveTo( x      , ym - oy, xm - ox, y      , xm, y  )
+  ctx.bezierCurveTo( xm + ox, y      , xe     , ym - oy, xe, ym )
+  ctx.bezierCurveTo( xe     , ym + oy, xm + ox, ye     , xm, ye )
+  ctx.bezierCurveTo( xm - ox, ye     , x      , ym + oy, x , ym )
+  ctx.closePath()
+}
+
+export function renderCrossHair( ctx:CanvasRenderingContext2D, size:number ):void {
+  ctx.lineCap   = 'round'
+  ctx.lineWidth = 1
+
+  const halfSize = size / 2
+
+  ctx.beginPath()
+
+  // top middle line
+  ctx.moveTo( halfSize, 0          )
+  ctx.lineTo( halfSize, halfSize-2 )
+
+  // bottom middle line
+  ctx.moveTo( halfSize, halfSize+2 )
+  ctx.lineTo( halfSize, size       )
+
+  // left line
+  ctx.moveTo( 0         , halfSize )
+  ctx.lineTo( halfSize-2, halfSize )
+
+  // right line
+  ctx.moveTo( size      , halfSize )
+  ctx.lineTo( halfSize+2, halfSize )
+
+  ctx.stroke()
+
+  // a dot in the centre
+  ctx.fillRect( halfSize-0.5, halfSize-0.5, 1, 1 )
+}

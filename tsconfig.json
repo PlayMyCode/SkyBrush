@@ -1,4 +1,4 @@
-{
+﻿{
   "files": [
     "./src/main.ts"
   ],
@@ -19,6 +19,12 @@
 
     "charset"           : "utf8",
     "newLine"           : "LF",
+
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es6"
+    ],
 
     "allowUnreachableCode"             : false,
     "allowUnusedLabels"                : false,
