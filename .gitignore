@@ -1,10 +1,32 @@
 
-*.njsproj
-*.sln
+# Awesome TypeScript Loader caching.
+.awcache
+.awcache/*
 
+# Visual Studio.
+*.csproj
+*.csproj.user
+*.sln
+*.njsproj
+web.Debug.config
+web.Release.config
+web.config
+.vs/
+obj/
+.vscode/
+.vscode/*
+
+# IntelliJ
+*.iml
+.idea/
+.idea/*
+.history/*
+
+# Build Artifacts.
 dist
 dist/*
 
+# Node installed modules.
 node_modules
 node_modules/*
 
