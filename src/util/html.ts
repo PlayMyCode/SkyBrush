@@ -1,21 +1,23 @@
-﻿
+
 import * as mathsUtils from 'util/maths'
 
 const HTML_TO_ELEMENT_DOM = document.createElement('div')
 
+export interface ScrollBarSize {
+  right  : number
+  bottom : number
+}
+
+let cachedScrollbarWidth = -1
+
 /**
- * @private
- * @return A HTML5 Canvas.
+ * @return A new HTML5 Canvas.
  */
-export function newCanvas():HTMLCanvasElement ;
-export function newCanvas( width : number, height : number ):HTMLCanvasElement ;
-export function newCanvas( width ?: number, height ?: number ):HTMLCanvasElement {
+export function newCanvas( width : number, height : number ):HTMLCanvasElement {
   const canvas = document.createElement( 'canvas' )
 
-  if ( arguments.length === 2 ) {
-    canvas.width  = width  as number
-    canvas.height = height as number
-  }
+  canvas.width  = width
+  canvas.height = height
 
   return canvas
 }
@@ -95,94 +97,47 @@ export function getInputValue(
  *
  * @return An object with 'right' and 'bottom' properties, stating the width of those bars, or 0 if not present.
  */
-export function scrollBarSize( dom:Element ) {
+export function scrollBarSize( dom:Element ):ScrollBarSize {
   const scrollSize = scrollBarWidth()
+  const style      = getComputedStyle( dom )
 
-  if ( dom === document ) {
-    return {
-      right  : ( this.height() > window.height() ) ? scrollSize : 0,
-      bottom : ( this.width()  > window.width()  ) ? scrollSize : 0,
-    }
-  } else {
-    const overflowRight  = this.css('overflowX') === 'scroll'
-    const overflowBottom = this.css('overflowY') === 'scroll'
+  const overflowX  = ( style.overflowX === 'scroll' )
+  const overflowY  = ( style.overflowY === 'scroll' )
 
-    // don't check overflowScroll, as it can still be invalid
-    if ( overflowRight && overflowBottom ) {
-      return {
-        right  : scrollSize,
-        bottom : scrollSize
-      }
-
-    // Scroll Height/Width includes differnt things in FF and other browsers
-    } else if ( $.browser.mozilla ) {
-      return {
-        right  : ( overflowRight  || dom.scrollHeight > dom.outerHeight() ) ? scrollSize : 0,
-        bottom : ( overflowBottom || dom.scrollWidth  > dom.outerWidth()  ) ? scrollSize : 0,
-      }
-
-    } else {
-      return {
-        right  : ( overflowRight  || dom.scrollHeight > dom.innerHeight() ) ? scrollSize : 0,
-        bottom : ( overflowBottom || dom.scrollWidth  > dom.innerWidth()  ) ? scrollSize : 0,
-      }
-    }
+  return {
+    right  : ( overflowX ? scrollSize : 0 ),
+    bottom : ( overflowY ? scrollSize : 0 ),
   }
 }
-
-let cachedScrollbarWidth = 0
 
 /**
  * @return The size of scroll bars in the current browser.
  */
 function scrollBarWidth() {
-  if ( cachedScrollbarWidth === 0 ) {
-    if ( $.browser.msie ) {
-      const textarea1 = document.createElement( 'textarea' )
-      textarea1.setAttribute( 'cols', '10' )
-      textarea1.setAttribute( 'rows',  '2' )
+  if ( cachedScrollbarWidth === -1 ) {
+    const div = document.createElement( 'div' )
+    div.style.width    = '100px'
+    div.style.height   = '100px'
+    div.style.overflow = 'auto'
+    div.style.position = 'absolute'
+    div.style.top      = '-1000px'
+    div.style.left     = '-1000px'
+    div.style.padding  = '0 !important'
+    div.style.border   = 'none !important'
 
-      textarea1.style.position = 'absolute'
-      textarea1.style.top      = '-1000px'
-      textarea1.style.left     = '-1000px'
+    const divInner = document.createElement( 'div' )
+    divInner.style.width    = '100%'
+    divInner.style.height   = '200px'
+    divInner.style.padding  = '0 !important'
+    divInner.style.border   = '0 !important'
 
-      const textarea2 = document.createElement( 'textarea' )
-      textarea1.setAttribute( 'cols', '10' )
-      textarea1.setAttribute( 'rows',  '2' )
+    div.appendChild( divInner )
 
-      textarea1.style.position = 'absolute'
-      textarea1.style.top      = '-1000px'
-      textarea1.style.left     = '-1000px'
-      textarea1.style.overflow = 'hidden'
+    document.body.appendChild( div )
 
-      document.body.appendChild( textarea1 )
-      document.body.appendChild( textarea2 )
+    cachedScrollbarWidth = ( 100 - div.clientWidth )
 
-      cachedScrollbarWidth = ( textarea1.width() - textarea2.width() )
-
-      document.body.removeChild( textarea1 )
-      document.body.removeChild( textarea2 )
-    } else {
-      const div = document.createElement( 'div' )
-      div.style.width    = '100px'
-      div.style.height   = '100px'
-      div.style.overflow = 'auto'
-      div.style.position = 'absolute'
-      div.style.top      = '-1000px'
-      div.style.left     = '-1000px'
-
-      const divInner = document.createElement( 'div' )
-      divInner.style.width  = '100%'
-      divInner.style.height = '200px'
-
-      div.appendChild( divInner )
-
-      document.body.appendChild( div )
-
-      cachedScrollbarWidth = ( 100 - div.width() )
-
-      document.body.removeChild( div )
-    }
+    document.body.removeChild( div )
   }
 
   return cachedScrollbarWidth

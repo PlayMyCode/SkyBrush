@@ -1,4 +1,4 @@
-
+﻿
 import { Consumer } from 'util/function-interfaces'
 
 /**

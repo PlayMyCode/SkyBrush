@@ -1862,9 +1862,11 @@ export class CanvasManager {
      * The canvas it's self, the overlay, and the upscale.
      */
 
-    const canvas  = htmlUtils.newCanvas()
-    const overlay = htmlUtils.newCanvas()
-    const upscale = htmlUtils.newCanvas()
+    // Size will be set later.
+    // So for now we'll just make it very small.
+    const canvas  = htmlUtils.newCanvas( 1, 1 )
+    const overlay = htmlUtils.newCanvas( 1, 1 )
+    const upscale = htmlUtils.newCanvas( 1, 1 )
 
     canvas.classList.add(  'skybrush_canvas_draw'    )
     overlay.classList.add( 'skybrush_canvas_overlay' )
@@ -2894,13 +2896,11 @@ export class CanvasManager {
     if ( newWidth !== this.width || newHeight !== this.height ) {
       this.drawAndEndPaste()
 
-      const newCanvas = htmlUtils.newCanvas()
-      const newCtx    = canvasUtils.newCtx( newCanvas )
-      const canvas    = this.canvas
-
       // Create a new canvas, of the required size, and with our content.
-      newCanvas.width     = newWidth
-      newCanvas.height    = newHeight
+      const newCanvas = htmlUtils.newCanvas( newWidth, newHeight )
+      const newCtx = canvasUtils.newCtx( newCanvas )
+      const canvas = this.canvas
+
       newCanvas.className = canvas.className
 
       const ctxSetup        = canvasUtils.backupCtx( this.canvasCtx  )
