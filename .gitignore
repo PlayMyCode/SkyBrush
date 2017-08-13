@@ -1,4 +1,6 @@
 
+*.njsproj
+
 dist
 dist/*
 
