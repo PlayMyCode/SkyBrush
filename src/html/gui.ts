@@ -40,7 +40,7 @@ export class GUI {
     header.appendChild( document.createTextNode(name) )
     header.addEventListener( 'selectstart', () => false )
 
-    header.addEventListener( 'mouseclick', ev => {
+    header.addEventListener( 'mouseclick', ( ev:MouseEvent ) => {
       if ( ev.which !== LEFT ) {
         return
       }
@@ -65,7 +65,7 @@ export class GUI {
     const darkenDom = document.createElement( 'div' )
     darkenDom.className = 'skybrush_gui_darken'
 
-    darkenDom.addEventListener( 'mouseclick', ev => {
+    darkenDom.addEventListener( 'mouseclick', ( ev:MouseEvent ) => {
       if ( ev.which !== LEFT ) {
         return
       }
@@ -123,11 +123,14 @@ export class GUI {
    *
    * @return This GUI object.
    */
-  appendTogether():this {
+  appendTogether(
+      ... doms : HTMLElement[],
+  ):this {
     const guiBlock = html.newDiv( 'skybrush_gui_content_block' )
-    for ( let i = 0; i < arguments.length; i++ ) {
-      guiBlock.appendChild( arguments[i] )
-    }
+
+    doms.forEach( dom => {
+      guiBlock.appendChild( dom )
+    })
 
     this.content.appendChild( guiBlock )
 
@@ -141,10 +144,12 @@ export class GUI {
    * @param dom HTMLElements to append to this GUI container.
    * @return This GUI.
    */
-  appendDirect():this {
-    for ( let i = 0; i < arguments.length; i++ ) {
-      this.content.appendChild( arguments[i] )
-    }
+  appendDirect(
+      ... doms : HTMLElement[],
+  ):this {
+    doms.forEach( dom => {
+      this.content.appendChild( dom )
+    })
 
     return this
   }

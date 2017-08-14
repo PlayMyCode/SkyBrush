@@ -28,6 +28,8 @@ export class Command {
 
   private readonly dom : Nullable<HTMLElement>
 
+  private readonly css : string
+
   private drawArea : Nullable<MinMaxArea>
 
   private isInAttach : boolean
@@ -414,7 +416,7 @@ function newCommandControl(
       defaultField = false
     }
 
-    const checkbox = newInput( 'checkbox', cssID )
+    const checkbox = htmlUtils.newInput( 'checkbox', cssID )
     checkbox.addEventListener( 'change', () => {
       const isChecked = checkbox.checked
 

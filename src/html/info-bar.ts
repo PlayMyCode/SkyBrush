@@ -1,5 +1,6 @@
-
+﻿
 import { isParentChild } from 'util/html'
+import { Nullable } from 'util/function-interfaces'
 
 /**
  * The Info Bar is a scroll down bar for extra settings.
@@ -9,8 +10,8 @@ import { isParentChild } from 'util/html'
  * @param viewport The SkyBrush viewport it is being attached to.
  */
 export class InfoBar {
-  private dom     : HTMLElement
-  private content : HTMLElement
+  private readonly dom     : HTMLElement
+  private readonly content : HTMLElement
 
   constructor( viewport:HTMLElement ) {
     this.content = document.createElement( 'div' )
@@ -22,21 +23,21 @@ export class InfoBar {
     wrap.appendChild( this.content )
 
     this.dom = document.createElement( 'div' )
-    dom.classList.add('skybrush_info_bar')
-    dom.appendChild( wrap )
+    this.dom.classList.add('skybrush_info_bar')
+    this.dom.appendChild( wrap )
 
     viewport.appendChild( this.dom )
   }
 
   show() {
     if ( ! this.isShown() ) {
-      this.dom.addClass( 'sb_show' )
+      this.dom.classList.add( 'sb_show' )
       this.highlightFirstInput()
     }
   }
 
   isShown() {
-    return this.dom.hasClass( 'sb_show' )
+    return this.dom.classList.contains( 'sb_show' )
   }
 
   isTarget( target:HTMLElement ) {
@@ -60,7 +61,7 @@ export class InfoBar {
    * which some browsers may do.
    */
   highlightFirstInput() {
-    const input = this.content.querySelector( 'input[type="text"], input[type="number"]' )
+    const input = this.content.querySelector( 'input[type="text"], input[type="number"]' ) as Nullable<HTMLInputElement>
 
     if ( input ) {
       input.focus()
@@ -68,13 +69,14 @@ export class InfoBar {
     }
   }
 
-  setContent() {
-    this.content.empty()
+  setContent(
+      ... doms : HTMLElement[],
+  ) {
+    this.content.innerHTML = ''
 
-    const argsLen = arguments.length
-    for ( let i = 0; i < argsLen; i++ ) {
-      this.content.append( arguments[i] )
-    }
+    doms.forEach( dom => {
+      this.content.appendChild( dom )
+    })
 
     this.highlightFirstInput()
 

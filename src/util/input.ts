@@ -10,38 +10,68 @@ export const LEFT   = 1
 export const RIGHT  = 2
 export const MIDDLE = 3
 
-/**
- * This is a subset of the moues and touch event.
- */
-export interface PositionEvent {
-  pageX : number
-  pageY : number
+export interface InputEventNode {
+  addEventListener( ev: MouseEventName, c: Consumer<MouseEvent> ): void
+  addEventListener( ev: TouchEventName, c: Consumer<TouchEvent> ): void
 }
+
+export type DragEvent =
+  | MouseEvent
+  | Touch
 
 type MouseEventName =
   | 'click'
   | 'mousedown'
   | 'mouseup'
 
+type TouchEventName =
+  | 'touchdown'
+  | 'touchmove'
+  | 'touchup'
+
 type MouseButton =
   | 1 // LEFT
   | 2 // RIGHT
   | 3 // MIDDLE
 
-export function leftClick( dom: Node, f: Consumer<MouseEvent> ): void {
-  onMouseEvent( dom, 'click', LEFT, f )
+export function leftClick(
+    dom     : InputEventNode,
+    onClick : Consumer<MouseEvent>,
+): void {
+  onMouseEvent( dom, 'click', LEFT, onClick )
 }
 
-export function leftUp( dom: Node, f: Consumer<MouseEvent> ): void {
-  onMouseEvent( dom, 'mouseup', LEFT, f )
+export function leftUp(
+    dom  : Node,
+    onUp : Consumer<MouseEvent> ): void {
+  onMouseEvent( dom, 'mouseup', LEFT, onUp )
 }
 
-export function leftDown( dom: Node, f: Consumer<MouseEvent> ): void {
-  onMouseEvent( dom, 'mousedown', LEFT, f )
+export function leftDown(
+    dom    : Node,
+    onDown : Consumer<MouseEvent>,
+): void {
+  onMouseEvent( dom, 'mousedown', LEFT, onDown )
+}
+
+export function leftDrag(
+    dom    : InputEventNode,
+    onDrag : Consumer<MouseEvent>,
+): void {
+  throw new Error( 'todo, build this' )
+}
+
+export function onDrag(
+    dom : InputEventNode,
+    onDown : Consumer<DragEvent>,
+    onMove : Consumer<DragEvent>,
+    onUp   : Consumer<DragEvent>,
+): void {
+  throw new Error( 'todo, build this' )
 }
 
 function onMouseEvent(
-    dom         : Node,
+    dom         : InputEventNode,
     eventName   : MouseEventName,
     whichButton : MouseButton,
     f : Consumer<MouseEvent>,
@@ -91,7 +121,7 @@ export function forceNumeric(
 }
 
 export function getOffset(
-    ev  : PositionEvent,
+    ev  : DragEvent,
     dom : HTMLElement,
 ): Location {
   const offset = htmlUtils.getOffset( dom )

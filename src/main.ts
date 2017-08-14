@@ -1,4 +1,4 @@
-
+﻿
 import * as constants from 'setup/constants'
 import { SizeArea, Location, Point } from 'util/area'
 import { Nullable, Consumer } from 'util/function-interfaces'
@@ -1629,7 +1629,10 @@ export class CanvasManager {
   private height : number
   private zoom   : number
 
-  constructor( viewport:HTMLElement, painter:skybrush.SkyBrush ) {
+  constructor(
+      viewport : HTMLElement,
+      painter  : skybrush.SkyBrush,
+  ) {
 
     /*
      * Canvas HTML Elements
@@ -1750,8 +1753,8 @@ export class CanvasManager {
    * @param ev A mouse event to translate.
    * @return An object containing 'left' and 'top', referring to where the mouse event occurred.
    */
-  translateLocation( ev:Event ):Location {
-    const pos  = ev.offset( this.canvas )
+  translateLocation( ev:MouseEvent|Touch ):Location {
+    const pos  = inputUtils.getOffset( ev, this.canvas )
     const zoom = this.zoom
 
     pos.left /= zoom
@@ -1764,7 +1767,7 @@ export class CanvasManager {
    * @return The offset of the underlying canvas object.
    */
   offset() {
-    return this.canvas.offset()
+    return htmlUtils.getOffset( this.canvas )
   }
 
   onEndDraw( fun:() => void ):void {
@@ -1926,8 +1929,8 @@ export class CanvasManager {
     const newWidth   = Math.round( this.width  * zoom )
     const newHeight  = Math.round( this.height * zoom )
 
-    const moveX = (canvasParent.width()  - newWidth )/2
-    const moveY = (canvasParent.height() - newHeight)/2
+    const moveX = (canvasParent.clientWidth  - newWidth )/2
+    const moveY = (canvasParent.clientHeight - newHeight)/2
 
     const canvasX = ( moveX >= 0 ?  moveX : 0 )
     const canvasY = ( moveY >= 0 ?  moveY : 0 )
@@ -1937,14 +1940,15 @@ export class CanvasManager {
 
     /* Work out, and animate, the scroll change */
 
-    const hasScrollLeft = viewport.scrollLeftAvailable()
-    const hasScrollTop  = viewport.scrollTopAvailable()
+
+    const scrollTopAvailable  = Math.max( viewport.scrollHeight - viewport.clientHeight, 0 )
+    const scrollLeftAvailable = Math.max( viewport.scrollWidth  - viewport.clientWidth , 0 )
 
     let zoomOffsetX = 0
     let zoomOffsetY = 0
 
     if ( zoomXY ) {
-      if ( hasScrollLeft ) {
+      if ( scrollLeftAvailable > 0 ) {
         /*
          * A value from 0.0 to 1.0, representing the zoom location.
          *
@@ -1969,15 +1973,16 @@ export class CanvasManager {
       }
 
       // and now for the zoom Y
-      if ( hasScrollTop ) {
+      if ( scrollTopAvailable > 0 ) {
         const zoomYP = ( zoomXY.y / this.height )*2 - 1
+
         zoomOffsetY = (newHeight/4) * zoomYP
       }
     }
 
     // If no scroll bar right now, try to scroll to the middle (doesn't matter if it fails).
-    const scrollTopP  = ( hasScrollTop  === 0 ) ? 0.5 : viewport.scrollTopPercent()
-    const scrollLeftP = ( hasScrollLeft === 0 ) ? 0.5 : viewport.scrollLeftPercent()
+    const scrollTopP  = ( scrollTopAvailable  === 0 ) ? 0.5 : ( viewport.scrollTop  / scrollTopAvailable  )
+    const scrollLeftP = ( scrollLeftAvailable === 0 ) ? 0.5 : ( viewport.scrollLeft / scrollLeftAvailable )
 
     const scrollTop  = scrollTopP  * (newHeight - viewport.offsetHeight) + zoomOffsetY
     const scrollLeft = scrollLeftP * (newWidth  - viewport.offsetWidth ) + zoomOffsetX
@@ -2119,8 +2124,8 @@ export class CanvasManager {
       let top = 0
       let left = 0
 
-      const scrollTop  = viewport.scrollTop()
-      const scrollLeft = viewport.scrollLeft()
+      const scrollTop  = viewport.scrollTop
+      const scrollLeft = viewport.scrollLeft
 
       const canvasPos = canvasManagersGetTranslate_hack( canvas )
       if ( canvasWidth < viewWidth ) {
@@ -2344,7 +2349,7 @@ export class CanvasManager {
      * So we just fake a draw event (drawing to top left corner),
      * and it's drawing to the whole canvas (full with/height).
      */
-    const pos = this.viewport.offset()
+    const pos = htmlUtils.getOffset( this.viewport )
     const fakeEv = $.Event( 'mousemove', {
         pageX : pos.left,
         pageY : pos.top,
@@ -2442,9 +2447,8 @@ export class CanvasManager {
 
     const zoom = this.zoom
 
-    // take off 1 to account for the canvas border
-    const scrollTop  = viewport.scrollTop()
-    const scrollLeft = viewport.scrollLeft()
+    const scrollTop  = viewport.scrollTop
+    const scrollLeft = viewport.scrollLeft
 
     // 2) work out how much of the drawing canvas is actually visible
     x = Math.max( x,
@@ -2454,10 +2458,10 @@ export class CanvasManager {
         scrollTop / zoom
     )
     w = Math.min( w,
-        Math.min(canvas.width , viewport.width()/zoom )
+        Math.min(canvas.width , viewport.clientWidth/zoom )
     )
     h = Math.min( h,
-        Math.min(canvas.height, viewport.height()/zoom )
+        Math.min(canvas.height, viewport.clientHeight/zoom )
     )
 
     /* Check for updating outside of the canvas,
@@ -3972,4 +3976,3 @@ const eraser =
 
       return eraser
     })()
-
