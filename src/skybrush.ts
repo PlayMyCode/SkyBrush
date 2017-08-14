@@ -284,7 +284,7 @@ export class SkyBrush {
     const zoomLabel = this.dom.querySelector( '.skybrush_viewport_zoom' )
 
     initializeMainButtons( this, this.dom.querySelector('.skybrush_gui_pane'), pickerCommand )
-    initializeColors( this )
+    initializeColours( this )
     initializeCommands( this, allCommands, pickerCommand )
     initializeSettings( this )
     initializeShortcuts(
@@ -338,7 +338,7 @@ export class SkyBrush {
     this.resize( startingWidth, startingHeight )
         .refreshGUIPaneContentArea()
         .setZoom( constants.DEFAULT_ZOOM )
-        .setColor( constants.DEFAULT_COLOUR )
+        .setColour( constants.DEFAULT_COLOUR )
         .setAlpha( constants.DEFAULT_ALPHA )
         .setCommand( defaultCommand )
 
@@ -1104,7 +1104,7 @@ export class SkyBrush {
    *
    * @param fun The function to call.
    */
-  onSetColor( fun:Consumer<string> ): this {
+  onSetColour( fun:Consumer<string> ): this {
     this.events.add( 'onSetColour', fun )
 
     return this
@@ -1114,17 +1114,17 @@ export class SkyBrush {
     return this.canvas.getAlpha()
   }
 
-  getColor() {
-    return this.canvas.getColor()
+  getColour() {
+    return this.canvas.getColour()
   }
 
   /**
-   * @param strColor The colour to use when drawing.
+   * @param strColour The colour to use when drawing.
    */
-  setColor( strColor:string ):this {
-    this.canvas.setColor( strColor )
+  setColour( strColour:string ):this {
+    this.canvas.setColour( strColour )
 
-    this.events.run( 'onSetColour', strColor )
+    this.events.run( 'onSetColour', strColour )
 
     return this
   }
@@ -1726,18 +1726,18 @@ function initializeMainButtons(
    * The current colour icon, and colour picker
    */
 
-  const currentColorBack = document.createElement( 'div' )
-  currentColorBack.className = 'skybrush_color_picker_current_color_back'
+  const currentColourBack = document.createElement( 'div' )
+  currentColourBack.className = 'skybrush_colour_picker_current_colour_back'
 
-  const currentColorShow = document.createElement( 'div' )
-  currentColorShow.className = 'skybrush_color_picker_current_color'
+  const currentColourShow = document.createElement( 'div' )
+  currentColourShow.className = 'skybrush_colour_picker_current_colour'
 
-  painter.onSetColor( strCol => {
-    currentColorShow.style.background = strCol
+  painter.onSetColour( strCol => {
+    currentColourShow.style.background = strCol
   })
 
   painter.onSetAlpha( alpha => {
-    currentColorShow.style.opacity = alpha
+    currentColourShow.style.opacity = alpha
   })
 
   // colour picker
@@ -1771,8 +1771,8 @@ function initializeMainButtons(
   const colourInfo = document.createElement('div')
   colourInfo.className = 'skybrush_colour_info'
 
-  colourInfo.appendChild( currentColorBack )
-  colourInfo.appendChild( currentColorShow )
+  colourInfo.appendChild( currentColourBack )
+  colourInfo.appendChild( currentColourShow )
   colourInfo.appendChild( picker )
 
   /* finally, put it all togther */
@@ -2065,7 +2065,7 @@ function initializeSettings( painter:SkyBrush ) {
 /**
  * Sets up the colour GUI in the SkyBrush.
  */
-function initializeColors(
+function initializeColours(
     painter : SkyBrush,
 ):void {
 
@@ -2078,44 +2078,44 @@ function initializeColors(
    * There is also *one* click handler, to handle all of the colours.
    */
 
-  let colorsHTML = ''
+  let coloursHTML = ''
   for ( let i = 0; i < constants.DEFAULT_COLOURS.length; i++ ) {
     const col = constants.DEFAULT_COLOURS[i]
 
-    colorsHTML +=
+    coloursHTML +=
         `<a href="#"
-          class="skybrush_colors_palette_color ${ ! constants.IS_TOUCH ? 'sb_hover_border' : '' }"
-          data-color="${col}"
+          class="skybrush_colours_palette_colour ${ ! constants.IS_TOUCH ? 'sb_hover_border' : '' }"
+          data-colour="${col}"
           style="background:${col}"
         >
-          <div class="skybrush_colors_palette_color_border"></div>
+          <div class="skybrush_colours_palette_colour_border"></div>
         </a>`
   }
 
-  const colorsDom = document.createElement( 'div' )
-  colorsDom.className = 'skybrush_colors_palette'
-  colorsDom.innerHTML = colorsHTML
+  const coloursDom = document.createElement( 'div' )
+  coloursDom.className = 'skybrush_colours_palette'
+  coloursDom.innerHTML = coloursHTML
 
-  let currentColor : Nullable<HTMLElement> = null
-  const colors = $( colorsDom )
+  let currentColour : Nullable<HTMLElement> = null
+  const colours = $( coloursDom )
       .killEvent( 'click', 'mousedown' )
       .leftclick(() => {
         return function( ev:MouseEvent ) {
           const target = ev.target
 
-          if ( target.classList.contains('skybrush_colors_palette_color_border') ) {
+          if ( target.classList.contains('skybrush_colours_palette_colour_border') ) {
             target = target.parentNode
           }
 
-          if ( target !== currentColor ) {
-            if ( currentColor !== null ) {
-              currentColor.classList.remove( 'sb_show' )
+          if ( target !== currentColour ) {
+            if ( currentColour !== null ) {
+              currentColour.classList.remove( 'sb_show' )
             }
 
-            currentColor = target
-            currentColor.classList.add( 'sb_show' )
+            currentColour = target
+            currentColour.classList.add( 'sb_show' )
 
-            painter.setColor( currentColor.dataset.color )
+            painter.setColour( currentColour.dataset.colour )
           }
         }
       })
@@ -2145,12 +2145,12 @@ function initializeColors(
 
   const updateHue = ( newHue:number ) => {
     hue = newHue
-    const strBackColor = colourUtils.hsvToColor( newHue, 1.0, 1.0 )
+    const strBackColour = colourUtils.hsvToColour( newHue, 1.0, 1.0 )
 
     // update the back of the mixer
-    colourBack.style.borderTopColor  =
-    colourBack.style.borderLeftColor =
-        strBackColor
+    colourBack.style.borderTopColour  =
+    colourBack.style.borderLeftColour =
+        strBackColour
 
     /* Update the colour wheel */
 
@@ -2163,10 +2163,10 @@ function initializeColors(
   const mixerSize = constants.COLOUR_MIXER_WIDTH
 
   const colourBack = document.createElement('div')
-  colourBack.className = 'skybrush_color_mixer_back'
+  colourBack.className = 'skybrush_colour_mixer_back'
 
   const mixerFront = htmlUtils.newCanvas( mixerSize, mixerSize )
-  mixerFront.classList.add( 'skybrush_color_mixer_color_layer' )
+  mixerFront.classList.add( 'skybrush_colour_mixer_colour_layer' )
   const ctx     = mixerFront.ctx
   const ctxData = ctx.getImageData( 0, 0, mixerSize, mixerSize )
   const data    = ctxData.data
@@ -2198,13 +2198,13 @@ function initializeColors(
   /* The Colour Wheel */
 
   const colourWheelCanvas = htmlUtils.newCanvas( constants.COLOUR_WHEEL_WIDTH, constants.COLOUR_WHEEL_WIDTH )
-  colourWheelCanvas.className = 'skybrush_color_wheel_colour_wheel'
+  colourWheelCanvas.className = 'skybrush_colour_wheel_colour_wheel'
   const wheelCtx  = colourWheelCanvas.getContext( '2d' ) as CanvasRenderingContext2D
   const wheelData = wheelCtx.createImageData( constants.COLOUR_WHEEL_WIDTH, constants.COLOUR_WHEEL_WIDTH )
 
   const wheelLineDom = document.createElement( 'div' )
-  wheelLineDom.className = 'skybrush_color_wheel_line_outer'
-  wheelLineDom.innerHTML = '<div class="skybrush_color_wheel_line"></div>'
+  wheelLineDom.className = 'skybrush_colour_wheel_line_outer'
+  wheelLineDom.innerHTML = '<div class="skybrush_colour_wheel_line"></div>'
 
   const wheelLine = $( wheelLineDom )
   data = wheelData.data
@@ -2237,8 +2237,8 @@ function initializeColors(
           // change the hue
           if ( hypot <= constants.COLOUR_WHEEL_WIDTH/2 ) {
             hue = colourUtils.atan2ToHue( distY, distX )
-            painter.setColor(
-                colourUtils.hsvToColor(
+            painter.setColour(
+                colourUtils.hsvToColour(
                     hue,
                     saturation,
                     value
@@ -2265,7 +2265,7 @@ function initializeColors(
   /* Combine Colour Mixer */
 
   const colourWheelWrap = document.createElement( 'div' )
-  colourWheelWrap.className = 'skybrush_color_wheel_wrap'
+  colourWheelWrap.className = 'skybrush_colour_wheel_wrap'
   colourWheelWrap.appendChild( colourWheelCanvas )
   colourWheelWrap.appendChild( wheelLineDom      )
 
@@ -2278,7 +2278,7 @@ function initializeColors(
       .forwardEvents( mixerFront, 'vmousedown', 'vmousemove' )
 
   const mixer = document.createElement( 'div' )
-  mixer.className = 'skybrush_color_mixer'
+  mixer.className = 'skybrush_colour_mixer'
   mixer.appendChild( colourBack               )
   mixer.appendChild( mixerFront               )
   mixer.appendChild( mixerHorizontal.get(0)   )
@@ -2298,7 +2298,7 @@ function initializeColors(
       value = 1 - ( y / mixerSize )
       saturation = x / ( mixerSize - (1-value)*mixerSize )
 
-      painter.setColor( colourUtils.hsvToColor(hue, saturation, value) )
+      painter.setColour( colourUtils.hsvToColour(hue, saturation, value) )
     }
 
     ev.preventDefault()
@@ -2352,18 +2352,18 @@ function initializeColors(
    * This is used for when the RGB values have been altered,
    * and they need to sync those values to the SkyBrush.
    */
-  const syncRGBFormToCurrentColor = () => {
+  const syncRGBFormToCurrentColour = () => {
     const r = htmlUtils.getInputValue( rInput, 255 )
     const g = htmlUtils.getInputValue( gInput, 255 )
     const b = htmlUtils.getInputValue( bInput, 255 )
 
-    const newColor = colourUtils.rgbToColor( r, g, b )
-    painter.setColor( newColor )
+    const newColour = colourUtils.rgbToColour( r, g, b )
+    painter.setColour( newColour )
   }
 
-  const rWrap = newColourInput( 'r', 'skybrush_rgb_r', false, 255, syncRGBFormToCurrentColor, )
-  const gWrap = newColourInput( 'g', 'skybrush_rgb_g', false, 255, syncRGBFormToCurrentColor, )
-  const bWrap = newColourInput( 'b', 'skybrush_rgb_b', false, 255, syncRGBFormToCurrentColor, )
+  const rWrap = newColourInput( 'r', 'skybrush_rgb_r', false, 255, syncRGBFormToCurrentColour, )
+  const gWrap = newColourInput( 'g', 'skybrush_rgb_g', false, 255, syncRGBFormToCurrentColour, )
+  const bWrap = newColourInput( 'b', 'skybrush_rgb_b', false, 255, syncRGBFormToCurrentColour, )
 
   const rInput = rWrap.lastElementChild as HTMLInputElement
   const gInput = gWrap.lastElementChild as HTMLInputElement
@@ -2387,19 +2387,19 @@ function initializeColors(
    * HSV Form
    */
 
-  const syncHSVFormToCurrentColor = () => {
+  const syncHSVFormToCurrentColour = () => {
     // convert to 0.0 to 1.0 values
     const h = htmlUtils.getInputValue( hInput, 360 ) / 360.0
     const s = htmlUtils.getInputValue( sInput, 100 ) / 100.0
     const v = htmlUtils.getInputValue( vInput, 100 ) / 100.0
-    const hsvColour = colourUtils.hsvToColor( h, s, v )
+    const hsvColour = colourUtils.hsvToColour( h, s, v )
 
-    painter.setColor( hsvColour )
+    painter.setColour( hsvColour )
   }
 
-  const hWrap = newColourInput( 'h', 'skybrush_rgb_h', false, 360, syncHSVFormToCurrentColor, )
-  const sWrap = newColourInput( 's', 'skybrush_rgb_s', false, 100, syncHSVFormToCurrentColor, )
-  const vWrap = newColourInput( 'v', 'skybrush_rgb_v', false, 100, syncHSVFormToCurrentColor, )
+  const hWrap = newColourInput( 'h', 'skybrush_rgb_h', false, 360, syncHSVFormToCurrentColour, )
+  const sWrap = newColourInput( 's', 'skybrush_rgb_s', false, 100, syncHSVFormToCurrentColour, )
+  const vWrap = newColourInput( 'v', 'skybrush_rgb_v', false, 100, syncHSVFormToCurrentColour, )
 
   const hInput = hWrap.lastElementChild as HTMLInputElement
   const sInput = sWrap.lastElementChild as HTMLInputElement
@@ -2415,13 +2415,13 @@ function initializeColors(
 
   /* Alpha Handling */
   const alphaBarLine = document.createElement( 'div' )
-  alphaBarLine.className = 'skybrush_color_alpha_line'
+  alphaBarLine.className = 'skybrush_colour_alpha_line'
 
   const alphaGradient = document.createElement( 'div' )
-  alphaBarLine.className = 'skybrush_color_alpha_gradient'
+  alphaBarLine.className = 'skybrush_colour_alpha_gradient'
 
   const alphaBar = document.createElement( 'div' )
-  alphaBar.className = 'skybrush_color_alpha_bar'
+  alphaBar.className = 'skybrush_colour_alpha_bar'
   alphaBar.appendChild( alphaGradient )
   alphaBar.appendChild( alphaBarLine  )
   alphaBar.addEventListener( 'click', ev => {
@@ -2430,16 +2430,16 @@ function initializeColors(
   })
 
   const alphaWrap = document.createElement('div')
-  alphaWrap.className = 'skybrush_color_alpha_wrap'
+  alphaWrap.className = 'skybrush_colour_alpha_wrap'
   alphaWrap.appendChild( alphaBar )
 
   /* Put the GUI together */
 
-  const currentColor = document.createElement('div')
-  currentColor.className = 'skybrush_color_picker'
-  currentColor.appendChild( hsvForm )
-  currentColor.appendChild( rgbForm )
-  currentColor.appendChild( alphaWrap )
+  const currentColour = document.createElement('div')
+  currentColour.className = 'skybrush_colour_picker'
+  currentColour.appendChild( hsvForm )
+  currentColour.appendChild( rgbForm )
+  currentColour.appendChild( alphaWrap )
 
   const paintModeLabel = document.createElement('div')
   paintModeLabel.className = 'skybrush_command_control_label'
@@ -2467,14 +2467,14 @@ function initializeColors(
   destinationAlpha.appendChild( paintModeLabel )
   destinationAlpha.appendChild( paintModeButton )
 
-  const colorGUI = new GUI( painter, 'Palette', 'colors' )
-      .appendTogether( currentColor, destinationAlpha )
+  const colourGUI = new GUI( painter, 'Palette', 'colours' )
+      .appendTogether( currentColour, destinationAlpha )
       .append( mixer )
 
   const swatchesGUI = new GUI( painter, 'Swatches', 'swatches' )
-      .append( colors )
+      .append( colours )
 
-  painter.addGUI( colorGUI, swatchesGUI )
+  painter.addGUI( colourGUI, swatchesGUI )
 
   /* Now generate the alpha gradient, now the canvas has reflowed */
 
@@ -2503,12 +2503,12 @@ function initializeColors(
    * Update Callbacks for Colour and Alpha
    */
 
-  painter.onSetColor( strColor => {
+  painter.onSetColour( strColour => {
     // update the shown colour
-    alphaBar.style.background = strColor
+    alphaBar.style.background = strColour
 
     // convert #ff9933 colour into r, g, b values
-    const hexStr = strColor.substring( 1, 7 )
+    const hexStr = strColour.substring( 1, 7 )
     const rgb    = parseInt( hexStr, 16 )
 
     const r = (rgb >> 16) & 0xff

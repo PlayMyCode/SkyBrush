@@ -335,7 +335,7 @@ function copyNearestNeighbour(
    *
    * This saves about 10% to 20%
    */
-  let lastColor = 0
+  let lastColour = 0
   let lastAlpha = 255
 
   // location of the pixel in both canvas and overlay
@@ -435,10 +435,10 @@ function copyNearestNeighbour(
             dCtx.globalAlpha = (lastAlpha = ca) / 255.0
           }
 
-          const nextColor = (r << 16) | (g << 8) | b
-          if ( nextColor !== lastColor ) {
-            dCtx.fillStyle = colourUtils.rgbToColor( r, g, b )
-            lastColor = nextColor
+          const nextColour = (r << 16) | (g << 8) | b
+          if ( nextColour !== lastColour ) {
+            dCtx.fillStyle = colourUtils.rgbToColour( r, g, b )
+            lastColour = nextColour
           }
 
           dCtx.fillRect(
@@ -459,7 +459,7 @@ function copyNearestNeighbour(
         }
 
         /*
-          * next color _must_ be hand mixed,
+          * next colour _must_ be hand mixed,
           * because we cannot use cRGB or oRGB.
           *
           * The reason why is because we would have to mix
@@ -468,10 +468,10 @@ function copyNearestNeighbour(
           *
           * So either way, we have mixing : ( .
           */
-        const nextColor = (r << 16) | (g << 8) | b
-        if ( nextColor !== lastColor ) {
-          dCtx.fillStyle = colourUtils.rgbToColor( r, g, b )
-          lastColor = nextColor
+        const nextColour = (r << 16) | (g << 8) | b
+        if ( nextColour !== lastColour ) {
+          dCtx.fillStyle = colourUtils.rgbToColour( r, g, b )
+          lastColour = nextColour
         }
 
         if ( ! includeOverlay ) {
@@ -2759,18 +2759,18 @@ export class CanvasManager {
     }
   }
 
-  getColor():string {
+  getColour():string {
     // We are never setting this to a gradient stroke.
     // So it's ok to force it to be a string, which is an #ffaabb style hex value.
     return this.canvasCtx.strokeStyle as string
   }
 
   getRGB() {
-    const color = this.getColor()
+    const colour = this.getColour()
 
-    const red   = color.substr( 1, 2 )
-    const green = color.substr( 3, 2 )
-    const blue  = color.substr( 5, 2 )
+    const red   = colour.substr( 1, 2 )
+    const green = colour.substr( 3, 2 )
+    const blue  = colour.substr( 5, 2 )
 
     return [
         parseInt( red  , 16 ),
@@ -2780,14 +2780,14 @@ export class CanvasManager {
   }
 
   /**
-   * @param strColor The color to set to this canvas.
+   * @param strColour The colour to set to this canvas.
    */
-  setColor( strColor:string ) {
+  setColour( strColour:string ) {
     this.canvasCtx.strokeStyle =
     this.canvasCtx.fillStyle =
     this.overlayCtx.strokeStyle =
     this.overlayCtx.fillStyle =
-        strColor
+        strColour
   }
 
   useBlendAlpha():this {
@@ -3821,7 +3821,7 @@ const pickerCommand = new Command({
       const rgb = canvas.colourPick( x, y )
 
       if ( rgb !== null ) {
-        painter.setColor( colourUtils.rgbToColor(rgb[0], rgb[1], rgb[2]) )
+        painter.setColour( colourUtils.rgbToColour(rgb[0], rgb[1], rgb[2]) )
         painter.setAlpha( rgb[3] / 255.0 )
       }
     }

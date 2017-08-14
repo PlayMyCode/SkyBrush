@@ -143,12 +143,12 @@ export const DEFAULT_COLOURS = (() => {
    * todo, the rearranging into columns should be done in the GUI.
    * Not here.
    *
-   * Colors are laid out in groups, we then re-arrange so they are
+   * Colours are laid out in groups, we then re-arrange so they are
    * laid out in columns instead, and can be 'just dumped', into the
    * DOM.
    */
-  const colors = [
-      // for colours see: http://en.wikipedia.org/wiki/Web_colors
+  const colours = [
+      // for colours see: http://en.wikipedia.org/wiki/Web_colours
 
       /* Greys */
       '#ffffff',
@@ -203,8 +203,8 @@ export const DEFAULT_COLOURS = (() => {
 
   const cols = new Array()
   for ( let i = 0; i < NUM_COLORS_IN_PALETTE_COLUMN; i++ ) {
-    for ( let j = i; j < colors.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
-      cols.push( colors[j] )
+    for ( let j = i; j < colours.length; j += NUM_COLORS_IN_PALETTE_COLUMN ) {
+      cols.push( colours[j] )
     }
   }
 

@@ -27,12 +27,12 @@ const INT_TO_HEX = [
 ]
 
 /**
- * Converts an RGB color to HSV, and returns the 'value' component.
+ * Converts an RGB colour to HSV, and returns the 'value' component.
  * The 'value' is in the range of 0.0 to 1.0.
  *
- * @param   {number} r       The red color value
- * @param   {number} g       The green color value
- * @param   {number} b       The blue color value
+ * @param   {number} r       The red colour value
+ * @param   {number} g       The green colour value
+ * @param   {number} b       The blue colour value
  * @return  {number} The value of the HSV value, between 0.0 and 1.0.
  */
 export function rgbToHSVValue( r:number, g:number, b:number ):number {
@@ -90,14 +90,14 @@ export function rgbToHSVHue( r:number, g:number, b:number ):number {
 }
 
 /**
- * Converts an RGB color value to HSV. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+ * Converts an RGB colour value to HSV. Conversion formula
+ * adapted from http://en.wikipedia.org/wiki/HSV_colour_space.
  * Assumes r, g, and b are contained in the set [0, 255] and
  * returns h, s, and v in the set [0, 1].
  *
- * @param   {number} r       The red color value
- * @param   {number} g       The green color value
- * @param   {number} b       The blue color value
+ * @param   {number} r       The red colour value
+ * @param   {number} g       The green colour value
+ * @param   {number} b       The blue colour value
  * @return  {Array.<number>} The HSV representation
  */
 export function rgbToHSV(
@@ -280,8 +280,8 @@ export function hsvToG( h:number, s:number, v:number ):number {
 }
 
 /**
- * Converts an HSV color value to RGB. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+ * Converts an HSV colour value to RGB. Conversion formula
+ * adapted from http://en.wikipedia.org/wiki/HSV_colour_space.
  * Assumes h, s, and v are contained in the set [0, 1] and
  * returns r, g, and b in the set [0, 255].
  *
@@ -320,7 +320,7 @@ export function hsvToRGB( h:number, s:number, v:number ):[ number, number, numbe
 
 /**
  * Converts given hsv value, into a hex colour.
- * It's the same as 'rgbToColor', only it takes
+ * It's the same as 'rgbToColour', only it takes
  * HSV values instead.
  *
  * Example result: #d9aa23
@@ -328,9 +328,9 @@ export function hsvToRGB( h:number, s:number, v:number ):[ number, number, numbe
  * @param r The hue.
  * @param s The saturation, 0.0 to 1.0.
  * @param v The value, 0.0 to 1.0.
- * @return {string} A CSS hex string for this color.
+ * @return {string} A CSS hex string for this colour.
  */
-export function hsvToColor( h:number, s:number, v:number ):string {
+export function hsvToColour( h:number, s:number, v:number ):string {
   // hsvToR/G/B returns an int, so no rounding is needed!
   const rHex = INT_TO_HEX[ hsvToR(h, s, v) ]
   const gHex = INT_TO_HEX[ hsvToG(h, s, v) ]
@@ -351,7 +351,7 @@ export function hsvToColor( h:number, s:number, v:number ):string {
  * @param b The blue component.
  * @return The given RGB values combined into a hex string.
  */
-export function rgbToColor( r:number, g:number, b:number ):string {
+export function rgbToColour( r:number, g:number, b:number ):string {
   const rHex = INT_TO_HEX[ (r+0.5) | 0 ]
   const gHex = INT_TO_HEX[ (g+0.5) | 0 ]
   const bHex = INT_TO_HEX[ (b+0.5) | 0 ]
