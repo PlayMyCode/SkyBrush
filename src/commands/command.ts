@@ -1,6 +1,7 @@
 ﻿
 import * as constants from 'setup/constants'
 import * as skybrush from 'skybrush'
+import * as htmlUtils from 'util/html'
 import { MinMaxArea } from 'util/area'
 import { Nullable, Consumer2 } from 'util/function-interfaces'
 
@@ -342,4 +343,255 @@ export class Command {
 
     return this
   }
+}
+
+/**
+ * Creates a new DOM element, for the control given,
+ * all hooked up.
+ *
+ * Control info should provide:
+ *  = name - the name of this control
+ *  = type - checkbox, toggle, slider or another supported type.
+ *  = field - the field that is updated by this control in the command.
+ *
+ * Extra properties include:
+ *  = css - a CSS class added to the final control.
+ *  = value - The default value to set for the field, and it's control.
+ *
+ * Extra properties are also required on a type by type basis.
+ *
+ * @param command The Command that the control info will place their info into.
+ * @param control The control to create a DOM control for, this is the setup info.
+ * @return The HTML control once built.
+ */
+function newCommandControl(
+    command,
+    control,
+    painter:skybrush.SkyBrush,
+) {
+  const name     = control.name
+  const type     = control.type.toLowerCase()
+  const css      = control.css
+  const callback = control.callback
+  const field    = control.field
+  const isCursor = control.cursor || false
+
+  if ( name === undefined ) {
+    throw new Error( "Control is missing 'name' field" )
+  } else if ( type === undefined ) {
+    throw new Error( "Control is missing 'type' field" )
+  } else if ( field === undefined ) {
+    throw new Error( "Control is missing 'field' field" )
+  }
+
+  const cDom = document.createElement( 'div' )
+  cDom.className =
+      'skybrush_control '         +
+      constants.CONTROL_CSS_PREFIX + type   +
+      ((css !== undefined) ?
+          ' sb_' + css :
+          '' )
+
+  const label = document.createElement('div')
+  label.className = 'skybrush_command_control_label'
+  label.innerHTML = name
+  cDom.appendChild( label )
+
+  const cssID = controlNameToCSSID( name )
+
+  let defaultField = (
+      control.hasOwnProperty( 'value' )
+          ? control.value
+          : command[ field ]
+  )
+
+  /*
+   * Create the Dom Element based on it's type.
+   * All supported types are listed here.
+   */
+  if ( type === 'checkbox' ) {
+    if ( defaultField === undefined ) {
+      defaultField = false
+    }
+
+    const checkbox = newInput( 'checkbox', cssID )
+    checkbox.addEventListener( 'change', () => {
+      const isChecked = checkbox.checked
+
+      command[ field ] = isChecked
+      if ( callback ) {
+        callback.call( command, isChecked, painter )
+      }
+
+      if ( isCursor ) {
+        painter.refreshCursor()
+      }
+    })
+
+    if ( command[field] ) {
+      checkbox.setAttribute( 'checked', 'checked' )
+    }
+
+    cDom.appendChild( checkbox )
+  } else if ( type === 'toggle' ) {
+    const cssStates = control.css_options
+    const names = control.name_options
+
+    const numOptions =
+        ( cssStates ? cssStates.length :
+        ( names     ? names.length     :
+                0 ) )
+
+    let option = -1
+
+    const toggle = document.createElement( 'input' )
+    toggle.type = 'button'
+    toggle.classList.add( 'skybrush_input_button' )
+    toggle.classList.add( cssID )
+
+    const switchOption = function() {
+      if ( cssStates && cssStates[option] ) {
+        toggle.classList.remove( cssStates[option] )
+      }
+
+      option = (option+1) % numOptions
+      if ( names ) {
+        toggle.value = `${names[option]}`
+      }
+
+      if ( cssStates && cssStates[option] ) {
+        toggle.classList.add( cssStates[option] )
+      }
+    }
+
+    switchOption()
+
+    toggle.addEventListener( 'click', ev => {
+        ev.stopPropagation()
+        ev.preventDefault()
+        switchOption()
+
+        command[ field ] = option
+        if ( callback ) {
+          callback.call( command, option, painter )
+        }
+
+        if ( isCursor ) {
+          painter.refreshCursor()
+        }
+    } )
+
+    cDom.appendChild( toggle.get(0) )
+  } else if ( type === 'slider' ) {
+    const input = htmlUtils.newNumericInput( false, 'skybrush_input' )
+    const min   = control.min
+    const max   = control.max
+    const step  = control.step || 1
+
+    if ( defaultField === undefined ) {
+      defaultField = Math.max( 1, min )
+    }
+
+    const handleInputChange = ( ev:KeyboardEvent ) => {
+      // key up, and key down
+      if ( ev.keyCode === 38 ) {
+        const val = parseFloat( input.value )
+
+        if ( val < max ) {
+          input.value = `${Math.min( max, val + step )}`
+        }
+
+      } else if ( ev.keyCode === 40 ) {
+        const val = parseFloat( input.value )
+
+        if ( val > min ) {
+          input.value = `${Math.max( min, val - step )}`
+        }
+      }
+
+      requestAnimationFrame(() => {
+        let n = parseInt( input.value )
+
+        if ( isNaN(n) ) {
+          return
+        }
+
+        if ( n >= 1 ) {
+          n = Math.round( n )
+          input.value = `${n}`
+
+          command[ field ] = n
+
+          if ( callback ) {
+            callback.call( command, n, painter )
+          }
+
+          if ( isCursor ) {
+            painter.refreshCursor()
+          }
+        }
+      })
+    }
+
+    input.setAttribute( 'step', step )
+    input.setAttribute( 'min', min )
+    input.setAttribute( 'max', max )
+    input.addEventListener( 'keydown', handleInputChange )
+    input.addEventListener( 'change',  handleInputChange )
+    // initialize
+    input.value = defaultField
+
+    const slider = htmlUtils.newSlider({
+        step  : step,
+        min   : min,
+        max   : max,
+        value : defaultField,
+
+        onChange : n => {
+          command[ field ] = n
+          input.value = `${n}`
+
+          if ( callback ) {
+            callback.call( command, n, painter )
+          }
+
+          if ( isCursor ) {
+            painter.refreshCursor()
+          }
+        }
+    })
+    slider.classList.add( cssID )
+
+    cDom.appendChild( slider )
+    cDom.appendChild( input  )
+
+  } else {
+    throw new Error( `Unknown control setup given` )
+
+  }
+
+  command[ field ] = defaultField
+
+  return cDom
+}
+
+/**
+ * Used for turning a control name into a CSS class, for
+ * id purposes.
+ *
+ * Essentially it's so if I have a control called 'zoom'
+ * then this is turned into a CSS class, and attached to
+ * the control. This is for internal use, and shouldn't
+ * clash with anything else.
+ *
+ * This class can then be used again later, for finding
+ * the control.
+ *
+ * @const
+ * @nosideeffects
+ * @param name The name to translate
+ * @return The CSS identifier for the given name.
+ */
+function controlNameToCSSID( name:string ) {
+  return `${constants.CONTROL_ID_CSS_PREFIX}${name.toLowerCase()}`
 }

@@ -1,5 +1,8 @@
 
+import * as inputUtils from 'util/input'
 import * as mathsUtils from 'util/maths'
+import { Consumer2 } from 'util/function-interfaces'
+import { Location } from 'util/area'
 
 const HTML_TO_ELEMENT_DOM = document.createElement('div')
 
@@ -10,10 +13,22 @@ export interface ScrollBarSize {
 
 let cachedScrollbarWidth = -1
 
+export interface SliderOptions {
+  min   : number
+  max   : number
+  step  : number
+  value : number
+
+  onChange : Consumer2<number, number>
+}
+
 /**
  * @return A new HTML5 Canvas.
  */
-export function newCanvas( width : number, height : number ):HTMLCanvasElement {
+export function newCanvas(
+    width  : number,
+    height : number,
+):HTMLCanvasElement {
   const canvas = document.createElement( 'canvas' )
 
   canvas.width  = width
@@ -50,6 +65,114 @@ export function newAnchor( text:string ):HTMLAnchorElement {
 
 export function newDiv( className:string ):HTMLElement {
   return newEl( 'div', className )
+}
+
+/**
+ * A very simple function. Makes a new div HTML element, sets the text
+ * given inside of it, sets the class, and then returns the div.
+ */
+export function newTextDiv( className:string, textContent:string ) {
+  const div = document.createElement( 'div' )
+
+  div.textContent = textContent
+  div.className = className
+
+  return div
+}
+
+export function newNumericInput( isDecimal:boolean, className:string ) {
+  const input = newInput( 'number', className )
+
+  inputUtils.forceNumeric( input, isDecimal )
+
+  return input
+}
+
+/**
+ * A generic, reusable, horizontal slider.
+ *
+ * You can use the 'slide' method to attach functions to be called when this
+ * slides.
+ *
+ * You can also add any classes to it.
+ *
+ * ASCII art impression of control:
+ *
+ *   -------[]---
+ *
+ * This will use the input 'range' type where available.
+ *
+ * @return A jQuery object (a div), which is pre-built and setup as a slider.
+ */
+/*
+ * Ok, so how does this work? Either a HTML5 input range or a custom
+ * slider gets generated.
+ *
+ * This then has an API directly pasted onto the object which is the
+ * most *basic* API possible. Direct getters and setters, and visual
+ * cues, that's it.
+ *
+ * They both have a more complex API built on top, which is the API
+ * that does the 'slideUp', 'slideDown', setting and running of slide
+ * events.
+ *
+ * The idea is to push the clever code up the stack, so it's shared,
+ * and keep the lower code where it's different as basic as possible.
+ */
+export function newSlider( options:SliderOptions ) {
+  const sliderBarInput = newInput( 'range', 'skybrush_slider_bar' )
+
+  // default min/max/step values
+  sliderBarInput.min   = options.min + ''
+  sliderBarInput.max   = options.max + ''
+  sliderBarInput.step  = options.step + ''
+  sliderBarInput.value = options.value + ''
+
+  /**
+   * Allows adding slide events, run when this slides.
+   */
+  const onChange = options.onChange
+  sliderBarInput.addEventListener( 'change', () => {
+    const val = parseFloat( sliderBarInput.value )
+    const min = parseFloat( sliderBarInput.min   )
+    const max = parseFloat( sliderBarInput.max   )
+
+    const p = mathsUtils.rangeToPercent( val, min, max )
+
+    onChange( val, p )
+  })
+
+  return sliderBarInput
+}
+
+export function newInput( type:string, className:string ) {
+  const input = document.createElement( 'input' )
+
+  input.setAttribute( 'type', type )
+  input.className = className
+
+  return input
+}
+
+export function newButton(
+    text    : string,
+    klass   : string,
+    onClick : () => void,
+) {
+  const dom = document.createElement( 'a' )
+  dom.href = '#'
+
+  dom.textContent = text
+  dom.className   = klass
+
+  dom.addEventListener( 'click', ev => {
+    ev.stopPropagation()
+    ev.preventDefault()
+
+    onClick()
+  })
+
+  return dom
 }
 
 export function newEl( name:string, className:string ):HTMLElement {
@@ -141,4 +264,26 @@ function scrollBarWidth() {
   }
 
   return cachedScrollbarWidth
+}
+
+export function getOffset(
+    dom : HTMLElement,
+): Location {
+  let offsetLeft = 0
+  let offsetTop  = 0
+
+  do {
+    if ( ! isNaN(dom.offsetLeft) ) {
+        offsetLeft += dom.offsetLeft
+    }
+
+    if ( ! isNaN(dom.offsetTop) ) {
+        offsetTop += dom.offsetTop
+    }
+  } while( dom = dom.offsetParent as HTMLElement )
+
+  return {
+    left : offsetLeft,
+    top  : offsetTop,
+  }
 }

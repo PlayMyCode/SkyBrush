@@ -1,5 +1,7 @@
 ﻿
 import { Consumer } from 'util/function-interfaces'
+import { Location } from 'util/area'
+import * as htmlUtils from 'util/html'
 
 /**
  * Mouse constants, so the code is more readable.
@@ -7,6 +9,14 @@ import { Consumer } from 'util/function-interfaces'
 export const LEFT   = 1
 export const RIGHT  = 2
 export const MIDDLE = 3
+
+/**
+ * This is a subset of the moues and touch event.
+ */
+export interface PositionEvent {
+  pageX : number
+  pageY : number
+}
 
 type MouseEventName =
   | 'click'
@@ -80,3 +90,14 @@ export function forceNumeric(
   })
 }
 
+export function getOffset(
+    ev  : PositionEvent,
+    dom : HTMLElement,
+): Location {
+  const offset = htmlUtils.getOffset( dom )
+
+  return {
+    left : ev.pageX - offset.left,
+    top  : ev.pageY - offset.top,
+  }
+}

@@ -1,4 +1,9 @@
 ﻿
+export type ExportImageType =
+  | 'image/png'
+  | 'image/webp'
+  | { type: 'image/jpeg', encoderOptions: number }
+
 export interface CtxBackupProperties {
   fillStyle                : FillStyle
   strokeStyle              : StrokeStyle

@@ -1,15 +1,24 @@
-﻿
+
 import * as constants from 'setup/constants'
-import { Point } from 'util/area'
+import { CanvasManager } from 'main'
+import { Command } from 'commands/command'
+import { BrushCursor } from 'cursor/brush-cursor'
+import { GUI } from 'html/gui'
+import { InfoBar } from 'html/info-bar'
+import { MinMaxArea, Point } from 'util/area'
 import { Consumer, Consumer2, Consumer3, Nullable } from 'util/function-interfaces'
+import { newCheckerboard } from 'html/checkerboard'
+import * as events from 'util/events'
 import * as htmlUtils from 'util/html'
 import * as mathsUtils from 'util/maths'
+import * as canvasUtils from 'util/canvas'
+import * as colourUtils from 'util/colours'
 
-export interface SkyBrushOptions<T> {
+export interface SkyBrushOptions {
   grab_ctrl_r ? : boolean
   width       ? : number
   height      ? : number
-  callback    ? : Consumer<T>
+  callback    ? : Consumer<SkyBrush>
 }
 
 interface DraggingEvents {
@@ -24,6 +33,18 @@ type AltShiftSkipState =
 
 type ProcessDragEvent =
   ( ev:MouseEvent, left:number, top:number ) => void
+
+type SkyBrushEvents =
+  | 'resize'
+  | 'onDraw'
+  | 'onZoom'
+  | 'onShift'
+  | 'onAlt'
+  | 'onSetAlpha'
+  | 'onSetColour'
+  | 'onSetCommand'
+  | 'onUndo'
+  | 'onRedo'
 
 /**
  * The main entry point for creating a new SkyBrush
@@ -82,7 +103,8 @@ type ProcessDragEvent =
  *
  *     <div class="skybrush"></div>
  *
- *     const app = new SkyBrush( $('.skybrush') )
+ *     const skybrushDom = document.querySelector( '.skybrush' )
+ *     const app = new SkyBrush( skybrushDom )
  *     app.newImage( 320, 240 )
  *
  *
@@ -116,27 +138,26 @@ type ProcessDragEvent =
  * or even ignoring input.
  */
 export class SkyBrush {
-  private dom           : HTMLElement
-  private guiPane       : HTMLElement
-  private guiDom        : HTMLElement
-  private viewport      : HTMLElement
+  private dom      : HTMLElement
+  private guiPane  : HTMLElement
+  private guiDom   : HTMLElement
+  private viewport : HTMLElement
 
-  private events        : EventHandler
-  private canvas        : CanvasManager
-  private infoBar       : InfoBar
-  private brushCursor   : BrushCursor
+  private readonly events        : events.Handler<this, SkyBrushEvents>
+  private readonly canvas        : CanvasManager
+  private readonly infoBar       : InfoBar
+  private readonly brushCursor   : BrushCursor
 
-  private guis          : GUI[] = []
+  private readonly guis          : GUI[] = []
 
   // this is to reduce the width of the content area in the GUI pane,
   // when those GUIs are collapsed.
 
   private guiPaneContentWidthSubtract = 0
-  private infoBar       : InfoBar
 
-  private command       : Command
-  private commands      : Command[]
-  private pickerCommand : Command|null
+  private readonly commands      : Command[]
+  private readonly pickerCommand : Nullable<Command>
+  private command : Nullable<Command>
 
 
 
@@ -162,7 +183,7 @@ export class SkyBrush {
 
   constructor(
       container : HTMLElement,
-      options  ?: SkyBrushOptions<this>,
+      options   : SkyBrushOptions = {},
   ) {
     if ( ! container ) {
       if ( arguments.length === 0 ) {
@@ -172,14 +193,6 @@ export class SkyBrush {
       }
     }
 
-    /*
-     * Turn options into an empty object if not provided,
-     * this makes the options checking much simpler.
-     */
-    if ( ! options ) {
-      options = {}
-    }
-
     container.innerHTML = ''
     container.classList.add( 'skybrush' )
 
@@ -187,13 +200,11 @@ export class SkyBrush {
       container.classList.add( 'sb_ios' )
     }
 
-    if ( DISABLE_CONTEXT_MENU ) {
-      container.addEventListener( 'contextmenu', ev => {
-        ev.preventDefault()
+    container.addEventListener( 'contextmenu', ev => {
+      ev.preventDefault()
 
-        return false
-      })
-    }
+      return false
+    })
 
     // create the basic SkyBrush layout
     this.dom = htmlUtils.htmlToElement(
@@ -219,30 +230,26 @@ export class SkyBrush {
     // gui pane stuff
     //
 
-    this.guiPane  = this.dom.querySelector( '.skybrush_gui_pane' )
-    this.guiDom   = this.guiPane.querySelector( '.skybrush_gui_pane_content' )
+    this.guiPane  = this.dom.querySelector( '.skybrush_gui_pane' ) as HTMLElement
+    this.guiDom   = this.guiPane.querySelector( '.skybrush_gui_pane_content' ) as HTMLElement
 
-    this.viewport = this.dom.querySelector( '.skybrush_viewport_content' ).
-        dblclick( ev => {
-          ev.stopPropagation()
-          ev.preventDefault()
-        }).
-        on( 'DOMMouseScroll mousewheel wheel', ev => {
-          if ( ev.shiftKey ) {
-            ev.stopPropagation()
-            ev.preventDefault()
+    this.viewport = this.dom.querySelector( '.skybrush_viewport_content' ) as HTMLElement
+    this.viewport.on( 'DOMMouseScroll mousewheel wheel', ev => {
+      if ( ev.shiftKey ) {
+        ev.stopPropagation()
+        ev.preventDefault()
 
-            const scrollDir = ev.originalEvent.wheelDelta
+        const scrollDir = ev.originalEvent.wheelDelta
 
-            if ( scrollDir < 0 ) {
-              this.zoomOut()
-            } else if ( scrollDir > 0 ) {
-              this.zoomIn()
-            }
-          }
-        })
+        if ( scrollDir < 0 ) {
+          this.zoomOut()
+        } else if ( scrollDir > 0 ) {
+          this.zoomIn()
+        }
+      }
+    })
 
-    this.events = new events.Handler( this )
+    this.events = new events.Handler<this, SkyBrushEvents>( this )
     this.canvas = new CanvasManager( this.viewport, this )
 
     // initialized laterz
@@ -274,15 +281,19 @@ export class SkyBrush {
     this.commands = allCommands
     this.pickerCommand = pickerCommand
 
-    const zoomLabel = dom.querySelector( '.skybrush_viewport_zoom' )
+    const zoomLabel = this.dom.querySelector( '.skybrush_viewport_zoom' )
 
-    initializeMainButtons( this, dom.querySelector('.skybrush_gui_pane'), pickerCommand )
+    initializeMainButtons( this, this.dom.querySelector('.skybrush_gui_pane'), pickerCommand )
     initializeColors( this )
     initializeCommands( this, allCommands, pickerCommand )
     initializeSettings( this )
-    initializeShortcuts( this, (options.grab_ctrl_r === false) )
+    initializeShortcuts(
+        this,
+        (options.grab_ctrl_r === false),
+        pickerCommand,
+    )
 
-    this.infoBar = new InfoBar( dom )
+    this.infoBar = new InfoBar( this.dom )
 
     this.brushCursor = new BrushCursor( this.viewport, IS_TOUCH )
 
@@ -313,10 +324,10 @@ export class SkyBrush {
     /* ## GUI related events ## */
 
     /* Handle GUI dragging. */
-    $(document)
-        .bind('vmousedown', (ev) => { return this.runMouseDown(ev) })
-        .bind('vmousemove', (ev) => { return this.runMouseMove(ev) })
-        .bind('vmouseup'  , (ev) => { return this.runMouseUp(ev)   })
+    $( document )
+        .bind( 'vmousedown', ev => { return this.runMouseDown(ev) })
+        .bind( 'vmousemove', ev => { return this.runMouseMove(ev) })
+        .bind( 'vmouseup'  , ev => { return this.runMouseUp(ev)   })
 
     const startingWidth  = options.width  || constants.DEFAULT_WIDTH
     const startingHeight = options.height || constants.DEFAULT_HEIGHT
@@ -324,12 +335,12 @@ export class SkyBrush {
     const defaultCommand = this.getCommand( constants.DEFAULT_COMMAND ) || this.commands[1]
 
     // Finally, set defaults
-    this.setSize( startingWidth, startingHeight ).
-        refreshGUIPaneContentArea().
-        setZoom( constants.DEFAULT_ZOOM ).
-        setColor( constants.DEFAULT_COLOUR ).
-        setAlpha( constants.DEFAULT_ALPHA ).
-        setCommand( defaultCommand )
+    this.resize( startingWidth, startingHeight )
+        .refreshGUIPaneContentArea()
+        .setZoom( constants.DEFAULT_ZOOM )
+        .setColor( constants.DEFAULT_COLOUR )
+        .setAlpha( constants.DEFAULT_ALPHA )
+        .setCommand( defaultCommand )
 
     this.canvas.resetUndoRedo()
 
@@ -346,7 +357,9 @@ export class SkyBrush {
 
     if ( options.callback ) {
       requestAnimationFrame(() => {
-        options.callback( this )
+        if ( options.callback ) {
+          options.callback( this )
+        }
       })
     }
   }
@@ -373,12 +386,14 @@ export class SkyBrush {
 
     const keyTest = newKeyEventTest( key )
 
-    return this.onKeyInteraction( null, ev => {
+    return this.onKeyInteraction( 'keydown', ev => {
       if ( (ev.ctrlKey || ev.metaKey) && keyTest(ev) ) {
         fun.call( this, ev )
 
         return false
       }
+
+      return undefined
     })
   }
 
@@ -431,10 +446,10 @@ export class SkyBrush {
    * @return This SkyBrush instance (for method chaining).
    */
   private onKey(
-      key      : string,
+      key      : string|number,
       callback : Consumer<KeyboardEvent>,
   ):this {
-    return this.onKey3( null, key, callback )
+    return this.onKey3( 'keydown', key, callback )
   }
 
   /**
@@ -453,8 +468,8 @@ export class SkyBrush {
    * For attaching to those, use the 'onCtrl' method.
    */
   private onKey3(
-      event: null | 'keyup' | 'keydown',
-      key:string,
+      event: 'keydown' | 'keyup',
+      key:string|number,
       callback:Consumer<KeyboardEvent>,
   ):this {
     const keyTest = newKeyEventTest( key )
@@ -495,7 +510,7 @@ export class SkyBrush {
    * @return This SkyBrush instance.
    */
   onKeyToggle(
-      key:string,
+      key:string|number,
       callback:( ev:KeyboardEvent ) => void
   ):this {
     return this
@@ -522,28 +537,23 @@ export class SkyBrush {
    * @param fun The callback to run on key input.
    * @return This SkyBrush instance (for method chaining).
    */
-  onKeyInteraction(
-      event: null | 'keydown' | 'keyup',
-      fun:( ev:KeyboardEvent ) => void
+  private onKeyInteraction(
+      event : 'keydown' | 'keyup',
+      fun   : Consumer<KeyboardEvent>,
   ) {
     if ( ! event ) {
       event = 'keydown'
     }
 
-    $(document)[event]((ev) => {
+    this.dom.addEventListener( event, ev => {
       if (
-          ! this.isBusy()                    &&
-            this.keysEnabled                 &&
-            this.dom.is( ':visible' )        &&
-          ! $(ev.target).is( 'input' )       &&
+          ! this.isBusy()                             &&
+            this.keysEnabled                          &&
+          ! ( ev.target instanceof HTMLInputElement ) &&
             fun.call( this, ev ) === false
       ) {
         ev.preventDefault()
         ev.stopPropagation()
-
-        return false
-      } else {
-        return undefined
       }
     })
 
@@ -596,7 +606,9 @@ export class SkyBrush {
     )
   }
 
-  runMouseUp( ev:MouseEvent ):false {
+  runMouseUp( ev:MouseEvent ) {
+    ev.preventDefault()
+
     if ( this.isDragging() ) {
       this.processDrag( this.dragging.onEnd, ev )
 
@@ -615,8 +627,6 @@ export class SkyBrush {
         this.brushCursor.hideTouch()
       }
     }
-
-    return false
   }
 
   runMouseDown( ev:MouseEvent ) {
@@ -677,7 +687,7 @@ export class SkyBrush {
     return false
   }
 
-  processOnDraw( ev:MouseEvent ) {
+  processOnDraw( ev:MouseEvent ):boolean {
     if ( this.isPainting ) {
       ev.preventDefault()
 
@@ -685,6 +695,8 @@ export class SkyBrush {
 
       return true
     }
+
+    return false
   }
 
   /**
@@ -733,38 +745,29 @@ export class SkyBrush {
    *
    * The GUIs are built as a chain of GUIs, each attached to the next in turn.
    *
-   * @private
    * @param gui The GUI component to display.
    */
-  addGUI( gui:GUI ):this {
-    const startI = 0
-    const last:GUI|null = null
+  addGUI( last:GUI, ... guis:GUI[] ):this {
+    const isFirstGui = ( this.guis.length === 0 )
 
-    // -- the first ever gui added to this
-    if ( this.guis.length === 0 ) {
-      startI = 1
-
-      last = arguments[0]
-
-      last.setPainter( this )
-      this.guiDom.appendChild( last.dom )
-      this.guis.push( last )
+    if ( isFirstGui ) {
+      this.guiDom.appendChild( last.getDom() )
 
     // -- a gui was already added before this call
     } else {
-      startI = 0
+      const previousCallGui = this.guis[ this.guis.length - 1 ]
+      previousCallGui.setSiblingGUI( last )
 
-      last = this.guis[ this.guis.length - 1 ]
     }
 
-    for ( let i = startI; i < arguments.length; i++ ) {
-      const gui = arguments[i]
+    this.guis.push( last )
 
-      gui.setPainter( this )
+    guis.forEach( gui => {
       last.setSiblingGUI( gui )
-
       this.guis.push( gui )
-    }
+
+      last = gui
+    })
 
     return this
   }
@@ -777,10 +780,9 @@ export class SkyBrush {
    *
    * @param {number} width The new width.
    * @param {number} height The new height.
-   * @param {boolean} clear Optional, pass in true to clear the canvas during the resize.
    */
-  setSize( newWidth:number, newHeight:number, clear:boolean ): this {
-    this.canvas.setSize( newWidth, newHeight, clear )
+  setSize( newWidth:number, newHeight:number ): this {
+    this.canvas.setSize( newWidth, newHeight, true )
 
     return this
   }
@@ -991,7 +993,7 @@ export class SkyBrush {
    * @param True if shift is now down, false if not, or skip this to run all events.
    * @return This SkyBrush instance.
    */
-  runOnShift( shiftDown:booean ):this {
+  runOnShift( shiftDown:boolean ):this {
     if ( this.shiftOrAltSkip === 'shift' ) {
       const shiftUp = ! shiftDown
 
@@ -1013,7 +1015,7 @@ export class SkyBrush {
     return this
   }
 
-  runOnAlt( altDown:booean ):this {
+  runOnAlt( altDown:boolean ):this {
     if ( this.shiftOrAltSkip === 'alt' ) {
       const altUp = ! altDown
 
@@ -1081,7 +1083,7 @@ export class SkyBrush {
     }
 
     this.canvas.setAlpha( alpha )
-    this.events.run( 'onsetalpha', this.canvas.getAlpha() )
+    this.events.run( 'onSetAlpha', this.canvas.getAlpha() )
 
     return this
   }
@@ -1092,7 +1094,7 @@ export class SkyBrush {
    * @param fun The function to call.
    */
   onSetAlpha( fun:Consumer<number> ): this {
-    this.events.add( 'onsetalpha', fun )
+    this.events.add( 'onSetAlpha', fun )
 
     return this
   }
@@ -1103,7 +1105,7 @@ export class SkyBrush {
    * @param fun The function to call.
    */
   onSetColor( fun:Consumer<string> ): this {
-    this.events.add( 'onsetcolor', fun )
+    this.events.add( 'onSetColour', fun )
 
     return this
   }
@@ -1122,13 +1124,13 @@ export class SkyBrush {
   setColor( strColor:string ):this {
     this.canvas.setColor( strColor )
 
-    this.events.run( 'onsetcolor', strColor )
+    this.events.run( 'onSetColour', strColor )
 
     return this
   }
 
   onSetCommand( fun:Consumer2<Command, Command> ):this {
-    this.events.add( 'onsetcommand', fun )
+    this.events.add( 'onSetCommand', fun )
 
     return this
   }
@@ -1168,7 +1170,7 @@ export class SkyBrush {
       this.command = command
       command.onAttach( this )
 
-      this.events.run( 'onsetcommand', command, lastCommand )
+      this.events.run( 'onSetCommand', command, lastCommand )
     }
 
     return this
@@ -1189,10 +1191,10 @@ export class SkyBrush {
    * @param name Finds the command listed in SkyBrush.
    * @return The currently set command, or null if you call it before any command is set.
    */
-  getCommand( name:string ):Command {
+  getCommand( name:string ):Nullable<Command> {
     name = name.toLowerCase()
 
-    if ( this.pickerCommand.getName().toLowerCase() === name ) {
+    if ( this.pickerCommand !== null && this.pickerCommand.getName().toLowerCase() === name ) {
       return this.pickerCommand
     }
 
@@ -1207,29 +1209,18 @@ export class SkyBrush {
     return null
   }
 
-  getCurrentCommand():Command {
+  getCurrentCommand():Nullable<Command> {
     return this.command
   }
 
   /**
-   * The parameter given, is optional. If given, then the cursor is only
-   * refreshed, if the currently set command, is the same as the one given.
+   * This refreshes the current cursor, for the command currently set.
    *
-   * This is so you can just do ...
-   *
-   *    painter.refreshCommand( this )
-   *
-   * ... and not care if you are or aren't the current command.
-   *
-   * @param Only refresh, if this is the currently set command.
+   * Many commands may have different cursors for their different states,
+   * and so call this to get a new cursor set after a change has been perforemd.
    */
-  refreshCursor( command:Command ):this {
-    /*
-     * Incase this is called right at the beginning,
-     * during the setup phase, before any commands have
-     * been set.
-     */
-    if ( this.command && (arguments.length === 0 || this.command === command) ) {
+  refreshCursor():this {
+    if ( this.command ) {
       this.brushCursor.setCommandCursor( this, this.command )
     }
 
@@ -1237,17 +1228,9 @@ export class SkyBrush {
   }
 
   /**
-   * @param ev The event to check.
-   * @return True if the given event is located inside of the SkyBrush viewport, otherwise false.
-   */
-  isInView( ev:Event ):boolean {
-    return ev.isWithin( this.viewport )
-  }
-
-  /**
    * @return A data url for the current contents in SkyBrush.
    */
-  getImageData( imageType:string ):string {
+  exportAsDataUrl( imageType:canvasUtils.ExportImageType = 'image/png' ):string {
     return this.canvas.toDataURL( imageType )
   }
 
@@ -1257,65 +1240,57 @@ export class SkyBrush {
    * It will be available during a future JS event
    * (add an 'onload' event to the image to know when it's ready).
    *
-   * @return A HTML Image holding the items drawn on the canvas.
+   * @return A promise for an Image holding the items drawn on the canvas.
    */
-  getImage():Image {
+  exportAsImage():Promise<HTMLImageElement> {
     const img = new Image()
 
-    img.width  = this.canvas.width
-    img.height = this.canvas.height
-    img.src    = this.getImageData()
+    img.width  = this.canvas.getWidth()
+    img.height = this.canvas.getHeight()
+    img.src    = this.exportAsDataUrl( 'image/png' )
 
-    return img
+    return new Promise(( resolve, reject ) => {
+      img.onload = () => {
+        resolve( img )
+      }
+
+      img.onerror = () => {
+        reject()
+      }
+    })
   }
 
   /**
-   * Sets an image, or canvas, as the contents of this SkyBrush.
+   * Sets an image as the contents of this SkyBrush.
    * The SkyBrush is resised to accomodate the image.
    *
-   * To give the user more options, you can pass in the width/height of the image.
-   * This is used when SkyBrush makes it's own copy for editing.
-   * Otherwise if those are undefined, it'll use the width/height of image.
-   *
    * @param image The image to display on this canvas.
-   * @param width (optional) the width of the image.
-   * @param height (optional) the height of the image.
    */
-  setImage( image:Image, width?:number, height?:number ):this {
-    this.canvas.setImage( image, width, height )
+  setImage( image:HTMLImageElement ):this {
+    this.canvas.setImage( image, image.naturalWidth, image.naturalHeight )
+
+    return this
+  }
+
+  /**
+   * Cleares the current image.
+   */
+  clear(): this {
+    this.canvas.clear()
     this.reset()
 
     return this
   }
 
-  /**
-   * Cleares SkyBrush, and sets it up ready for an entirely new image.
-   * This will be reset in order to achieve this.
-   *
-   * The width and height are optional, if not provided then
-   * the standard default width/height will be used.
-   *
-   * @param width  Optional, the width of the new image.
-   * @param height Optional, the height of the new image.
-   */
-  newImage(): this;
-  newImage( width:number, height:number ): this;
-  newImage( width?:number, height?:number ): this {
-    const newWidth  = ( width|0) || constants.DEFAULT_WIDTH
-    const newHeight = (height|0) || constants.DEFAULT_HEIGHT
-
-    return this
-        .setSize( newWidth, newHeight, true )
-        .reset()
-  }
-
   cut(): this {
     this.canvas.cut()
+
     return this
   }
 
   copy(): this {
     this.canvas.copy()
+
     return this
   }
 
@@ -1337,13 +1312,13 @@ export class SkyBrush {
   }
 
   onUndo( fun:() => void ):this {
-    this.events.add( 'onundo', fun )
+    this.events.add( 'onUndo', fun )
 
     return this
   }
 
   onRedo( fun:() => void ):this {
-    this.events.add( 'onredo', fun )
+    this.events.add( 'onRedo', fun )
 
     return this
   }
@@ -1355,7 +1330,7 @@ export class SkyBrush {
    */
   undo():this {
     if ( this.canvas.undo() ) {
-      this.events.run( 'onundo' )
+      this.events.run( 'onUndo' )
     }
 
     return this
@@ -1368,7 +1343,7 @@ export class SkyBrush {
    */
   redo():this {
     if ( this.canvas.redo() ) {
-      this.events.run( 'onredo' )
+      this.events.run( 'onRedo' )
     }
 
     return this
@@ -1624,4 +1599,2123 @@ function normalizeKey( key:string ):string {
   }
 
   return key
+}
+
+function initializeMainButtons(
+    painter,
+    wrap,
+    pickerCommand,
+) {
+  const undoButton = newButton( 'Undo', 'skybrush_header_button sb_disabled', () => {
+    if ( ! undoButton.classList.contains('sb_disabled') ) {
+      painter.undo()
+    }
+  })
+
+  const redoButton = newButton( 'Redo', 'skybrush_header_button sb_disabled', () => {
+    painter.getInfoBar().hide()
+
+    if ( ! undoButton.classList.contains('sb_disabled') ) {
+      painter.redo()
+    }
+  })
+
+  undoButton.setAttribute( 'title', 'Undo | shortcut: ctrl+z' )
+  redoButton.setAttribute( 'title', 'Redo | shortcut: ctrl+r or ctrl+y' )
+
+  const updateUndoRedo = function() {
+    if ( painter.hasUndo() ) {
+      undoButton.classList.remove('sb_disabled')
+    } else {
+      undoButton.classList.add('sb_disabled')
+    }
+
+    if ( painter.hasRedo() ) {
+      redoButton.classList.remove('sb_disabled')
+    } else {
+      redoButton.classList.add('sb_disabled')
+    }
+  }
+
+  painter
+      .onUndo( updateUndoRedo )
+      .onRedo( updateUndoRedo )
+      .onDraw( updateUndoRedo )
+
+
+  /*
+   * Open / Close toggle
+   */
+
+  const openToggle = htmlUtils.newAnchor( '' )
+  openToggle.innerHTML = '<div class="skybrush_open_toggle_text">&#x1F845</div>'
+  openToggle.className = 'skybrush_header_button skybrush_open_toggle'
+  inputUtils.leftClick( openToggle, () => {
+    painter.toggleGUIPane()
+  })
+
+  /*
+   * Zoom In / Out
+   */
+
+  const zoomIn = newButton( '+', 'sb_zoom_in skybrush_header_button', () => {
+    painter.zoomIn()
+  })
+
+  const zoomOut = newButton( '-', 'sb_zoom_out skybrush_header_button', () => {
+    painter.zoomOut()
+  })
+
+   zoomIn.setAttribute( 'title', 'Zoom In | shortcut: ctrl+='  )
+  zoomOut.setAttribute( 'title', 'Zoom Out | shortcut: ctrl+-' )
+
+  /*
+   * Copy + Paste
+   */
+
+  const copy = newButton( 'Copy', 'skybrush_button sb_disabled sb_absolute', () => {
+    painter.getInfoBar().hide()
+
+    if ( ! cut.classList.contains('sb_disabled') ) {
+      painter.copy()
+    }
+  })
+
+  const cut = newButton( 'Cut', 'skybrush_button sb_disabled sb_absolute', () => {
+    painter.getInfoBar().hide()
+
+    if ( ! cut.classList.contains('sb_disabled') ) {
+      painter.cut()
+    }
+  })
+
+  const paste = newButton( 'Paste', 'skybrush_button sb_disabled sb_absolute', () => {
+    painter.getInfoBar().hide()
+
+    if ( ! cut.classList.contains('sb_disabled') ) {
+      painter.paste()
+    }
+  })
+
+   copy.setAttribute( 'title', 'Copy Selection | shortcut: ctrl+c'  )
+    cut.setAttribute( 'title', 'Cut Selection | shortcut: ctrl+x'   )
+  paste.setAttribute( 'title', 'Paste Selection | shortcut: ctrl+v' )
+
+  painter
+      .getCanvas()
+      .onClip( clippingArea => {
+        if ( clippingArea !== null ) {
+          copy.classList.remove('sb_disabled')
+           cut.classList.remove('sb_disabled')
+        } else {
+          copy.classList.add('sb_disabled')
+           cut.classList.add('sb_disabled')
+        }
+      })
+      .onCopy(() => {
+        paste.classList.remove( 'sb_disabled' )
+      })
+
+  const copyButtons = document.createElement( 'div' )
+  copyButtons.className = 'skybrush_main_buttons'
+  copyButtons.appendChild(  copy )
+  copyButtons.appendChild(   cut )
+  copyButtons.appendChild( paste )
+
+  /*
+   * The current colour icon, and colour picker
+   */
+
+  const currentColorBack = document.createElement( 'div' )
+  currentColorBack.className = 'skybrush_color_picker_current_color_back'
+
+  const currentColorShow = document.createElement( 'div' )
+  currentColorShow.className = 'skybrush_color_picker_current_color'
+
+  painter.onSetColor( strCol => {
+    currentColorShow.style.background = strCol
+  })
+
+  painter.onSetAlpha( alpha => {
+    currentColorShow.style.opacity = alpha
+  })
+
+  // colour picker
+  const pickerCommandBack = document.createElement( 'div' )
+  pickerCommandBack.className = 'skybrush_command_back'
+
+  const pickerButton = document.createElement( 'a' )
+  pickerButton.title = pickerCommand.getCaption()
+  pickerButton.addEventListener( 'click', (ev) => {
+      painter.setCommand( pickerCommand )
+
+      ev.preventDefault()
+      ev.stopPropagation()
+  })
+
+  const picker = document.createElement('div')
+  picker.className = 'skybrush_gui_command ' + pickerCommand.getCSS()
+  picker.appendChild( pickerCommandBack )
+  picker.appendChild( pickerButton )
+
+  painter.onSetCommand( command => {
+    if ( command === pickerCommand ) {
+      picker.classList.add( 'sb_selected' )
+    } else {
+      picker.classList.remove( 'sb_selected' )
+    }
+  })
+
+  // colour info wrap
+
+  const colourInfo = document.createElement('div')
+  colourInfo.className = 'skybrush_colour_info'
+
+  colourInfo.appendChild( currentColorBack )
+  colourInfo.appendChild( currentColorShow )
+  colourInfo.appendChild( picker )
+
+  /* finally, put it all togther */
+
+  /*
+   * This is a special gui, more special than the others,
+   * so he gets put aside on his own, to watch over toggling the panel
+   * open.
+   */
+  const gui = new GUI( painter, [ openToggle, zoomOut, zoomIn, undoButton, redoButton ], 'main', false )
+      .appendDirect( copyButtons, colourInfo )
+
+  wrap.append( gui.dom )
+}
+
+/**
+ * Sets up the 'Canvas' GUI pane,
+ * which has options like resize, scale, grid,
+ * clear, and crop.
+ */
+function initializeSettings( painter:SkyBrush ) {
+
+  /*
+   * Resize & Scale
+   */
+
+  const infoOption = function(
+      name,
+      onSuccess,
+      extraComponents,
+  ) {
+    let isConstrained = false
+
+    return newButton( name, 'skybrush_button', 'sb_absolute', () => {
+      const width  = painter.getCanvas().getWidth()
+      const height = painter.getCanvas().getHeight()
+
+      const widthInput  = newNumericInput( false, 'sb_width' )
+      widthInput.value = width
+      widthInput.setAttribute( 'maxlength', 5 )
+
+      const heightInput = newNumericInput( false, 'sb_height' )
+      heightInput.value = height
+      heightInput.setAttribute( 'maxlength', 5 )
+
+      const constrain = newInput( 'checkbox', 'constrain' )
+      constrain.checked = isConstrained
+
+      /*
+       * Update the width/height in the other
+       * input, when the value changes in this one,
+       * if we're using 'constrain proportions'.
+       */
+      widthInput.addEventListener( 'keydown', () => {
+        /*
+         * setTimeout is used because the input.val is
+         * only updated after this has fully bubbled up.
+         * So we run the code straight after.
+         */
+        if ( constrain.checked ) {
+          requestAnimationFrame( () => {
+            const w = widthInput.value | 0
+
+            if ( ! isNaN(w) && w > 0 ) {
+              heightInput.value = Math.round( height * (w/width) )
+            }
+          })
+        }
+      })
+
+      heightInput.addEventListener( 'keydown', () => {
+        if ( constrain.checked ) {
+          requestAnimationFrame(() => {
+            const h = heightInput.value|0
+
+            if ( ! isNaN(h) && h > 0 ) {
+              widthInput.value = Math.round( width * (h/height) )
+            }
+          })
+        }
+      })
+
+      /*
+       * Reset the width/height when the user
+       * turns the constrain property on.
+       */
+      constrain.addEventListener( 'change', () => {
+        isConstrained = constrain.checked
+
+        if ( isConstrained ) {
+          widthInput.value  = width
+          heightInput.value = height
+        }
+      })
+
+      const form = document.createElement( 'form' )
+      form.setAttribute( 'action', '' )
+      form.addEventListener( 'submit', (ev) => {
+        ev.preventDefault()
+
+        const content = painter.getInfoBar().getContent()
+
+        onSuccess.call(
+            this,
+            widthInput.value  |0,
+            heightInput.value |0
+        )
+
+        painter.getInfoBar().hide()
+      }, false)
+
+      const okButton = newInput( 'submit', '' )
+      okButton.setAttribute( 'value', 'ok' )
+      okButton.addEventListener( 'mousedown', (ev) => {
+        ev.stopPropagation()
+      })
+      okButton.addEventListener( 'click', (ev) => {
+        ev.stopPropagation()
+        form.submit()
+      })
+
+      form.appendChild( newTextDiv( 'skybrush_info_label', 'Width:'    ) )
+      form.appendChild( widthInput  )
+
+      form.appendChild( newTextDiv( 'skybrush_info_label', 'Height:'   ) )
+      form.appendChild( heightInput )
+
+      form.appendChild( newTextDiv( 'skybrush_info_label', 'Relative:' ) )
+      form.appendChild( constrain   )
+
+      if ( extraComponents ) {
+        extraComponents( form )
+      }
+
+      form.appendChild( okButton )
+
+      painter
+          .getInfoBar()
+          .setContent( form )
+          .show()
+    })
+  }
+
+  const resize = infoOption( 'Canvas Size',
+      ( w, h ) => {
+        painter.resize( w, h )
+      }
+  )
+
+  let isSmooth = false
+  const scale = infoOption( 'Image Size',
+      ( w, h ) => {
+        painter.scale( w, h, scale.querySelector('input.smooth').checked )
+      },
+
+      ( form ) => {
+        const smooth = newInput( 'checkbox', 'smooth' )
+        if ( isSmooth ) {
+          smooth.setAttribute( 'checked', 'checked' )
+        }
+
+        smooth.addEventListener( 'change', function() {
+          isSmooth = smooth.checked
+        })
+
+        form.appendChild( newTextDiv('skybrush_info_label', 'Smooth') )
+        form.appendChild( smooth )
+      }
+  )
+
+  const grid = newButton( 'Grid', 'skybrush_button', 'sb_absolute', (ev) => {
+    const grid = painter.getCanvas().getGrid()
+
+    /*
+     * grid width & height
+     */
+
+    const wInput = newNumericInput( false, '' )
+    wInput.addEventListener( 'keypress', updateSize )
+    wInput.addEventListener( 'click'   , updateSize )
+    wInput.addEventListener( 'change'  , updateSize )
+
+    const hInput = newNumericInput( false, '' )
+    wInput.addEventListener( 'keypress', updateSize )
+    wInput.addEventListener( 'click'   , updateSize )
+    wInput.addEventListener( 'change'  , updateSize )
+
+    wInput.value = grid.getWidth()
+    hInput.value = grid.getHeight()
+
+    const updateSize = function() {
+      requestAnimationFrame(() => {
+        const w = wInput.value | 0
+        const h = hInput.value | 0
+
+        grid.setSize( w, h )
+      })
+    }
+
+    /*
+     * grid offset x & y
+     */
+
+    const offsetX = newNumericInput( false, '' )
+    offsetX.addEventListener( 'keypress', updateOffset )
+    offsetX.addEventListener( 'click'   , updateOffset )
+    offsetX.addEventListener( 'change'  , updateOffset )
+
+    const offsetY = newNumericInput( false, '' )
+    offsetY.addEventListener( 'keypress', updateOffset )
+    offsetY.addEventListener( 'click'   , updateOffset )
+    offsetY.addEventListener( 'change'  , updateOffset )
+
+    offsetX.value = grid.getOffsetX()
+    offsetY.value = grid.getOffsetY()
+
+    const updateOffset = function() {
+      requestAnimationFrame(() => {
+        const oX = offsetX.value | 0
+        const oY = offsetY.value | 0
+
+        grid.setOffset( oX, oY )
+      })
+    }
+
+    /*
+     * the show checkbox
+     */
+
+    const show = newInput( 'checkbox', '' )
+    show.checked = grid.isShown()
+    show.addEventListener( 'change', () => {
+      if ( show.checked ) {
+        grid.show()
+      } else {
+        grid.hide()
+      }
+    })
+
+    /*
+     * put it all together
+     */
+
+    painter.getInfoBar().setContent(
+        newTextDiv( 'skybrush_info_label',  'Width:'    ),
+        wInput,
+        newTextDiv( 'skybrush_info_label',  'Height:'   ),
+        hInput,
+
+        newTextDiv( 'skybrush_info_label',  'X Offset:' ),
+        offsetX,
+        newTextDiv( 'skybrush_info_label',  'Y Offset:' ),
+        offsetY,
+
+        newTextDiv( 'skybrush_info_label',  'Show:'     ),
+        show
+    ).show()
+  })
+
+  /* Clear Canvas */
+  const crop = newButton( 'Crop', 'skybrush_button', 'sb_absolute', () => {
+    painter.getInfoBar().hide()
+    painter.getCanvas().crop()
+  })
+  crop.setAttribute( 'title', 'Crop Image, ctrl+e' )
+
+  const clear = newButton('Clear', 'skybrush_button', 'sb_absolute', () => {
+    painter.getInfoBar().hide()
+
+    if ( clear.classList.contains('sb_disabled') ) {
+      painter.getCanvas().clear()
+    }
+  })
+  clear.setAttribute( 'title', 'Clear Image, delete' )
+
+  const commonControls = document.createElement('div')
+  commonControls.classList.add( 'skybrush_topbar_button_group' )
+  commonControls.appendChild( resize )
+  commonControls.appendChild( scale )
+  commonControls.appendChild( grid )
+  commonControls.appendChild( clear )
+  commonControls.appendChild( crop )
+
+  const gui = new GUI( painter, 'Canvas', 'canvas' )
+      .appendDirect( resize, scale, grid, clear, crop )
+
+  painter.addGUI( gui )
+}
+
+/**
+ * Sets up the colour GUI in the SkyBrush.
+ */
+function initializeColors(
+    painter : SkyBrush,
+):void {
+
+  /*
+   * Colour Palette
+   *
+   * As a small optimization, this builds the palette out of HTML, and
+   * then just turns it into a dom in one.
+   *
+   * There is also *one* click handler, to handle all of the colours.
+   */
+
+  let colorsHTML = ''
+  for ( let i = 0; i < constants.DEFAULT_COLOURS.length; i++ ) {
+    const col = constants.DEFAULT_COLOURS[i]
+
+    colorsHTML +=
+        `<a href="#"
+          class="skybrush_colors_palette_color ${ ! constants.IS_TOUCH ? 'sb_hover_border' : '' }"
+          data-color="${col}"
+          style="background:${col}"
+        >
+          <div class="skybrush_colors_palette_color_border"></div>
+        </a>`
+  }
+
+  const colorsDom = document.createElement( 'div' )
+  colorsDom.className = 'skybrush_colors_palette'
+  colorsDom.innerHTML = colorsHTML
+
+  let currentColor : Nullable<HTMLElement> = null
+  const colors = $( colorsDom )
+      .killEvent( 'click', 'mousedown' )
+      .leftclick(() => {
+        return function( ev:MouseEvent ) {
+          const target = ev.target
+
+          if ( target.classList.contains('skybrush_colors_palette_color_border') ) {
+            target = target.parentNode
+          }
+
+          if ( target !== currentColor ) {
+            if ( currentColor !== null ) {
+              currentColor.classList.remove( 'sb_show' )
+            }
+
+            currentColor = target
+            currentColor.classList.add( 'sb_show' )
+
+            painter.setColor( currentColor.dataset.color )
+          }
+        }
+      })
+
+  /*
+   * Colour Mixer
+   *
+   * This is added at the end so we don't have to hard code
+   * the mixer width. Instead we just use whatever width the
+   * Colours GUI is.
+   */
+
+  /* Render size is the size of the canvas to display the colour info.
+   * Mixer size is the size used internally.
+   *
+   * Mixer is 1 pixel smaller because the overlay horizontal/vertical lines
+   * are 1 pixel out at the far edge.
+   * So this corrects that.
+   */
+
+  /**
+   * Used for storing values across events.
+   */
+  let hue        = 0
+  let saturation = 0
+  let value      = 0
+
+  const updateHue = ( newHue:number ) => {
+    hue = newHue
+    const strBackColor = colourUtils.hsvToColor( newHue, 1.0, 1.0 )
+
+    // update the back of the mixer
+    colourBack.style.borderTopColor  =
+    colourBack.style.borderLeftColor =
+        strBackColor
+
+    /* Update the colour wheel */
+
+    const angleDeg = Math.round( (hue*360) - 180 )
+    const rotation = `rotate(${angleDeg}deg)`
+
+    wheelLineDom.style.transform = rotation
+  }
+
+  const mixerSize = constants.COLOUR_MIXER_WIDTH
+
+  const colourBack = document.createElement('div')
+  colourBack.className = 'skybrush_color_mixer_back'
+
+  const mixerFront = htmlUtils.newCanvas( mixerSize, mixerSize )
+  mixerFront.classList.add( 'skybrush_color_mixer_color_layer' )
+  const ctx     = mixerFront.ctx
+  const ctxData = ctx.getImageData( 0, 0, mixerSize, mixerSize )
+  const data    = ctxData.data
+
+  // Needed for Dev versions of Chrome, or the canvas is blank when updated.
+  // Also _must_ be after we get the image data out.
+  // It's to get it to 'wake up' and 'work'.
+  ctx.fillRect( 0, 0, 100, 100 )
+
+  for ( let y = 0; y < mixerSize; y++ ) {
+    const yP = 1 - y/mixerSize
+    const mixerWidth = mixerSize-y
+
+    for ( let x = 0; x < mixerWidth; x++ ) {
+      const i  = (y*mixerSize + x) * 4
+      const xP = 1 - x/mixerSize
+
+      // set RGB to the same col, so it's grey
+      data[i] = data[i + 1] = data[i + 2] =
+          ( 255*yP*xP + 0.5 ) | 0
+
+      // set alpha
+      data[i + 3] = ( 255*xP + 0.5 ) | 0
+    }
+  }
+
+  ctx.putImageData( ctxData, 0, 0 )
+
+  /* The Colour Wheel */
+
+  const colourWheelCanvas = htmlUtils.newCanvas( constants.COLOUR_WHEEL_WIDTH, constants.COLOUR_WHEEL_WIDTH )
+  colourWheelCanvas.className = 'skybrush_color_wheel_colour_wheel'
+  const wheelCtx  = colourWheelCanvas.getContext( '2d' ) as CanvasRenderingContext2D
+  const wheelData = wheelCtx.createImageData( constants.COLOUR_WHEEL_WIDTH, constants.COLOUR_WHEEL_WIDTH )
+
+  const wheelLineDom = document.createElement( 'div' )
+  wheelLineDom.className = 'skybrush_color_wheel_line_outer'
+  wheelLineDom.innerHTML = '<div class="skybrush_color_wheel_line"></div>'
+
+  const wheelLine = $( wheelLineDom )
+  data = wheelData.data
+
+  const colourWheelHalfWidth = ( constants.COLOUR_WHEEL_WIDTH/2 ) | 0
+  let i = 0
+  for ( let y = 0; y < constants.COLOUR_WHEEL_WIDTH; y++ ) {
+    for ( let x = 0; x < constants.COLOUR_WHEEL_WIDTH; x++ ) {
+      const paintHue = colourUtils.atan2ToHue( colourWheelHalfWidth - y, colourWheelHalfWidth - x )
+
+      data[i  ] = colourUtils.hsvToR( paintHue, 1, 1 )
+      data[i+1] = colourUtils.hsvToG( paintHue, 1, 1 )
+      data[i+2] = colourUtils.hsvToB( paintHue, 1, 1 )
+      data[i+3] = 255
+
+      i += 4
+    }
+  }
+
+  wheelCtx.putImageData( wheelData, 0, 0 )
+
+  const colourWheel = $( colourWheelCanvas )
+      .killEvent( 'click' )
+      .leftdrag( ev => {
+          const pos   = inputUtils.getOffset( ev, colourWheel )
+          const distX = constants.COLOUR_WHEEL_WIDTH/2 - pos.left
+          const distY = constants.COLOUR_WHEEL_WIDTH/2 - pos.top
+          const hypot = Math.sqrt( distX*distX + distY*distY )
+
+          // change the hue
+          if ( hypot <= constants.COLOUR_WHEEL_WIDTH/2 ) {
+            hue = colourUtils.atan2ToHue( distY, distX )
+            painter.setColor(
+                colourUtils.hsvToColor(
+                    hue,
+                    saturation,
+                    value
+                )
+            )
+
+            updateHue( hue )
+
+            ev.preventDefault()
+
+          /*
+           * it's right on the edge of the colour mixer,
+           * technically inside, but visually outside.
+           *
+           * So we send the event somewhere else.
+           */
+          } else {
+            mixerFront.trigger( ev )
+          }
+      })
+
+  wheelLine.forwardEvents( colourWheel, 'vmousemove', 'vmousedown' )
+
+  /* Combine Colour Mixer */
+
+  const colourWheelWrap = document.createElement( 'div' )
+  colourWheelWrap.className = 'skybrush_color_wheel_wrap'
+  colourWheelWrap.appendChild( colourWheelCanvas )
+  colourWheelWrap.appendChild( wheelLineDom      )
+
+  const mixerHorizontal = $('<div>')
+      .addClass( 'skybrush_mixer_horizontal_line' )
+      .forwardEvents( mixerFront, 'vmousedown', 'vmousemove' )
+
+  const mixerVertical = $('<div>')
+      .addClass( 'skybrush_mixer_vertical_line' )
+      .forwardEvents( mixerFront, 'vmousedown', 'vmousemove' )
+
+  const mixer = document.createElement( 'div' )
+  mixer.className = 'skybrush_color_mixer'
+  mixer.appendChild( colourBack               )
+  mixer.appendChild( mixerFront               )
+  mixer.appendChild( mixerHorizontal.get(0)   )
+  mixer.appendChild( mixerVertical.get(0)     )
+  mixer.appendChild( colourWheelWrap          )
+
+  mixerFront.leftdrag( ev => {
+    const pos = ev.offset( mixerFront )
+
+    const x = Math.max( pos.left, 0 )
+    const y = Math.max( pos.top , 0 )
+
+    if (
+        x < mixerSize-y &&
+        y < mixerSize-x
+    ) {
+      value = 1 - ( y / mixerSize )
+      saturation = x / ( mixerSize - (1-value)*mixerSize )
+
+      painter.setColor( colourUtils.hsvToColor(hue, saturation, value) )
+    }
+
+    ev.preventDefault()
+  })
+
+  /* Current Colour Info */
+
+  /* Create the RGB lebel/inputs in the form. */
+  const newColourInput = function(
+      name       : string,
+      css        : string,
+      isDecimal  : boolean,
+      max        : number,
+      inputEvent : Consumer<InputEvent>,
+  ):HTMLInputElement {
+    const label = document.createElement('div')
+    label.className = 'skybrush_rgb_label'
+    label.innerHTML = name
+
+    const input = newNumericInput( isDecimal, 'skybrush_rgb_input ' + css )
+    input.maxLength = 3
+    input.min  = 0
+    input.max  = max
+    input.step = ( isDecimal ? 0.01 : 1 )
+
+    input.addEventListener( 'change', inputEvent )
+    input.addEventListener( 'keypress', ev => {
+      requestAnimationFrame(() => {
+        inputEvent.call( input, ev )
+      })
+    })
+
+    input.addEventListener( 'blur', ev => {
+      input.value = htmlUtils.getInputValue( input, max )
+      inputEvent.call( input, ev )
+    })
+
+    // todo, this should not exist. The label should be the wrap, not the div.
+    const inputWrap = document.createElement( 'div' )
+    inputWrap.className = 'skybrush_rgb_wrap'
+    inputWrap.appendChild( label )
+    inputWrap.appendChild( input )
+
+    return inputWrap
+  }
+
+  /**
+   * Grabs the RGB values in the form,
+   * and sets them as the current colour in the SkyBrush.
+   *
+   * This is used for when the RGB values have been altered,
+   * and they need to sync those values to the SkyBrush.
+   */
+  const syncRGBFormToCurrentColor = () => {
+    const r = htmlUtils.getInputValue( rInput, 255 )
+    const g = htmlUtils.getInputValue( gInput, 255 )
+    const b = htmlUtils.getInputValue( bInput, 255 )
+
+    const newColor = colourUtils.rgbToColor( r, g, b )
+    painter.setColor( newColor )
+  }
+
+  const rWrap = newColourInput( 'r', 'skybrush_rgb_r', false, 255, syncRGBFormToCurrentColor, )
+  const gWrap = newColourInput( 'g', 'skybrush_rgb_g', false, 255, syncRGBFormToCurrentColor, )
+  const bWrap = newColourInput( 'b', 'skybrush_rgb_b', false, 255, syncRGBFormToCurrentColor, )
+
+  const rInput = rWrap.lastElementChild as HTMLInputElement
+  const gInput = gWrap.lastElementChild as HTMLInputElement
+  const bInput = bWrap.lastElementChild as HTMLInputElement
+
+  const aWrap  = newColourInput( 'a', 'rgb_a', true, 1.0, () => {
+    const val = htmlUtils.getInputValue( this, 1.0 )
+    painter.setAlpha( val )
+  })
+
+  const aInput = aWrap.lastElementChild as HTMLInputElement
+
+  const rgbForm = document.createElement( 'div' )
+  rgbForm.className = 'skybrush_rgb_form'
+  rgbForm.appendChild( rWrap )
+  rgbForm.appendChild( gWrap )
+  rgbForm.appendChild( bWrap )
+  rgbForm.appendChild( aWrap )
+
+  /*
+   * HSV Form
+   */
+
+  const syncHSVFormToCurrentColor = () => {
+    // convert to 0.0 to 1.0 values
+    const h = htmlUtils.getInputValue( hInput, 360 ) / 360.0
+    const s = htmlUtils.getInputValue( sInput, 100 ) / 100.0
+    const v = htmlUtils.getInputValue( vInput, 100 ) / 100.0
+    const hsvColour = colourUtils.hsvToColor( h, s, v )
+
+    painter.setColor( hsvColour )
+  }
+
+  const hWrap = newColourInput( 'h', 'skybrush_rgb_h', false, 360, syncHSVFormToCurrentColor, )
+  const sWrap = newColourInput( 's', 'skybrush_rgb_s', false, 100, syncHSVFormToCurrentColor, )
+  const vWrap = newColourInput( 'v', 'skybrush_rgb_v', false, 100, syncHSVFormToCurrentColor, )
+
+  const hInput = hWrap.lastElementChild as HTMLInputElement
+  const sInput = sWrap.lastElementChild as HTMLInputElement
+  const vInput = vWrap.lastElementChild as HTMLInputElement
+
+  const hsvForm = document.createElement( 'div' )
+  hsvForm.className = 'skybrush_hsv_form'
+  hsvForm.appendChild( hWrap )
+  hsvForm.appendChild( sWrap )
+  hsvForm.appendChild( vWrap )
+
+
+
+  /* Alpha Handling */
+  const alphaBarLine = document.createElement( 'div' )
+  alphaBarLine.className = 'skybrush_color_alpha_line'
+
+  const alphaGradient = document.createElement( 'div' )
+  alphaBarLine.className = 'skybrush_color_alpha_gradient'
+
+  const alphaBar = document.createElement( 'div' )
+  alphaBar.className = 'skybrush_color_alpha_bar'
+  alphaBar.appendChild( alphaGradient )
+  alphaBar.appendChild( alphaBarLine  )
+  alphaBar.addEventListener( 'click', ev => {
+    ev.stopPropagation()
+    ev.preventDefault()
+  })
+
+  const alphaWrap = document.createElement('div')
+  alphaWrap.className = 'skybrush_color_alpha_wrap'
+  alphaWrap.appendChild( alphaBar )
+
+  /* Put the GUI together */
+
+  const currentColor = document.createElement('div')
+  currentColor.className = 'skybrush_color_picker'
+  currentColor.appendChild( hsvForm )
+  currentColor.appendChild( rgbForm )
+  currentColor.appendChild( alphaWrap )
+
+  const paintModeLabel = document.createElement('div')
+  paintModeLabel.className = 'skybrush_command_control_label'
+  paintModeLabel.innerHTML = 'Paint Mode'
+
+  const paintModeButton = document.createElement( 'input' )
+  paintModeButton.className = 'skybrush_input_button'
+  paintModeButton.type = 'button'
+  paintModeButton.value = 'Normal'
+  paintModeButton.addEventListener( 'change', () => {
+    const mode = this.value
+    const c = painter.getCanvas()
+
+    if ( mode === 'Normal' ) {
+      mode = 'Mask'
+      c.useDestinationAlpha()
+    } else {
+      mode = 'Normal'
+      c.useBlendAlpha()
+    }
+  })
+
+  const destinationAlpha = document.createElement('div')
+  destinationAlpha.className = 'skybrush_destination_alpha'
+  destinationAlpha.appendChild( paintModeLabel )
+  destinationAlpha.appendChild( paintModeButton )
+
+  const colorGUI = new GUI( painter, 'Palette', 'colors' )
+      .appendTogether( currentColor, destinationAlpha )
+      .append( mixer )
+
+  const swatchesGUI = new GUI( painter, 'Swatches', 'swatches' )
+      .append( colors )
+
+  painter.addGUI( colorGUI, swatchesGUI )
+
+  /* Now generate the alpha gradient, now the canvas has reflowed */
+
+  const alphaCanvas = newCheckerboard(
+      alphaGradient.width(),
+      alphaGradient.height(),
+      true,
+  )
+
+  const updateAlphaFun = ( ev:Event ) => {
+    const pos = $(alphaCanvas).offset()
+    const h   = $(alphaCanvas).height()
+
+    const y = mathsUtils.limit( ev.pageY - pos.top, 0, h )
+    painter.setAlpha( y / h )
+
+    ev.preventDefault()
+  }
+
+  $( alphaCanvas ).leftdrag( updateAlphaFun )
+  $( alphaBar    ).leftdrag( updateAlphaFun )
+
+  alphaGradient.replaceWith( alphaCanvas )
+
+  /*
+   * Update Callbacks for Colour and Alpha
+   */
+
+  painter.onSetColor( strColor => {
+    // update the shown colour
+    alphaBar.style.background = strColor
+
+    // convert #ff9933 colour into r, g, b values
+    const hexStr = strColor.substring( 1, 7 )
+    const rgb    = parseInt( hexStr, 16 )
+
+    const r = (rgb >> 16) & 0xff
+    const g = (rgb >>  8) & 0xff
+    const b =  rgb & 0xff
+
+    const hasRGBFocus =
+        ( document.activeElement === rInput ) ||
+        ( document.activeElement === gInput ) ||
+        ( document.activeElement === bInput )
+
+    const hasHSVFocus =
+        ( document.activeElement === hInput ) ||
+        ( document.activeElement === sInput ) ||
+        ( document.activeElement === vInput )
+
+    if ( ! hasRGBFocus ) {
+      // and set the values
+      rInput.value = r
+      gInput.value = g
+      bInput.value = b
+    }
+
+    /* Update the Colour Mixer */
+
+    // convert colour to full hue
+    const newHue = colourUtils.rgbToHSVHue( r, g, b )
+
+    // cache these for laterz
+    saturation = colourUtils.rgbToHSVSaturation( r, g, b )
+    value = colourUtils.rgbToHSVValue( r, g, b )
+
+    if ( ! hasHSVFocus ) {
+      sInput.value = Math.round( saturation * 100 )
+      vInput.value = Math.round( value * 100      )
+    }
+
+    /* Update X/Y location of the overlay bars */
+    const xVal = saturation  // saturation
+    const yVal = (1 - value) // value
+
+    const colXWidth  = mixerSize - yVal*mixerSize
+    const colYHeight = mixerSize
+
+    const colX = xVal * colXWidth
+    const colY = yVal * colYHeight
+
+    mixerVertical
+        .translate( colX, 0 )
+        .height(
+            mathsUtils.limit(
+                (mixerSize - colX) + constants.COLOUR_MIXER_MIN_WIDTH,
+                constants.COLOUR_MIXER_MIN_WIDTH,
+                constants.COLOUR_MIXER_WIDTH
+            )
+        )
+
+    mixerHorizontal
+        .translate( 0, colY )
+        .width(
+            mathsUtils.limit(
+                (mixerSize - colY) + constants.COLOUR_MIXER_MIN_WIDTH,
+                constants.COLOUR_MIXER_MIN_WIDTH,
+                constants.COLOUR_MIXER_WIDTH
+            )
+        )
+
+    /* Update Hue
+     *
+     * Skip hue update for greys (when saturation == 0), as it's always red.
+     */
+
+    if ( saturation > 0 || hue === undefined ) {
+      updateHue( newHue )
+
+      if ( ! hasHSVFocus ) {
+        hInput.value = Math.round( newHue * 360 )
+      }
+    }
+  })
+
+  painter.onSetAlpha( alpha => {
+    const y = Math.floor( alpha*alphaBar.clientHeight )
+    alphaBarLine.translate( 0, y )
+
+    // if it does not have focus
+    if ( aInput !== document.activeElement ) {
+      // concat alpha down to just two decimal places
+      aInput.value = alpha.toFixed(2)
+    }
+  })
+}
+
+/**
+ * Creates and sets up the Commands GUI.
+ *
+ * @param painter The SkyBrush application.
+ */
+function initializeCommands(
+    painter:SkyBrush,
+    commandsList:Command[],
+    picker:Nullable<Command>,
+):void {
+  const commands = document.createElement( 'div' )
+  commands.className = 'skybrush_commands_pane'
+
+  const controlsWrap = document.createElement('div')
+  controlsWrap.className = 'skybrush_command_controls'
+
+  for ( let i = 0; i < commandsList.length; i++ ) {
+    const c = commandsList[i]
+
+    const command = document.createElement( 'div' )
+    command.className = 'skybrush_gui_command ' + c.css
+    command.__command = c
+
+    const commandBack = document.createElement( 'div' )
+    commandBack.className = 'skybrush_command_back'
+    command.appendChild( commandBack )
+
+    const commandButton = document.createElement('a')
+    commandButton.href = '#'
+    commandButton.title = c.getCaption()
+
+    $( commandButton ).vclick((ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+
+      painter.setCommand( c )
+    })
+
+    command.appendChild( commandButton )
+    commands.appendChild( command )
+
+    controlsWrap.appendChild( c.createControlsDom(painter) )
+  }
+
+  if ( picker ) {
+    controlsWrap.appendChild( picker.createControlsDom(painter) )
+  }
+
+  const commandsGUI = new GUI( painter, 'Tools', 'commands' )
+      .append( commands )
+
+  const commandControlsGUI = new GUI( painter, 'Tool Settings', 'command_settings' )
+      .append( controlsWrap )
+
+  painter.addGUI( commandsGUI, commandControlsGUI )
+
+  // hook up the selection changes directly into the SkyBrush it's self
+  painter.onSetCommand(( command, lastCommand ) => {
+    const commandDoms = commands.getElementsByClassName( 'skybrush_gui_command' )
+    for ( let i = 0; i < commandDoms.length; i++ ) {
+      const commandDom = commandDoms[i]
+
+      if ( commandDom.__command === command ) {
+        commandDom.classList.add( 'sb_selected' )
+      } else if ( commandDom.classList.contains('sb_selected') ) {
+        commandDom.classList.remove( 'sb_selected' )
+      }
+    }
+
+    let controls : Nullable<HTMLElement> = null
+    if ( lastCommand !== null ) {
+      controls = lastCommand.getControlsDom()
+
+      if ( controls !== null ) {
+        controls.classList.remove('sb_show')
+      }
+    }
+
+    controls = command.getControlsDom()
+    if ( controls !== null ) {
+      controls.classList.add('sb_show')
+    }
+  })
+}
+
+/*
+ * Sets up some common shortcuts,
+ * not that not all are set here, such as undo/redo.
+ */
+function initializeShortcuts(
+    painter:SkyBrush,
+    dontGrabCtrlR:boolean,
+    pickerCommand:Nullable<Command>,
+):void {
+  const domObj = painter.dom
+
+  painter.onCtrl( 187, () => {
+    painter.zoomIn()
+  })
+
+  painter.onCtrl( 189, () => {
+    painter.zoomOut()
+  })
+
+  // make the dom focusable
+  domObj.setAttribute( 'tabindex', 0 )
+
+  // key code constants
+  const ALT    = 18
+  const SHIFT  = 16
+  const DELETE = 46
+
+  painter
+      /* alternate commands - Shift key */
+      .onKeyToggle( SHIFT, isShiftDown => {
+        painter.runOnShift( isShiftDown )
+      })
+
+      /* alternate commands - Alt key */
+      .onKeyToggle( ALT, isAltDown => {
+        painter.runOnAlt( isAltDown )
+      })
+
+  /* Redo - ctrl + r and ctrl + y */
+  if ( ! dontGrabCtrlR ) {
+    painter.onCtrl( 'r', () => {
+      painter.redo()
+    })
+  }
+
+  painter
+      .onCtrl( 'y', () => {
+        painter.redo()
+      })
+
+      /* Undo - ctrl + z */
+      .onCtrl( 'z', () => {
+        painter.undo()
+      })
+
+      /* Crop - ctrl+e */
+      .onCtrl( 'e', () => {
+        painter.getCanvas().crop()
+      })
+
+      /* Clear - delete key */
+      .onKey( DELETE, () => {
+        painter.getCanvas().clear()
+      })
+
+      /* Copy */
+      .onCtrl( 'c', () => {
+        painter.copy()
+      })
+
+      /* Cut */
+      .onCtrl( 'x', () => {
+        painter.cut()
+      })
+
+      /* Paste */
+      .onCtrl( 'v', () => {
+        painter.paste()
+      })
+
+      /* Select All */
+      .onCtrl( 'a', () => {
+        painter
+            .getCanvas()
+            .getMarquee()
+            .startHighlight()
+            .select( 0, 0, painter.getWidth(), painter.getHeight() )
+            .stopHighlight()
+      })
+
+  /* Command Key Bindings */
+
+  const bindCommand = function( key:string, commandName:string ) {
+    const command = painter.getCommand( commandName )
+
+    return painter.onKey( key, () => {
+      if ( ! command ) {
+        return
+      }
+
+      painter.setCommand( command )
+    })
+  }
+
+  bindCommand( 'p', 'pencil' )
+  bindCommand( 'b', 'brush'  )
+  bindCommand( 'w', 'webby'  )
+  bindCommand( 'e', 'eraser' )
+
+  bindCommand( 'r', 'rectangle' )
+  bindCommand( 'c', 'circle' )
+  bindCommand( 'l', 'line'   )
+
+  bindCommand( 'f', 'fill'   )
+
+  bindCommand( 'z', 'zoom'   )
+  bindCommand( 's', 'select' )
+  bindCommand( 'm', 'move'   )
+
+  bindCommand( 'k', 'picker' )
+
+  /* On Alt behaviour - switch to colour picker */
+  if ( pickerCommand !== null ) {
+    let pickerSwitchCommand:Nullable<Command> = null
+
+    painter.onAlt( isAlt => {
+      if ( isAlt ) {
+        if ( pickerSwitchCommand !== pickerCommand ) {
+          pickerSwitchCommand = painter.getCurrentCommand()
+          painter.setCommand( pickerCommand )
+        }
+      } else {
+        if ( pickerSwitchCommand !== null ) {
+          // they might have switched whilst alt is still down
+          if ( painter.getCurrentCommand() === pickerCommand ) {
+            painter.setCommand( pickerSwitchCommand )
+          }
+
+          pickerSwitchCommand = null
+        }
+      }
+    })
+  }
+}
+
+function newCommands():Command[] {
+  const pencilCommand = new PixelBrush({
+      name: 'Pencil',
+      css : 'pencil',
+      caption: 'Pencil | shortcut: p, shift: switches to eraser',
+
+      onDraw: ( canvas, x, y, size ) => {
+        x = x|0
+        y = y|0
+
+        canvas.getDirectContext().fillRect( x, y, size, size )
+      },
+
+      cursor: cursors.SQUARE_CURSOR,
+
+      onShift: switchToEraser,
+  })
+
+  /*
+   * The state of the brush is kept in the canvas.
+   * You see it will clear the path you have made
+   * when you call 'beginPath'.
+   *
+   * So we call it once, when the mouse goes down,
+   * and then just add points when it gets moved.
+   * As a result the context stores all our points
+   * for us.
+   *
+   * We just keep adding points, clear and stroke
+   * on each move. At the end we call 'beginPath'
+   * to clear it, but in practice any other brush
+   * will call this anyway before they use the
+   * context.
+   */
+  const standardBrushCommand = new class extends Brush({
+      name: 'Brush',
+      css : 'brush',
+      caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
+
+      cursor: cursors.CIRCLE_CURSOR,
+
+      onDown: function( canvas, x, y ) {
+        this.x =
+            this.lastX =
+            this.minX =
+            this.maxX = x
+
+        this.y =
+            this.lastY =
+            this.minY =
+            this.maxY = y
+
+        const ctx = canvas.getContext() as CanvasRenderingContext2D
+        ctx.lineWidth = this.size
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+
+        /*
+         * This is to trick it into starting a line,
+         * when the mouse goes down.
+         */
+        ctx.moveTo( x-0.1, y-0.1 )
+        ctx.lineTo( x, y )
+        this.updateLine( canvas, x, y )
+
+        canvas.hideOverlay()
+        canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
+      },
+      onMove: function( canvas, x, y ) {
+        this.updateLine( canvas, x, y )
+
+        canvas.hideOverlay()
+        canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
+      },
+      onUp: function( canvas, x, y ) {
+        this.updateLine( canvas, x, y )
+
+        // end the current path
+        canvas.getContext().beginPath()
+
+        this.setDrawArea(
+            this.minX,
+            this.minY,
+            this.maxX-this.minX,
+            this.maxY-this.minY,
+            this.size,
+        )
+      },
+
+      onShift: switchToEraser,
+  })
+
+  standardBrushCommand.updateLine = function( canvas, x, y ) {
+    const lastX = this.lastX = this.x
+    const lastY = this.lastY = this.y
+
+    this.x = x
+    this.y = y
+
+    this.minX = Math.min( this.minX, x )
+    this.maxX = Math.max( this.maxX, x )
+    this.minY = Math.min( this.minY, y )
+    this.maxY = Math.max( this.maxY, y )
+
+    const ctx = canvas.getContext() as CanvasRenderingContext2D
+    canvasUtils.clearCtx(
+        ctx,
+        this.minX,
+        this.minY,
+        this.maxX - this.minX,
+        this.maxY - this.minY,
+        this.size
+    )
+    ctx.lineTo( x, y )
+    ctx.stroke()
+  }
+
+  return [
+      pickerCommand,
+      pencilCommand,
+      standardBrushCommand,
+
+      (function() {
+        /*
+         * The webby/shading brush, used for shading areas.
+         *
+         * It stores and builds a list of pixels over the course of drawing,
+         * and iterates over this, to work out new areas to draw upon.
+         */
+        const b = new Brush( {
+            name: 'Webby',
+            css : 'web',
+            caption: 'Web Brush | shortcut: w, shift: switches to eraser',
+
+            cursor: cursors.CIRCLE_CURSOR,
+
+            controls: [
+                {
+                    name : 'Size',
+                    field: 'size',
+                    value: 2,
+
+                    type: 'slider',
+
+                    cursor: true,
+
+                    min: 1,
+                    max: MAX_BRUSH_SIZE/10,
+                },
+                {
+                    name : 'Dist',
+                    field: 'dist',
+                    value: 60,
+
+                    type: 'slider',
+
+                    min: 10,
+                    max: 200,
+                },
+                {
+                    name : 'Fuzzy',
+                    field: 'fuzzy',
+                    value: 1,
+
+                    type: 'slider',
+
+                    min: 1,
+                    max: 25,
+                },
+                {
+                    name: 'continuous',
+                    field: 'isContinous',
+                    value: true,
+                    type: 'checkbox',
+                }
+            ],
+
+            onDown: function( canvas, x, y ) {
+              this.x =
+                  this.lastX =
+                  this.minX =
+                  this.maxX = x
+
+              this.y =
+                  this.lastY =
+                  this.minY =
+                  this.maxY = y
+
+              this.updateArea = {
+                  minX: 1,
+                  minY: 1,
+                  maxX: 0,
+                  maxY: 0,
+              }
+
+              const ctx = canvas.getContext()
+              ctx.lineWidth = this.size
+              ctx.lineCap   = 'round'
+              ctx.lineJoin  = 'round'
+              ctx.beginPath()
+
+              /*
+               * This is to trick it into starting a line,
+               * when the mouse goes down.
+               */
+              this.xs = [ x-0.1 ]
+              this.ys = [ y-0.1 ]
+
+              this.updateLine( canvas, x, y, this.updateArea )
+
+              canvas.hideOverlay()
+
+              if ( this.updateArea.minX < this.updateArea.maxX ) {
+                canvas.redrawUpscale(
+                    this.updateArea.minX,
+                    this.updateArea.minY,
+                    this.updateArea.maxX-this.updateArea.minX,
+                    this.updateArea.maxY-this.updateArea.minY,
+                    true,
+                    this.size*2
+                )
+              }
+            },
+            onMove: function( canvas, x, y ) {
+              this.updateLine( canvas, x, y, this.updateArea )
+
+              canvas.hideOverlay()
+
+              if ( this.updateArea.minX < this.updateArea.maxX ) {
+                canvas.redrawUpscale(
+                    this.updateArea.minX,
+                    this.updateArea.minY,
+                    this.updateArea.maxX-this.updateArea.minX,
+                    this.updateArea.maxY-this.updateArea.minY,
+                    true,
+                    this.size*2
+                )
+              }
+            },
+
+            onUp: function( canvas, x, y ) {
+              this.updateLine( canvas, x, y, this.updateArea )
+
+              // end the current path
+              canvas.getContext().beginPath()
+
+              this.setDrawArea(
+                  this.minX,
+                  this.minY,
+                  this.maxX-this.minX,
+                  this.maxY-this.minY,
+                  this.size,
+              )
+            },
+
+            onShift: switchToEraser
+        })
+
+        b.updateLine = function(
+            canvas:HTMLCanvasElement,
+            x:number,
+            y:number,
+            updateArea:MinMaxArea,
+        ) {
+          const lastX = this.lastX = this.x
+          const lastY = this.lastY = this.y
+
+          this.x = x
+          this.y = y
+
+          this.minX = Math.min( this.minX, x )
+          this.maxX = Math.max( this.maxX, x )
+          this.minY = Math.min( this.minY, y )
+          this.maxY = Math.max( this.maxY, y )
+
+          this.xs.push( x )
+          this.ys.push( y )
+
+          const xs = this.xs
+          const ys = this.ys
+
+          const ctx = canvas.getContext()
+
+          const alpha = ctx.globalAlpha
+
+          /**
+           * Set these to invalid values, where min is greater
+           * than max.
+           *
+           * min should be greater than the maximum possible value,
+           * and max should be smaller than the smallest possible value.
+           *
+           * I don't go to extremes, like Integer MAX_NUMBER,
+           * because that is a 64-bit value. Keeping it to within 31-bits,
+           * hits a chrome optimization.
+           */
+          let minX = canvas.width+1
+          let maxX = -1
+
+          let minY = canvas.height+1
+          let maxY = -1
+
+          const minDist = (
+              ( this.dist > this.size )
+                  ? this.dist * this.dist
+                  : this.size * this.size
+          )
+
+          if ( this.isContinous ) {
+            ctx.beginPath()
+            ctx.moveTo(this.lastX, this.lastY)
+            ctx.lineTo(x, y)
+            ctx.stroke()
+
+            minX = Math.min( minX,
+                Math.min( this.lastX, x )
+            )
+            minY = Math.min( minY,
+                Math.min( this.lastY, y )
+            )
+            maxX = Math.max( maxX,
+                Math.max( this.lastX, x )
+            )
+            maxY = Math.max( maxY,
+                Math.max( this.lastY, y )
+            )
+          }
+
+          const length = this.xs.length
+          const maxSkip = this.fuzzy
+          const skip = maxSkip
+
+          for (let i = 0; i < length; i++) {
+            const xi = xs[i]
+            const yi = ys[i]
+
+            const xDist = xi - x
+            const yDist = yi - y
+            const hypot = xDist * xDist + yDist * yDist
+
+            if ( hypot < minDist ) {
+              if ( --skip === 0 ) {
+                skip = maxSkip
+
+                ctx.globalAlpha = alpha * ((1 - (hypot / minDist)) * 0.1)
+                ctx.beginPath()
+                ctx.moveTo(x, y)
+                ctx.lineTo(xi, yi)
+                ctx.stroke()
+
+                if ( x < xi ) {
+                  if ( x < minX ) {
+                    minX = x
+                  }
+                  if ( xi > maxX ) {
+                    maxX = xi
+                  }
+                } else {
+                  if ( xi < minX ) {
+                    minX = xi
+                  }
+                  if ( x > maxX ) {
+                    maxX = x
+                  }
+                }
+
+                if ( y < yi ) {
+                  if ( y < minY ) {
+                    minY = y
+                  }
+                  if ( yi > maxY ) {
+                    maxY = yi
+                  }
+                } else {
+                  if ( yi < minY ) {
+                    minY = yi
+                  }
+                  if ( y > maxY ) {
+                    maxY = y
+                  }
+                }
+              }
+            }
+          }
+
+          updateArea.minX = minX
+          updateArea.minY = minY
+          updateArea.maxX = maxX
+          updateArea.maxY = maxY
+
+          ctx.globalAlpha = alpha
+        }
+
+        return b
+      })(),
+
+      eraser,
+
+      /* Geometry Commands */
+      new ShapeGeometry( {
+          name: 'Rectangle',
+          css : 'rectangle',
+          caption: 'Draw Rectangle | shortcut: r, shift: toggles outline',
+
+          onDraw: function( ctx, x1, y1, x2, y2 ) {
+            const w = x2-x1
+            const h = y2-y1
+
+            if ( this.isOutline ) {
+              ctx.lineWidth = this.size
+              ctx.strokeRect( x1, y1, w, h )
+            } else {
+              ctx.fillRect( x1, y1, w, h )
+            }
+          },
+
+          onShift: function() {
+            this.getControl( 'Mode' ).click()
+          }
+      }),
+
+      new ShapeGeometry( {
+          name: 'Circle',
+          css : 'circle',
+          caption: 'Draw Circle | shortcut: c, shift: toggles outline',
+
+          onDraw: function( ctx, x1, y1, x2, y2 ) {
+            canvasUtils.circlePath( ctx, x1, y1, x2-x1, y2-y1 )
+
+            if ( this.isOutline ) {
+              ctx.lineWidth = this.size
+              ctx.stroke()
+            } else {
+              ctx.fill()
+            }
+          },
+
+          onShift: function() {
+            this.getControl( 'Mode' ).click()
+          }
+      } ),
+      new Geometry( {
+          name: 'Line',
+          css : 'line',
+          caption: 'Draw Line | shortcut: l, shift: toggles smooth',
+
+          onDown: function( canvas, x, y ) {
+            this.lastX1 = x,
+            this.lastY1 = y,
+            this.lastW  = 1,
+            this.lastH  = 1
+          },
+
+          onDraw: function( ctx, x1, y1, x2, y2 ) {
+            const size = this.size
+
+            canvasUtils.clearCtx( ctx,
+                this.lastX1, this.lastY1,
+                this.lastW , this.lastH,
+                size
+            )
+
+            this.lastX1 = x1
+            this.lastY1 = y1
+            this.lastW  = x2-x1
+            this.lastH  = y2-y1
+
+            if ( this.isAliased ) {
+              ctx.beginPath()
+
+              ctx.lineWidth = size
+              ctx.moveTo( x1, y1 )
+              ctx.lineTo( x2, y2 )
+              ctx.closePath()
+
+              ctx.stroke()
+            // draw it by hand, pixel by pixel
+            } else {
+              drawPixelLine( ctx, x1, y1, x2, y2, size )
+            }
+          },
+
+          onShift: function() {
+            this.getControl( 'Smooth' ).click()
+          },
+
+          controls: [
+            {
+              name: 'Width',
+              field:'size',
+              type: 'slider',
+              css:  'size',
+
+              value: 1,
+              min: 1,
+              max: MAX_BRUSH_SIZE,
+            },
+            {
+              name: 'Smooth',
+              field: 'isAliased',
+              type: 'checkbox',
+              value: true,
+            }
+          ]
+      } ),
+
+      /*
+       * This code uses a 'flood fill' like algorithm to fill the
+       * pixels. However flood fill algorithms tend to search for an
+       * exact colour, and then replace it.
+       *
+       * Due to the support of tolerance and alpha mixing, it is
+       * possible for a replaced colour to still remain within the
+       * target tolerance of coloures we are looking for. This would
+       * result in the pixel being coloured 2 or more times.
+       *
+       * To prevent this, the algorithm must track what pixels it has
+       * altered so far.
+       */
+      new Command({
+          name: 'Fill',
+          css : 'fill',
+          caption: 'Fill Colour | shortcut: f',
+
+          onDown: (function() {
+            /**
+             * If the given x/y location is valid (0 or greater, < w/h),
+             * and it hasn't already been used in 'done',
+             * then it's added to the xs/ys arrays.
+             *
+             * @param fromI
+             * @param toX
+             * @param toY
+             * @param clipW
+             * @param clipH
+             * @param seenPixels
+             */
+            const store = function(
+                fromI:number,
+                toX:number,
+                toY:number,
+                clipW:number,
+                clipH:number,
+                seenPixels:number,
+            ):number {
+              if ( 0 <= toX && toX < clipW && 0 <= toY && toY < clipH ) {
+                const toI = toY*clipW + toX
+
+                if ( seenPixels[toI] === 0 ) {
+                  seenPixels[fromI] = toI + 1
+
+                  return toI
+                }
+              }
+
+              return fromI
+            }
+
+            return function(
+                canvas:HTMLCanvasElement,
+                mouseX:number,
+                mouseY:number,
+            ):void {
+              // Floor the location, and make it clear to the VM
+              // that these values are integers (the |0 code).
+              mouseX = mouseX|0
+              mouseY = mouseY|0
+
+              const ctx = canvas.getDirectContext()
+              const tolerance = this.tolerance
+
+              const alpha     = ctx.globalAlpha
+              const invAlpha  = 1-alpha
+              const destAlpha = (ctx.globalCompositeOperation === 'source-atop')
+
+              const rgb = canvas.getRGB()
+              const srcR = rgb[0]|0
+              const srcG = rgb[1]|0
+              const srcB = rgb[2]|0
+              const srcRAlpha = srcR * alpha
+              const srcGAlpha = srcG * alpha
+              const srcBAlpha = srcB * alpha
+
+              const w = canvas.width |0
+              const h = canvas.height|0
+
+              const clip   = canvas.getClip()
+              const clipX  = ( clip === null ? 0 : clip.x          )|0
+              const clipY  = ( clip === null ? 0 : clip.y          )|0
+              const clipW  = ( clip === null ? w : clip.w          )|0
+              const clipH  = ( clip === null ? h : clip.h          )|0
+              const clipX2 = ( clip === null ? w : clip.x + clip.w )|0
+              const clipY2 = ( clip === null ? h : clip.y + clip.h )|0
+
+              // if the target is outside of the clip area, then quit!
+              if ( mouseX < clipX || mouseY < clipY || mouseX >= clipX2 || mouseY >= clipY2 ) {
+                return
+
+              } else {
+                // get the pixel data out
+                const ctxData = ctx.getImageData( clipX, clipY, clipW, clipH )
+                const data = ctxData.data
+
+                /*
+                 * From here on, all x and y values should have
+                 * the clipX/Y removed from them.
+                 *
+                 * So they extend from 0 to clipW/H.
+                 */
+
+                // Used for the update area at the end.
+                // Default to where it was clicked to begin with.
+                let minX = mouseX-clipX
+                let maxX = mouseX-clipX
+                let minY = mouseY-clipY
+                let maxY = mouseY-clipY
+
+                /**
+                 * The pixels we have seen so far, and it also
+                 * stores the next pixel to process.
+                 *
+                 * This is the 2D array of pixels flattened
+                 * into a flat 1D array.
+                 *
+                 * As 0 is a valid index, and the array fills
+                 * with 0's by default, we add 1 when storing
+                 * and remove 1 when retrieving.
+                 *
+                 * This means -1 is a pixel with no next address,
+                 * and 0 means 'go to the pixel at 0'.
+                 */
+                const seenPixels = new Int32Array( clipW * clipH )
+
+                const currentI = mouseY*clipW + mouseX
+                let needleI = currentI
+
+                const dataI = currentI * 4
+
+                const startR = data[dataI  ]
+                const startG = data[dataI+1]
+                const startB = data[dataI+2]
+                const startA = data[dataI+3]
+
+                // leave early if there is nothing to fill
+                if ( destAlpha && startA === 0 ) {
+                  return
+                }
+
+                // work out the tolerance ranges
+                const minR = Math.max(   0, startR-tolerance )
+                const minG = Math.max(   0, startG-tolerance )
+                const minB = Math.max(   0, startB-tolerance )
+                const minA = Math.max(   0, startA-tolerance )
+
+                const maxR = Math.min( 255, startR+tolerance )
+                const maxG = Math.min( 255, startG+tolerance )
+                const maxB = Math.min( 255, startB+tolerance )
+                const maxA = Math.min( 255, startA+tolerance )
+
+                // fills pixels with the given colour if they are within tolerence
+                do {
+                  const x = (currentI % clipW)|0
+                  const y = ((currentI-x) / clipW)|0
+
+                  if ( x < minX ) {
+                    minX = x
+                  } else if ( x > maxX ) {
+                    maxX = x
+                  }
+                  if ( y < minY ) {
+                    minY = y
+                  } else if ( y > maxY ) {
+                    maxY = y
+                  }
+
+                  const i = currentI * 4
+                  const r = data[i]
+                  const g = data[i+1]
+                  const b = data[i+2]
+                  let a = data[i+3]
+
+                  if (
+                      // ensure we can write there
+                      !(destAlpha && a === 0) &&
+
+                      // ensure it is within tolerance
+                      r >= minR && r <= maxR &&
+                      g >= minG && g <= maxG &&
+                      b >= minB && b <= maxB &&
+                      a >= minA && a <= maxA
+                  ) {
+                    // skip mixing if we'll just be overwriting it
+                    if ( alpha === 1 ) {
+                      data[i  ] = srcR
+                      data[i+1] = srcG
+                      data[i+2] = srcB
+
+                      if ( destAlpha === false ) {
+                        data[i+3] = 255
+                      }
+                    } else {
+                      const fullAlpha = ( a === 255 )
+                      a /= 255.0
+
+                      /*
+                       * see Wikipedia: http://en.wikipedia.org/wiki/Alpha_Blend#Alpha_blending
+                       *
+                       * outA = srcA + destA(1-srcA)
+                       * resultRGB = ( srcRGB*srcA + destRGB*destA*(1-srcA) ) / outA
+                       */
+                      const outA = alpha + a*invAlpha
+
+                      // skip altering alpha if 'destination alpha' is set
+                      // skip the alpha mixing if destination has full alpha
+                      if ( destAlpha === false && !fullAlpha ) {
+                        // formula: newAlpha = destA + srcA*(1-destA)
+                        data[i+3] = ( (outA * 255) + 0.5 ) | 0
+                      }
+
+                      data[i  ] = ((( srcRAlpha + r*a*invAlpha ) / outA ) + 0.5 ) | 0
+                      data[i+1] = ((( srcGAlpha + g*a*invAlpha ) / outA ) + 0.5 ) | 0
+                      data[i+2] = ((( srcBAlpha + b*a*invAlpha ) / outA ) + 0.5 ) | 0
+                    }
+
+                    needleI = store( needleI, x-1, y  , clipW, clipH, seenPixels )
+                    needleI = store( needleI, x+1, y  , clipW, clipH, seenPixels )
+                    needleI = store( needleI, x  , y-1, clipW, clipH, seenPixels )
+                    needleI = store( needleI, x  , y+1, clipW, clipH, seenPixels )
+                  }
+
+                  currentI = seenPixels[ currentI ] - 1
+                } while ( currentI !== -1 && currentI !== needleI )
+
+                const diffX = (maxX-minX) + 1
+                const diffY = (maxY-minY) + 1
+
+                ctx.putImageData( ctxData, clipX, clipY, minX, minY, diffX, diffY )
+                this.setDrawArea( minX+clipX, minY+clipY, diffX, diffY )
+              }
+            }
+          })(),
+
+          cursor: 'sb_cursor_fill',
+
+          controls: [
+              {
+                  name : 'Tolerance',
+                  field: 'tolerance',
+                  type : 'slider',
+                  css  : 'tolerance',
+
+                  value: 20,
+                  min: 1,
+                  max: 255,
+              }
+          ]
+      } ),
+
+      /* Utility Commands */
+      new Command( {
+          name: 'Zoom',
+          css : 'zoom',
+          caption: 'Zoom | shortcut: z, shift: opposite zoom',
+
+          onShift: ( isShiftDown, painter ) => {
+            this.getControl( 'Zoom' ).click()
+          },
+
+          onDown: ( canvas, x, y, painter, ev ) => {
+            x = mathsUtils.limit( x, 0, painter.getWidth()  )
+            y = mathsUtils.limit( y, 0, painter.getHeight() )
+
+            if ( this.zoomOut ) {
+              painter.zoomOut({ x: x, y: y })
+            } else {
+              painter.zoomIn({ x: x, y: y })
+            }
+          },
+
+          controls : [{
+            name: 'Zoom',
+            css : 'zoom_cmd',
+
+            field: 'zoomOut',
+            type : 'toggle',
+
+            name_options: [ 'In', 'Out' ],
+
+            cursor: true,
+          }],
+
+          cursor: function( cursor, painter ) {
+            const zoom = painter.getZoom()
+
+            if (
+                (  this.zoomOut && zoom === (1/constants.MAX_ZOOM) ) ||
+                ( !this.zoomOut && zoom === constants.MAX_ZOOM )
+            ) {
+              cursor.setClass( 'sb_cursor_zoom_blank' )
+            } else if ( this.zoomOut ) {
+              cursor.setClass( 'sb_cursor_zoom_out' )
+            } else {
+              cursor.setClass( 'sb_cursor_zoom_in' )
+            }
+          }
+      }),
+
+      new Command({
+          name: 'Select',
+          css : 'select',
+          caption: 'Selection Tool | shortcut: s',
+          cursor: 'sb_cursor_select',
+
+          onAttach: function( painter ) {
+            painter.getCanvas().getMarquee().showHandles()
+          },
+          onDetach: function( painter ) {
+            painter.getCanvas().getMarquee().hideHandles()
+          },
+
+          onDown: function( canvas, x, y, painter, ev ) {
+            canvas.getMarquee()
+                .startHighlight()
+
+            this.startX = x
+            this.startY = y
+          },
+          onMove: function(canvas, x, y) {
+            canvas.getMarquee()
+                .select( this.startX, this.startY, x, y )
+          },
+          onUp: function( canvas, x, y ) {
+            canvas.getMarquee()
+                .select( this.startX, this.startY, x, y )
+                .stopHighlight()
+          }
+      } ),
+
+      /*
+       * The 'Move' command is for moving paste items around.
+       *
+       * This is tricky to get right, because certain behaviours all need to be supported.
+       *  = If the button is clicked, with no movement, and there is a copy selection, it should be pasted.
+       *  = If the button is clicked, with no movement, and no copy selection, nothing should happen.
+       *  = If down and moved, and there is a copy selection, it should be moved but not pasted.
+       *  = If down and moved, and there is no copy selection, it should cut and move the whole canvas.
+       */
+      new Command({
+          name: 'Move',
+          css : 'move',
+          caption: 'Move Tool | shortcut: m',
+
+          cursor: 'sb_cursor_cursor',
+
+          onDown: function( canvas, x, y, painter, ev ) {
+            this.startX = x
+            this.startY = y
+
+            /*
+             * Used to track if it was dragged or clicked on the spot.
+             */
+            this.wasMovement = false
+          },
+
+          onMove: function( canvas, x, y ) {
+            if ( ! canvas.isPasting() ) {
+              canvas.cut().paste()
+            }
+
+            canvas.movePaste( x-this.startX, y-this.startY, false )
+
+            this.wasMovement = true
+          },
+
+          onUp: function( canvas, x, y ) {
+            if ( canvas.isPasting() ) {
+              if ( this.wasMovement ) {
+                canvas.movePaste( x-this.startX, y-this.startY, true )
+              } else {
+                canvas.drawAndEndPaste()
+              }
+            }
+          }
+      })
+  ]
 }

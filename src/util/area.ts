@@ -4,7 +4,7 @@ export interface Point {
   y : number
 }
 
-export interface Position {
+export interface Location {
   left : number
   top  : number
 }
