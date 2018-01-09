@@ -2880,7 +2880,7 @@ function newCommands():Command[] {
    * will call this anyway before they use the
    * context.
    */
-  const standardBrushCommand = new class extends Brush({
+  const standardBrushCommand = new Brush({
       name: 'Brush',
       css : 'brush',
       caption: 'Paint Brush | shortcut: b, shift: switches to eraser',
@@ -2915,12 +2915,14 @@ function newCommands():Command[] {
         canvas.hideOverlay()
         canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
       },
+
       onMove: function( canvas, x, y ) {
         this.updateLine( canvas, x, y )
 
         canvas.hideOverlay()
         canvas.redrawUpscale( this.lastX, this.lastY, x-this.lastX, y-this.lastY, true, this.size*2 )
       },
+
       onUp: function( canvas, x, y ) {
         this.updateLine( canvas, x, y )
 
@@ -2976,7 +2978,7 @@ function newCommands():Command[] {
          * It stores and builds a list of pixels over the course of drawing,
          * and iterates over this, to work out new areas to draw upon.
          */
-        const b = new Brush( {
+        const b = new Brush({
             name: 'Webby',
             css : 'web',
             caption: 'Web Brush | shortcut: w, shift: switches to eraser',
