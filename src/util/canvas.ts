@@ -220,3 +220,4 @@ export function renderCrossHair( ctx:CanvasRenderingContext2D, size:number ):voi
   // a dot in the centre
   ctx.fillRect( halfSize-0.5, halfSize-0.5, 1, 1 )
 }
+

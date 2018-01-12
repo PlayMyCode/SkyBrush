@@ -41,6 +41,7 @@ export function limit(
   if ( n > max ) {
     return max
   }
-  
+
   return n
 }
+

@@ -3199,379 +3199,8 @@ export function canvasManagersGetTranslate_hack( dom: HTMLElement ):Point {
   }
 }
 
-/**
- * Commands are setup through a JSON object.
- *
- * This is used so other functions can change those
- * properties on the fly, and require new items.
- *
- * The other advantage is that it allows many to be
- * optional.
- *
- * Before they were all passed in for each constructor,
- * but given that many are optional, this list was
- * becomming unmanageable.
- *
- * Basic properties include:
- *  = name
- *  = css
- *  = cursor
- *  = caption - the tooltip caption to be used
- *
- * All events are called in the context of this command.
- *
- * Drawing Events:
- *  = onDown - called when mouse goes down,
- *  = onMove - then this is called as it's moved,
- *  = onUp - finally this is called when it goes up.
- *
- *  = onDownOnMove - event used for both onDown and onMove
- *  = onMoveOnUp - event used for both onMove and onUp
- *
- * Some sub-versions of Command add their own 'onDraw'
- * event. This is a general purpose draw event used for
- * onDown, onMove and onUp; but is normally wrapped in
- * custom logic.
- *
- * However the Command prototype ignores onDraw.
- *
- * Other Events:
- *  = onAttach - called when the Command is set.
- *  = onDetach - called when the Command is unset.
- *
- *  = onShift - called when the shift button is pressed
- *    down or up. The state and SkyBrush are passed in,
- *    in that order.
- *
- *    This is also called when the command is attached to
- *    SkyBrush, but only if the shift is down. This is so
- *    if you update the controls it'll be setup correctly
- *    on attach, and undone on detach.
- *
- *    But to clarify, if shift is not pressed, this will
- *    never be called.
- *
- * Special logic is also added to ensure onAttach and
- * onDetach cannot be called recursively, as sometimes
- * this can happen.
- *
- * @constructor
- * @private
- *
- * @param setup The information needed for this command.
- * @param controlsSetup An array listing all of the commands for this control.
- */
-
-/**
- * Creates a new Brush, with the name, css class and events given.
- * Some extras are added on top, which the standard Command does
- * not have, like brush size.
- *
- * @constructor
- * @private
- */
-class Brush extends Command {
-  private size : number
-
-  constructor( setup ) {
-    const brushSizeControl = {
-        name: 'Size',
-        field: 'size',
-
-        type: 'slider',
-        css : 'size',
-
-        cursor: true,
-
-        min: 1,
-        max: MAX_BRUSH_SIZE,
-    }
-
-    const controls = setup.controls
-    if ( controls === undefined ) {
-      controls = [ brushSizeControl ]
-    } else {
-      controls = setup.controls
-      let addControl = true
-
-      for ( let i = 0; i < controls.length; i++ ) {
-        if ( controls[i].field === brushSizeControl.field ) {
-          addControl = false
-          break
-        }
-      }
-
-      if ( addControl ) {
-        controls.unshift( brushSizeControl )
-      }
-    }
-
-    setup.controls = controls
-
-    super( setup )
-
-    this.size = 0
-    this.setSize( DEFAULT_BRUSH_SIZE )
-  }
-
-  /**
-   * Sets the size for this brush.
-   * This is automtically limited to default min/max values.
-   *
-   * @param size The new size for this brush.
-   */
-  setSize( size:number ) {
-    this.size = mathsUtils.limit( size, 1, MAX_BRUSH_SIZE )
-  }
-
-  /**
-   * Increments the size by the amount given.
-   *
-   * @param inc The amount to increment the size.
-   */
-  incrementSize( inc:number ) {
-    this.setSize( this.size + inc )
-  }
-}
-
-class Geometry extends Command {
-
-  /**
-   * Commands for drawing geometry.
-   *
-   * For the setup, it adds the properties:
-   *
-   *  = onDraw - called for drawing geometry
-   *  = onDown - already exists, but is wrapped in it's own onDown
-   *
-   * @constructor
-   * @private
-   *
-   * @param setup The controls information for this command.
-   */
-  constructor( setup ) {
-    this.startX = 0
-    this.startY = 0
-
-    this.isFilled = true
-    this.size = 1
-
-    this.isAliased = false
-
-    this.drawGeom = setup.onDraw
-
-    const oldOnDown = setup.onDown
-    setup.onDown = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0
-        y |= 0
-      }
-
-      this.startX = x,
-      this.startY = y
-      this.lastX = x
-      this.lastY = y
-
-      canvas.getContext().lineJoin = 'miter'
-
-      if ( oldOnDown ) {
-        oldOnDown.call( this, canvas, x, y )
-      }
-    }
-    setup.onMove = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0
-        y |= 0
-      }
-
-      this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY )
-
-      this.lastX = x
-      this.lastY = y
-    }
-    setup.onUp = function( canvas, x, y ) {
-      if ( ! this.isAliased ) {
-        x |= 0
-        y |= 0
-      }
-
-      this.setDrawArea( this.startX, this.startY, x-this.startX, y-this.startY, this.size )
-
-      this.drawGeom( canvas.getContext(), this.startX, this.startY, x, y, this.lastX, this.lastY )
-
-      this.lastX = x
-      this.lastY = y
-    }
-
-    setup.cursor = constants.DEFAULT_CURSOR
-
-    super( setup )
-  }
-
-  round( n:number, isOutline:boolean, size:number ) {
-    if ( (!isOutline) || size % 2 === 0 ) {
-      return n | 0
-    } else {
-      return (n | 0) + 0.5
-    }
-  }
-
-  toggleAliased() {
-    this.isAliased = ! this.isAliased
-  }
-
-  toggleFilled() {
-    this.isFilled = ! this.isFilled
-  }
-}
-
-class ShapeGeometry extends Geometry {
-  constructor( setup ) {
-    let controls = setup.controls
-    if ( ! controls ) {
-      controls = []
-    } else if ( controls && ! ( controls instanceof Array ) ) {
-      controls = [ controls ]
-    }
-
-    setup.controls = controls.concat([
-        {
-            name: 'Mode',
-            css: 'outline_cmd',
-            field: 'isOutline',
-            type: 'toggle',
-            css_options: [ 'filled', 'outline' ],
-            name_options: [ 'Filled', 'Outline' ],
-        },
-        {
-            name: 'Outline',
-            css: 'outline_size_cmd',
-            field: 'size',
-            type: 'slider',
-
-            value: 1,
-            min: 1,
-            max: MAX_BRUSH_SIZE,
-        },
-        {
-            name: 'Proportion',
-            css: 'proportion_size_cmd',
-            field: 'isProportional',
-            type: 'checkbox',
-        },
-        {
-            name: 'Center',
-            css: 'centre_size_cmd',
-            field: 'isCentred',
-            type: 'checkbox',
-        },
-    ])
-
-    // wrap in our own function
-    const drawGeom = setup.onDraw
-    setup.onDraw = function( ctx, x1, y1, x2, y2, lastX, lastY ) {
-      const size = this.size
-      const isOutline = this.isOutline
-
-      x1 = this.round( x1, isOutline, size )
-      y1 = this.round( y1, isOutline, size )
-      x2 = this.round( x2, isOutline, size )
-      y2 = this.round( y2, isOutline, size )
-
-      let w = x2 - x1
-      let h = y2 - y1
-
-      if ( this.isProportional ) {
-        const wAbs = Math.abs(w)
-        const hAbs = Math.abs(h)
-
-        if ( wAbs > hAbs ) {
-          if ( h < 0 ) {
-            h = - wAbs
-          } else {
-            h =   wAbs
-          }
-        } else {
-          if ( w < 0 ) {
-            w = - hAbs
-          } else {
-            w =   hAbs
-          }
-        }
-      }
-
-      if ( this.isCentred ) {
-        x1 -= w
-        y1 -= h
-        w += w
-        h += h
-      }
-
-      if ( this.isProportional || this.isCentred ) {
-        this.setDrawArea( x1, y1, w, h, size )
-      }
-
-      canvasUtils.clearCtx( ctx,
-          this.lastX1,
-          this.lastY1,
-          this.lastW,
-          this.lastH,
-          this.size
-      )
-
-      this.lastX1 = x1
-      this.lastY1 = y1
-      this.lastW  = w
-      this.lastH  = h
-
-      drawGeom.call( this, ctx, x1, y1, x1+w, y1+h )
-    }
-
-    setup.onDown = function(canvas, x, y) {
-      this.lastX1 = x
-      this.lastY1 = y
-      this.lastW  = 1
-      this.lastH  = 1
-    }
-
-    super( setup )
-  }
-}
 
 /* Helper Drawing Function */
-
-function renderLine(
-    fun    : Consumer4<HTMLCanvasElement, number, number, number>,
-    canvas : HTMLCanvasElement,
-    x1:number, y1:number,
-    x2:number, y2:number,
-    size:number,
-) {
-  x1 = Math.round( x1 - size / 2 )
-  y1 = Math.round( y1 - size / 2 )
-  x2 = Math.round( x2 - size / 2 )
-  y2 = Math.round( y2 - size / 2 )
-
-  const xDiff = x2 - x1
-  const yDiff = y2 - y1
-
-  const inc = Math.max(
-      Math.abs( xDiff ),
-      Math.abs( yDiff ),
-  ) / size
-
-  const xInc = ( xDiff / inc ) / size
-  const yInc = ( yDiff / inc ) / size
-  let x = x1
-  let y = y1
-
-  for ( let i = 0; i < inc; i++ ) {
-    fun( canvas, (x+0.5)|0, (y+0.5)|0, size )
-
-    x += xInc
-    y += yInc
-  }
-}
 
 function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:number, y1:number, size:number ) {
   x0 = Math.round( x0 )
@@ -3746,74 +3375,6 @@ function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:n
   }
 }
 
-/**
- * A bespoke brush, specifically for pixelated drawing.
- */
-class PixelBrush extends Brush {
-  constructor( setup ) {
-    const brushCmd = setup.onDraw
-    this.pencilCommand = function( canvas:HTMLCanvasElement, x:number, y:number, size:number ) {
-      brushCmd( canvas, x, y, size )
-    }
-
-    setup.onDown = function( canvas:HTMLCanvasElement, x:number, y:number ) {
-      this.lastX = x
-      this.lastY = y
-      this.skipFirst = true
-
-      const size = Math.round( this.size )
-
-      x -= (size/2) | 0
-      y -= (size/2) | 0
-
-      this.pencilCommand( canvas, x, y, size )
-      canvas.redrawUpscale( x|0, y|0, 0, 0, false, size )
-      this.addDrawAreaAroundPoint( x, y, size )
-    }
-
-    setup.onMoveOnUp = function( canvas:HTMLCanvasElement, x:number, y:number ) {
-      const size  = this.size
-      const diffX = this.lastX - x
-      const diffY = this.lastY - y
-
-      if ( this.skipFirst && (Math.abs(diffX) >= 1 || Math.abs(diffY) >= 1) ) {
-        this.skipFirst = false
-
-        if ( diffX >= 1 ) {
-          diffX--
-          this.lastX--
-        } else if ( diffX <= -1 ) {
-          diffX++
-          this.lastX++
-        }
-
-        if ( diffY >= 1 ) {
-          diffY--
-          this.lastY--
-        } else if ( diffY <= -1 ) {
-          diffY++
-          this.lastY++
-        }
-      }
-
-      const hasMovedAtLeastOnePixel = ( Math.abs(diffX) < 0.5 && Math.abs(diffY) < 0.5 )
-      if ( ! hasMoveDAtLeastOnePixel ) {
-        return
-      }
-
-      renderLine( this.pencilCommand, canvas, x, y, this.lastX, this.lastY, size)
-
-      canvas.redrawUpscale( x|0, y|0, diffX, diffY, false, size )
-      this.addDrawArea( x|0, y|0, diffX, diffY, size )
-
-      this.lastX = x
-      this.lastY = y
-    }
-
-    super( setup )
-  }
-}
-
 const pickerCommand = new Command({
     name  : 'Picker',
     css   : 'picker',
@@ -3865,25 +3426,37 @@ const eraser =
           }
       })
 
-      const softErase = new Brush({
-          name: 'Soft Eraser',
-          css : 'soft_eraser',
+      const softErase = new class extends BrushCommand {
+        constructor() {
+          super({
+            name: 'Soft Eraser',
+            css : 'soft_eraser',
+          })
+        }
 
-          onDown: function( canvas:HTMLCanvasElement, x:number, y:number ) {
-            this.lastX = x
-            this.lastY = y
-          },
+        onDown( canvas:CanvasManager, x:number, y:number ) {
+          this.lastX = x
+          this.lastY = y
+        },
 
-          onMoveOnUp: function( canvas:HTMLCanvasElement, x:number, y:number ) {
-            const diffX = this.lastX - x
-            const diffY = this.lastY - y
+        onMove( canvas:CanvasManager, x:number, y:number ) {
+          this.onMoveOnUp( canvas, x, y )
+        }
 
-            this.drawLine( canvas.getDirectContext(), x, y )
-            canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, false, this.size*2 )
+        onUp( canvas:CanvasManager, x:number, y:number ) {
+          this.onMoveOnUp( canvas, x, y )
+        }
 
-            this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 )
-          }
-      })
+        onMoveOnUp( canvas:CanvasManager, x:number, y:number ) {
+          const diffX = this.lastX - x
+          const diffY = this.lastY - y
+
+          this.drawLine( canvas.getDirectContext(), x, y )
+          canvas.redrawUpscale( this.lastX, this.lastY, diffX, diffY, false, this.size*2 )
+
+          this.addDrawArea( this.lastX, this.lastY, diffY, diffY, this.size*2 )
+        }
+      }
 
       softErase.drawLine = function( ctx:CanvasRenderingContext2D, x:number, y:number ) {
         const compOp = ctx.globalCompositeOperation
@@ -3911,7 +3484,7 @@ const eraser =
           css : 'eraser',
           caption: 'Eraser | shortcut: e',
 
-          onDown: ( canvas, x:number, y:number, ) => {
+          onDown: ( canvas:CanvasManager, x:number, y:number, ) => {
             const brush = this.isAliased ? softErase : hardErase
 
             brush.size = this.size
@@ -3919,11 +3492,11 @@ const eraser =
             this.brush = brush
           },
 
-          onMove: function( canvas, x:number, y:number, ) {
+          onMove: function( canvas:CanvasManager, x:number, y:number, ) {
             this.brush.onMove( canvas, x, y )
           },
 
-          onUp: function( canvas, x:number, y:number, ) {
+          onUp: function( canvas:CanvasManager, x:number, y:number, ) {
             this.brush.onUp( canvas, x, y )
             this.setDrawAreaObj( this.brush.popDrawArea() )
           },

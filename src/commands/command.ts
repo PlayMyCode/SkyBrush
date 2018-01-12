@@ -1,6 +1,7 @@
 ﻿
 import * as constants from 'setup/constants'
-import * as skybrush from 'skybrush'
+import { CanvasManager } from 'main'
+import { SkyBrush } from 'skybrush'
 import * as htmlUtils from 'util/html'
 import { MinMaxArea } from 'util/area'
 import { Nullable, Consumer2 } from 'util/function-interfaces'
@@ -12,6 +13,65 @@ export interface CommandOptions {
   readonly css     ?: string
 }
 
+/**
+ * Commands are setup through a JSON object.
+ *
+ * This is used so other functions can change those
+ * properties on the fly, and require new items.
+ *
+ * The other advantage is that it allows many to be
+ * optional.
+ *
+ * Before they were all passed in for each constructor,
+ * but given that many are optional, this list was
+ * becomming unmanageable.
+ *
+ * Basic properties include:
+ *  = name
+ *  = css
+ *  = cursor
+ *  = caption - the tooltip caption to be used
+ *
+ * All events are called in the context of this command.
+ *
+ * Drawing Events:
+ *  = onDown - called when mouse goes down,
+ *  = onMove - then this is called as it's moved,
+ *  = onUp - finally this is called when it goes up.
+ *
+ * Some sub-versions of Command add their own 'onDraw'
+ * event. This is a general purpose draw event used for
+ * onDown, onMove and onUp; but is normally wrapped in
+ * custom logic.
+ *
+ * However the Command prototype ignores onDraw.
+ *
+ * Other Events:
+ *  = onAttach - called when the Command is set.
+ *  = onDetach - called when the Command is unset.
+ *
+ *  = onShift - called when the shift button is pressed
+ *    down or up. The state and SkyBrush are passed in,
+ *    in that order.
+ *
+ *    This is also called when the command is attached to
+ *    SkyBrush, but only if the shift is down. This is so
+ *    if you update the controls it'll be setup correctly
+ *    on attach, and undone on detach.
+ *
+ *    But to clarify, if shift is not pressed, this will
+ *    never be called.
+ *
+ * Special logic is also added to ensure onAttach and
+ * onDetach cannot be called recursively, as sometimes
+ * this can happen.
+ *
+ * @constructor
+ * @private
+ *
+ * @param setup The information needed for this command.
+ * @param controlsSetup An array listing all of the commands for this control.
+ */
 export class Command {
 
   /**
@@ -24,7 +84,7 @@ export class Command {
    */
   private readonly caption : string
 
-  private readonly cursor : Nullable<string|Consumer2<this, skybrush.SkyBrush>>
+  private readonly cursor : Nullable<string|Consumer2<this, SkyBrush>>
 
   private readonly dom : Nullable<HTMLElement>
 
@@ -35,7 +95,9 @@ export class Command {
   private isInAttach : boolean
   private isInDetach : boolean
 
-  constructor( setup:CommandOptions ) {
+  constructor(
+      setup:CommandOptions,
+  ) {
     this.name    = setup.name    || ''
     this.caption = setup.caption || ''
     this.cursor  = setup.cursor  || null
@@ -48,48 +110,27 @@ export class Command {
     this.dom = null
     this.controlsSetup = setup.controls
 
-    if ( setup.onDown ) {
-      this.onDown = setup.onDown
-    }
-
-    if ( setup.onDownOnMove ) {
-      this.onDown =
-      this.onMove =
-           setup.onDownOnMove
-    }
-
-    if ( setup.onMoveOnUp ) {
-      this.onUp   =
-      this.onMove =
-          setup.onMoveOnUp
-    }
-
-    if ( setup.onMove ) {
-      this.onMove = setup.onMove
-    }
-
-    if ( setup.onUp ) {
-      this.onUp = setup.onUp
-    }
-
     this.whenAttached = setup.onAttach || null
     this.whenDetached = setup.onDetach || null
 
-    const onShift = setup.onShift
-    if ( onShift ) {
-      const thisCommand = this
-
-      this.shiftDown = function( isShiftDown ) {
-        // This should use both 'self' and 'this' here, it is not
-        // a bug.
-        onShift.call( thisCommand, isShiftDown, this )
-      }
-    } else {
-      this.shiftDown = null
-    }
-
     this.isInAttach = false
     this.isInDetach = false
+  }
+
+  onDown( canvas:CanvasManager, x:number, y:number ) {
+    // Do nothing.
+  }
+
+  onMove( canvas:CanvasManager, x:number, y:number ) {
+    // Do nothing.
+  }
+
+  onUp( canvas:CanvasManager, x:number, y:number ) {
+    // Do nothing.
+  }
+
+  onShift( isShiftDown:boolean, skybrush:SkyBrush ) {
+    // Do nothing.
   }
 
   getCSS() {
@@ -102,7 +143,7 @@ export class Command {
    *
    * @param painter The parent SkyBrush instance this is being attached to.
    */
-  onAttach( painter:skybrush.SkyBrush ) {
+  onAttach( painter:SkyBrush ) {
     if ( ! this.isInAttach ) {
       this.isInAttach = true
 
@@ -130,7 +171,7 @@ export class Command {
    *
    * @param painter The parent SkyBrush instance this is being detached from.
    */
-  onDetach( painter:skybrush.SkyBrush ) {
+  onDetach( painter:SkyBrush ) {
     if ( ! this.isInDetach ) {
       this.isInDetach = true
 
@@ -192,7 +233,7 @@ export class Command {
    * @return The HTML dom with all the control structures for this command.
    */
   createControlsDom(
-      painter:skybrush.SkyBrush,
+      painter:SkyBrush,
   ):HTMLElement {
     /*
      * Controls dom is loaded in a lazy way so painter
@@ -369,7 +410,7 @@ export class Command {
 function newCommandControl(
     command,
     control,
-    painter:skybrush.SkyBrush,
+    painter:SkyBrush,
 ) {
   const name     = control.name
   const type     = control.type.toLowerCase()
@@ -597,3 +638,4 @@ function newCommandControl(
 function controlNameToCSSID( name:string ) {
   return `${constants.CONTROL_ID_CSS_PREFIX}${name.toLowerCase()}`
 }
+
