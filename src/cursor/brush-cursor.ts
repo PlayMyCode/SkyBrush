@@ -1,5 +1,7 @@
 ﻿
-import { DirectCursor } from 'src/cursor/direct-cursor'
+import { SkyBrush } from 'skybrush'
+import { Command } from 'commands/command'
+import { DirectCursor } from 'cursor/direct-cursor'
 import * as htmlUtils from 'util/html'
 import * as canvasUtils from 'util/canvas'
 import { Nullable, Consumer3 } from 'util/function-interfaces'
@@ -18,7 +20,7 @@ import { Nullable, Consumer3 } from 'util/function-interfaces'
  * transparency, for when they draw.
  */
 type RenderFunction =
-    Consumer3<CanvasRenderingContext2D, HTMLCanvasElement, number>
+  | Consumer3<CanvasRenderingContext2D, HTMLCanvasElement, number>
 
 type RefreshState =
   | 'refresh'
@@ -82,9 +84,8 @@ const BRUSH_CURSOR_PADDING = 2
  * @param isTouch True if this is working with touch, false if not.
  */
 export class BrushCursor {
-  private readonly cursor   : DirectCursor
-  private readonly viewport : HTMLElement
-  private readonly canvas   : HTMLCanvasElement
+  private readonly cursor : DirectCursor
+  private readonly canvas : HTMLCanvasElement
 
   private readonly isTouch : boolean
 
@@ -105,24 +106,17 @@ export class BrushCursor {
 
   constructor(
       viewport : HTMLElement,
-      isTouch  : boolean,
   ) {
-    this.cursor   = new DirectCursor( viewport )
-    this.viewport = viewport
+    this.cursor = new DirectCursor( viewport )
 
     // Initializes to no size.
     this.isHidden       = false
     this.isReallyHidden = false
-    this.isTouch        = isTouch
 
     this.size  = 1
     this.shape = null
 
     this.canvas = htmlUtils.newCanvas( 1, 1 )
-
-    if ( isTouch ) {
-      this.hideTouch()
-    }
   }
 
   setCrosshair():this {
@@ -158,7 +152,9 @@ export class BrushCursor {
   show():this {
     this.isHidden = false
 
-    this.renderShape( this.shape )
+    if ( this.shape ) {
+      this.renderShape( this.shape )
+    }
 
     if ( ! this.isTouch ) {
       this.showInner()
@@ -258,7 +254,7 @@ export class BrushCursor {
 
         } else {
           const canvas = this.canvas
-          const ctx = canvas.getContext( '2d' )
+          const ctx = canvas.getContext( '2d' ) as CanvasRenderingContext2D
           const canvasSize  = zoomSize + BRUSH_CURSOR_PADDING
 
           canvas.width = canvas.height = canvasSize
@@ -310,7 +306,7 @@ export class BrushCursor {
     return this
   }
 
-  setCommandCursor( painter, command ) {
+  setCommandCursor( painter:SkyBrush, command:Command ) {
     const cursor = command.getCursor()
 
     if ( cursor === null ) {

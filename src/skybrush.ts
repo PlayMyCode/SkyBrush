@@ -310,7 +310,7 @@ export class SkyBrush {
 
     this.infoBar = new InfoBar( this.dom )
 
-    this.brushCursor = new BrushCursor( this.viewportContent, IS_TOUCH )
+    this.brushCursor = new BrushCursor( this.viewportContent )
 
     this.onSetCommand( this.refreshCursor )
 

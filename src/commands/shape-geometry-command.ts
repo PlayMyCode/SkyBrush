@@ -1,7 +1,8 @@
 
 import GeometryCommand from './geometry-command'
+import * as canvasUtils from 'util/canvas'
 
-export class ShapeGeometry extends Geometry {
+export class ShapeGeometryComman extends GeometryCommand {
   constructor( setup ) {
     let controls = setup.controls
     if ( ! controls ) {

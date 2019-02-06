@@ -86,9 +86,9 @@ export class Command {
 
   private readonly cursor : Nullable<string|Consumer2<this, SkyBrush>>
 
-  private readonly dom : Nullable<HTMLElement>
-
   private readonly css : string
+
+  private dom : Nullable<HTMLElement>
 
   private drawArea : Nullable<MinMaxArea>
 
@@ -108,28 +108,24 @@ export class Command {
     this.drawArea = null
 
     this.dom = null
-    this.controlsSetup = setup.controls
-
-    this.whenAttached = setup.onAttach || null
-    this.whenDetached = setup.onDetach || null
 
     this.isInAttach = false
     this.isInDetach = false
   }
 
-  onDown( canvas:CanvasManager, x:number, y:number ) {
+  onDown( _canvas:CanvasManager, _x:number, _y:number ) {
     // Do nothing.
   }
 
-  onMove( canvas:CanvasManager, x:number, y:number ) {
+  onMove( _canvas:CanvasManager, x:number, _y:number ) {
     // Do nothing.
   }
 
-  onUp( canvas:CanvasManager, x:number, y:number ) {
+  onUp( _canvas:CanvasManager, x:number, _y:number ) {
     // Do nothing.
   }
 
-  onShift( isShiftDown:boolean, skybrush:SkyBrush ) {
+  onShift( _isShiftDown:boolean, _skybrush:SkyBrush ) {
     // Do nothing.
   }
 
@@ -146,10 +142,6 @@ export class Command {
   onAttach( painter:SkyBrush ) {
     if ( ! this.isInAttach ) {
       this.isInAttach = true
-
-      if ( this.whenAttached ) {
-        this.whenAttached.call( this, painter )
-      }
 
       if ( this.shiftDown ) {
         painter.onShift( this.shiftDown )
@@ -186,10 +178,6 @@ export class Command {
         if ( painter.isShiftDown() ) {
           this.shiftDown.call( painter, false )
         }
-      }
-
-      if ( this.whenDetached ) {
-        this.whenDetached.call( this, painter )
       }
 
       this.isInDetach = false

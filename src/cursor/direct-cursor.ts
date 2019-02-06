@@ -77,9 +77,9 @@ export class DirectCursor {
     this.displaySize = 0
 
     this.cssSetup = {
-        height: -1,
-        width : -1,
-        'background-position': '',
+      height: -1,
+      width : -1,
+      'background-position': '',
     }
 
     // ensure it's all setup right!

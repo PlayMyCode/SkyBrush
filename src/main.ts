@@ -2004,11 +2004,11 @@ export class CanvasManager {
     this.refreshUpscale()
 
     viewport.clearQueue().animate(
-        {
-            scrollTop  : scrollTop,
-            scrollLeft : scrollLeft,
-        },
-        CANVAS_UPDATE_SPEED
+      {
+        scrollTop  : scrollTop,
+        scrollLeft : scrollLeft,
+      },
+      CANVAS_UPDATE_SPEED
     )
 
     this.grid.updateViewport( canvasX, canvasY, newWidth, newHeight, zoom )
@@ -3307,70 +3307,6 @@ function drawPixelLine( ctx:CanvasRenderingContext2D, x0:number, y0:number, x1:n
 
       xStart++
       xEnd++
-    }
-  }
-
-  return
-
-  // swap values so we iterate less
-  // this code was never finished
-  // that's why the maths is clearly odd
-  const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0)
-  if ( steep ) {
-    let t = x0
-    x0 = y0
-    y0 = t
-
-    t = x1
-    x1 = y1
-    y1 = t
-  }
-  if ( x0 > x1 ) {
-    let t = x0
-    x0 = x1
-    x1 = t
-
-    t = y0
-    y0 = y1
-    y1 = t
-  }
-  if ( y0 > y1 ) {
-    let t = y0
-    y0 = y1
-    y1 = t
-
-    t = y0
-    y0 = y1
-    y1 = t
-  }
-
-  const deltaX = x1 - x0
-  const deltaY = Math.abs( y1 - y0 )
-
-  const yStep = (
-      ( y0 < y1 )
-          ?  1
-          : -1
-  )
-
-  // Now DRAW!
-  const sizeI = Math.round( size )
-  const error = deltaX / 2
-  const y     = y0 - Math.round( size / 2 )
-
-  let c = 0
-  for ( let y = y0; y < y1; y++ ) {
-    c++
-    if ( steep ) {
-      ctx.fillRect( y, x, sizeI, 1 )
-    } else {
-      ctx.fillRect( x, y, 1, sizeI )
-    }
-
-    error = error - deltaY
-    if ( error < 0 ) {
-      y = y + yStep
-      error = error + deltaX
     }
   }
 }

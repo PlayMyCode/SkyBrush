@@ -1,5 +1,10 @@
 
+import { ShapeGeometryCommand } from './shape-geometry-command'
+import * as canvasUtils from 'util/canvas'
+
 export class CircleCommand extends ShapeGeometryCommand {
+  private isOutline = false
+  
   constructor() {
     super({
       name: 'Circle',
@@ -23,4 +28,3 @@ export class CircleCommand extends ShapeGeometryCommand {
     this.getControl( 'Mode' ).click()
   }
 }
-
