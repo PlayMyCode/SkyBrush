@@ -30,3 +30,8 @@ dist/*
 node_modules
 node_modules/*
 
+# Yarn stuff
+yarn-error.log
+.parcel-cache
+.cache
+
